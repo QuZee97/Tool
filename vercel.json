@@ -1,1 +1,13 @@
-{\n  "functions": {\n    "api/pdf.js": {\n      "memory": 1024,\n      "maxDuration": 30\n    }\n  },\n  "api": {\n    "bodyParser": {\n      "sizeLimit": "5mb"\n    }\n  }\n}\n
+{
+  "functions": {
+    "api/pdf.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
+  "api": {
+    "bodyParser": {
+      "sizeLimit": "5mb"
+    }
+  }
+}
