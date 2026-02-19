@@ -1,7 +1,6 @@
-const chromium = require('@sparticuz/chromium-min');
+const chromium = require('@sparticuz/chromium');
 const puppeteer = require('puppeteer-core');
 
-// Vercel Body-Size-Limit auf 5mb erhöhen (CSS-Payload kann groß sein)
 module.exports.config = {
   api: { bodyParser: { sizeLimit: '5mb' } }
 };
@@ -17,8 +16,6 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ error: 'page1 content required' });
   }
 
-  // Einen durchgehenden HTML-Fluss bauen.
-  // Puppeteer paginiert selbst – 25 mm Rand via @page.
   const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -79,9 +76,7 @@ module.exports = async function handler(req, res) {
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(
-        'https://github.com/Sparticuz/chromium/releases/download/v119.0.2/chromium-v119.0.2-pack.tar'
-      ),
+      executablePath: await chromium.executablePath(),
       headless: chromium.headless,
     });
 
