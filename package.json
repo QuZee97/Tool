@@ -1,1 +1,9 @@
-{\n  "name": "viso-media-tool",\n  "version": "1.0.0",\n  "private": true,\n  "dependencies": {\n    "@sparticuz/chromium-min": "119.0.2",\n    "puppeteer-core": "21.6.1"\n  }\n}\n
+{
+  "name": "viso-media-tool",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@sparticuz/chromium-min": "119.0.2",
+    "puppeteer-core": "21.6.1"
+  }
+}
