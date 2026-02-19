@@ -119,7 +119,7 @@ tbody td:nth-child(n+3){text-align:right;white-space:nowrap;}
   .page{margin:0;box-shadow:none;width:100%;}
   #page1{page-break-after:always;}
   #page2{page-break-before:always!important;page-break-after:auto;}
-  @page{margin:14mm 10mm;size:A4;}
+  @page{margin:25mm;size:A4;}
   thead tr{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   .totals tr.total-row{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   .info-box{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
@@ -129,6 +129,7 @@ tbody td:nth-child(n+3){text-align:right;white-space:nowrap;}
 <body>
 <div id="nav">
   <button class="nav-btn active" onclick="showPanel('doc',this)" title="Dokument">📄</button>
+  <button class="nav-btn" onclick="newDoc(this)" title="Neues Dokument">➕</button>
   <div class="nav-sep"></div>
   <button class="nav-btn" onclick="showPanel('customers',this)" title="Kunden">👥</button>
   <button class="nav-btn" onclick="showPanel('library',this)" title="Leistungen">📦</button>
@@ -160,7 +161,7 @@ tbody td:nth-child(n+3){text-align:right;white-space:nowrap;}
       <input type="text" id="f_uid" placeholder="DE123456789" oninput="update()">
     </div>
     <h3>Typ / Type</h3>
-    <select id="f_typ" onchange="update()">
+    <select id="f_typ" onchange="onTypChange()">
       <option value="angebot">Angebot / Quote</option>
       <option value="rechnung">Rechnung / Invoice</option>
     </select>
@@ -179,8 +180,7 @@ tbody td:nth-child(n+3){text-align:right;white-space:nowrap;}
     <label>Datum / Date</label><input type="date" id="f_datum" oninput="update()">
     <div id="wrap_gueltig"><label>Gültig bis / Valid until</label><input type="date" id="f_gueltig" oninput="update()"></div>
     <div id="wrap_zeitraum" style="display:none">
-      <label>Leistung von / Service from</label><input type="date" id="f_von" oninput="update()">
-      <label>bis / to</label><input type="date" id="f_bis" oninput="update()">
+      <label>Lieferdatum / Service date</label><input type="date" id="f_von" oninput="update()">
     </div>
     <label>Betreff / Subject</label><input type="text" id="f_betreff" placeholder="z. B. Social Media Concept" oninput="update()">
     <h3>Zahlung / Payment</h3>
@@ -328,7 +328,7 @@ tbody td:nth-child(n+3){text-align:right;white-space:nowrap;}
     <!-- AGB-Hinweis -->
     <div class="info-box" id="agb_hint" style="display:none;"></div>
     <div class="doc-footer">
-      <div><strong id="t_contact">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="385c594e515c784e514b5716555d5c5159">[email&#160;protected]</a></div>
+      <div><strong id="t_contact">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br>david@viso.media</div>
       <div><strong id="t_tax_f">Steuer</strong><span id="t_taxnr_label">Steuernummer:</span> 02087201058<br><span id="t_vatid_label">USt-IdNr.:</span> DE354878347</div>
       <div><strong id="t_bank">Bankverbindung</strong><span id="t_accholder_label">Kontoinhaber:</span> David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
     </div>
@@ -353,9 +353,9 @@ tbody td:nth-child(n+3){text-align:right;white-space:nowrap;}
       <div class="sig-field"><div class="sig-line"></div><span id="t_sig_date">Ort, Datum</span></div>
       <div class="sig-field"><div class="sig-line"></div><span id="t_sig_sign">Unterschrift Auftraggeber / Stempel</span></div>
     </div>
-    <div style="margin-top:10mm;font-size:10px;color:#999;text-align:center;" id="t_return">Bitte unterschriebene Seite per E-Mail zurücksenden an: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="781c190e111c380e110b1756151d1c1119">[email&#160;protected]</a></div>
+    <div style="margin-top:10mm;font-size:10px;color:#999;text-align:center;" id="t_return">Bitte unterschriebene Seite per E-Mail zurücksenden an: david@viso.media</div>
     <div class="doc-footer" style="margin-top:8mm;">
-      <div><strong id="t_contact2">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b7d3d6c1ded3f7c1dec4d899dad2d3ded6">[email&#160;protected]</a></div>
+      <div><strong id="t_contact2">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br>david@viso.media</div>
       <div><strong id="t_tax2">Steuer</strong><span id="t_taxnr_label2">Steuernummer:</span> 02087201058<br><span id="t_vatid_label2">USt-IdNr.:</span> DE354878347</div>
       <div><strong id="t_bank2">Bankverbindung</strong><span id="t_accholder_label2">Kontoinhaber:</span> David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
     </div>
@@ -400,12 +400,12 @@ const STATUS_RE=[
 const T={
   de:{
     doc_q:'ANGEBOT',doc_i:'RECHNUNG',nr_q:'Angebots-Nr.:',nr_i:'Rechnungs-Nr.:',
-    date:'Datum:',valid:'Gültig bis:',period:'Leistungszeitraum:',
+    date:'Datum:',valid:'Gültig bis:',period:'Lieferdatum:',
     th:['Pos.','Leistungsbeschreibung','Menge','Einheit','Einzelpreis','Gesamt'],
     net:'Nettobetrag',tax19:'zzgl. 19 % MwSt.',total_q:'Gesamtbetrag',total_i:'Rechnungsbetrag',
     payment:'Zahlungsbedingungen:',notes:'Hinweise:',contact:'Kontakt',tax_f:'Steuer',bank:'Bankverbindung',
     intro_q:'vielen Dank für Ihr Interesse. Gerne unterbreite ich Ihnen folgendes Angebot für die beschriebenen Leistungen:',
-    intro_i:'für die erbrachten Leistungen erlaube ich mir, Ihnen folgendes in Rechnung zu stellen:',
+    intro_i:'Für die erbrachten Leistungen stelle ich Ihnen folgendes in Rechnung:',
     sign_q:'Für Rückfragen stehe ich Ihnen gerne zur Verfügung. Ich freue mich auf eine gute Zusammenarbeit.<br><br>Mit freundlichen Grüßen,<br><br><strong>David Stiehler</strong><br>VISO Media',
     sign_i:'Für Rückfragen stehe ich Ihnen jederzeit gerne zur Verfügung.<br><br>Mit freundlichen Grüßen,<br><br><strong>David Stiehler</strong><br>VISO Media',
     pay_full:b=>`Gesamtbetrag von <strong>${b}</strong> zahlbar innerhalb von 14 Tagen nach Rechnungsstellung.`,
@@ -425,7 +425,7 @@ const T={
   },
   en:{
     doc_q:'QUOTE',doc_i:'INVOICE',nr_q:'Quote No.:',nr_i:'Invoice No.:',
-    date:'Date:',valid:'Valid until:',period:'Service period:',
+    date:'Date:',valid:'Valid until:',period:'Delivery date:',
     th:['No.','Description','Qty','Unit','Unit price','Total'],
     net:'Net amount',tax19:'plus 19% VAT',total_q:'Total amount',total_i:'Invoice total',
     payment:'Payment terms:',notes:'Notes:',contact:'Contact',tax_f:'Tax',bank:'Bank details',
@@ -522,11 +522,58 @@ function renderSidebarPos(){
 }
 function posUpdate(id,field,v){const p=positionen.find(x=>x.id===id);if(p){p[field]=v;update();}}
 
+// ── NUMMERNVERGABE ────────────────────────────────────────
+function nextDocNr(typ){
+  const year=new Date().getFullYear();
+  const prefix=typ==='rechnung'?'RE':'ANG';
+  const existing=history.filter(h=>h.typ===typ&&h.nr&&h.nr.startsWith(prefix+'-'+year));
+  const nums=existing.map(h=>{const m=h.nr.match(/(\d+)$/);return m?parseInt(m[1]):0;}).filter(n=>!isNaN(n));
+  const next=nums.length?Math.max(...nums)+1:1;
+  return`${prefix}-${year}-${String(next).padStart(3,'0')}`;
+}
+
+function onTypChange(){
+  // Nur Nummer aktualisieren wenn sie noch dem alten Typ entspricht (nicht manuell geändert)
+  const typ=$('f_typ').value;
+  const nr=val('f_nr');
+  if(typ==='rechnung'&&nr.startsWith('ANG')){$('f_nr').value=nextDocNr('rechnung');}
+  else if(typ==='angebot'&&nr.startsWith('RE')){$('f_nr').value=nextDocNr('angebot');}
+  update();
+}
+
+// ── NEUES DOKUMENT ────────────────────────────────────────
+function newDoc(btn){
+  if(!confirm('Neues Dokument erstellen? Nicht gespeicherte Änderungen gehen verloren.'))return;
+  const today=new Date();
+  const inM=new Date(today);inM.setMonth(inM.getMonth()+1);
+  // Felder leeren
+  $('f_firma').value='';$('f_ansprechpartner').value='';$('f_strasse').value='';
+  $('f_ort').value='';$('f_land').value='';$('f_uid').value='';$('f_betreff').value='';
+  $('f_hinweise').value='';$('f_zahlung').value='voll';$('f_kunde_select').value='';
+  $('f_von').value='';
+  // Typ auf Angebot, neue Nummer
+  $('f_typ').value='angebot';
+  $('f_nr').value=nextDocNr('angebot');
+  $('f_datum').value=today.getFullYear()+'-'+pad(today.getMonth()+1)+'-'+pad(today.getDate());
+  $('f_gueltig').value=inM.getFullYear()+'-'+pad(inM.getMonth()+1)+'-'+pad(inM.getDate());
+  // Sprache + Steuer zurücksetzen
+  setLang('de');setTax('de');
+  // Positionen leeren, eine neue hinzufügen
+  positionen=[];renderSidebarPos();addPos();
+  showPanel('doc',document.querySelectorAll('.nav-btn')[0]);
+  update();toast('Neues Dokument ✓');
+}
+
 // ── CONVERT ──────────────────────────────────────────────
 function convertDoc(){
   const t=$('f_typ'),nr=$('f_nr');
-  if(t.value==='angebot'){t.value='rechnung';nr.value=nr.value.replace('ANG','RE');}
-  else{t.value='angebot';nr.value=nr.value.replace('RE','ANG');}
+  if(t.value==='angebot'){
+    t.value='rechnung';
+    nr.value=nr.value.replace(/^ANG/,'RE');
+  }else{
+    t.value='angebot';
+    nr.value=nr.value.replace(/^RE/,'ANG');
+  }
   update();toast('Umgewandelt ✓');
 }
 
@@ -595,8 +642,7 @@ function update(){
   $('d_datum').textContent=fmtDate(val('f_datum'));
 
   if(isRe){
-    const von=fmtDate(val('f_von')),bis=fmtDate(val('f_bis'));
-    $('d_extra').textContent=(von!=='–'||bis!=='–')?von+' – '+bis:'–';
+    $('d_extra').textContent=fmtDate(val('f_von'));
   }else{$('d_extra').textContent=fmtDate(val('f_gueltig'));}
 
   const betreff=val('f_betreff'),bEl=$('d_betreff');
@@ -773,7 +819,7 @@ async function deleteDoc(id){
 function loadDoc(i){
   const d=history[i];
   $('f_typ').value=d.typ||'angebot';$('f_nr').value=d.nr||'';$('f_datum').value=d.datum||'';
-  $('f_gueltig').value=d.gueltig||'';$('f_von').value=d.von||'';$('f_bis').value=d.bis||'';
+  $('f_gueltig').value=d.gueltig||'';$('f_von').value=d.von||'';
   $('f_betreff').value=d.betreff||'';$('f_zahlung').value=d.zahlung||'voll';
   $('f_hinweise').value=d.hinweise||'';$('f_firma').value=d.firma||'';
   $('f_ansprechpartner').value=d.ansp||'';$('f_strasse').value=d.str||'';
@@ -921,6 +967,8 @@ async function init(){
   $('f_datum').value=today.getFullYear()+'-'+pad(today.getMonth()+1)+'-'+pad(today.getDate());
   const inM=new Date(today);inM.setMonth(inM.getMonth()+1);
   $('f_gueltig').value=inM.getFullYear()+'-'+pad(inM.getMonth()+1)+'-'+pad(inM.getDate());
+  // Nächste Angebotsnummer automatisch setzen
+  $('f_nr').value=nextDocNr('angebot');
 
   renderCustomerList();
   renderLibraryList();
