@@ -1,14 +1,9 @@
-// ── SUPABASE CONFIG ───────────────────────────────────────
-// Diese zwei Werte aus deinem Supabase-Projekt eintragen:
-// Supabase Dashboard → Settings → API
-const SUPABASE_URL  = 'DEINE_SUPABASE_URL';   // z.B. https://xyzabc.supabase.co
-const SUPABASE_ANON = 'DEIN_ANON_KEY';        // beginnt mit eyJ...
+const SUPABASE_URL  = 'https://yriexfiocbktdneranhmm.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlyaWV4ZmlvY2JrdGRuZXJhbmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1MTQyNzIsImV4cCI6MjA4NzA5MDI3Mn0.Xnp_sunDFDWqKk_ES78hM7TXSHgqUXIse4iODZT43JI';
 
-// Supabase Client initialisieren (via CDN, kein Build-Tool nötig)
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// ── AUTH ──────────────────────────────────────────────────
 async function signIn(email, password) {
   const { data, error } = await db.auth.signInWithPassword({ email, password });
   if (error) throw error;
@@ -25,11 +20,7 @@ async function getUser() {
   return user;
 }
 
-// ── DATENBANK-OPERATIONEN ─────────────────────────────────
-// Alle CRUD-Operationen für das Tool
-
 const DB = {
-  // Kunden
   async getCustomers() {
     const { data, error } = await db.from('customers').select('*').order('created_at', { ascending: false });
     if (error) throw error;
@@ -46,24 +37,25 @@ const DB = {
     if (error) throw error;
   },
 
-  // Leistungsbibliothek
   async getLibrary() {
     const { data, error } = await db.from('library').select('*').order('created_at', { ascending: false });
     if (error) throw error;
-    return data || [];
+    // Feldname zurück mappen: beschreibung → desc (für das Tool)
+    return (data || []).map(l => ({ ...l, desc: l.beschreibung }));
   },
   async saveLibItem(item) {
     const user = await getUser();
-    const { data, error } = await db.from('library').insert({ ...item, user_id: user.id }).select().single();
+    // desc → beschreibung für die DB
+    const { desc, ...rest } = item;
+    const { data, error } = await db.from('library').insert({ ...rest, beschreibung: desc, user_id: user.id }).select().single();
     if (error) throw error;
-    return data;
+    return { ...data, desc: data.beschreibung };
   },
   async deleteLibItem(id) {
     const { error } = await db.from('library').delete().eq('id', id);
     if (error) throw error;
   },
 
-  // Dokumente (Angebote & Rechnungen)
   async getDocuments() {
     const { data, error } = await db.from('documents').select('*').order('created_at', { ascending: false });
     if (error) throw error;
@@ -71,7 +63,6 @@ const DB = {
   },
   async saveDocument(doc) {
     const user = await getUser();
-    // Upsert: update wenn nr schon existiert, sonst insert
     const { data, error } = await db.from('documents')
       .upsert({ ...doc, user_id: user.id, updated_at: new Date().toISOString() }, { onConflict: 'nr,user_id' })
       .select().single();
@@ -87,11 +78,9 @@ const DB = {
     if (error) throw error;
   },
 
-  // E-Mail-Vorlagen
   async getEmailTemplates() {
     const { data, error } = await db.from('email_templates').select('*');
     if (error) throw error;
-    // In Objekt umwandeln: { key: { subject, body } }
     const result = {};
     (data || []).forEach(t => { result[t.key] = { subject: t.subject, body: t.body }; });
     return result;
