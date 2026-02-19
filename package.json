@@ -1,6 +1,6 @@
 {
   "name": "viso-media-tool",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "dependencies": {
     "@sparticuz/chromium": "131.0.1",
