@@ -1,6 +1,3 @@
-const chromium = require('@sparticuz/chromium');
-const puppeteer = require('puppeteer-core');
-
 module.exports.config = {
   api: { bodyParser: { sizeLimit: '5mb' } }
 };
@@ -11,7 +8,6 @@ module.exports = async function handler(req, res) {
   }
 
   const { page1, page2, css, filename } = req.body;
-
   if (!page1) {
     return res.status(400).json({ error: 'page1 content required' });
   }
@@ -29,10 +25,7 @@ module.exports = async function handler(req, res) {
       color: #1a1a1a;
       background: #fff;
     }
-    @page {
-      size: A4;
-      margin: 25mm;
-    }
+    @page { size: A4; margin: 25mm; }
     .page {
       width: auto !important;
       min-height: 0 !important;
@@ -71,36 +64,45 @@ module.exports = async function handler(req, res) {
 </body>
 </html>`;
 
-  let browser = null;
+  const BROWSERLESS_TOKEN = process.env.BROWSERLESS_TOKEN;
+  if (!BROWSERLESS_TOKEN) {
+    return res.status(500).json({ error: 'BROWSERLESS_TOKEN not configured' });
+  }
+
   try {
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: chromium.headless,
-    });
+    const response = await fetch(
+      `https://production-sfo.browserless.io/pdf?token=${BROWSERLESS_TOKEN}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          html,
+          options: {
+            format: 'A4',
+            printBackground: true,
+            margin: { top: 0, right: 0, bottom: 0, left: 0 },
+            displayHeaderFooter: false,
+          }
+        })
+      }
+    );
 
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Browserless error ${response.status}: ${text}`);
+    }
 
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: 0, right: 0, bottom: 0, left: 0 },
-      displayHeaderFooter: false,
-    });
+    const pdfBuffer = Buffer.from(await response.arrayBuffer());
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
       `attachment; filename="${encodeURIComponent(filename || 'Dokument')}.pdf"`
     );
-    res.send(pdf);
+    res.send(pdfBuffer);
 
   } catch (err) {
     console.error('PDF error:', err);
     res.status(500).json({ error: 'PDF generation failed', details: err.message });
-  } finally {
-    if (browser) await browser.close();
   }
 };
