@@ -1,9 +1,6 @@
 {
   "name": "viso-media-tool",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "private": true,
-  "dependencies": {
-    "@sparticuz/chromium": "131.0.1",
-    "puppeteer-core": "23.11.1"
-  }
+  "dependencies": {}
 }
