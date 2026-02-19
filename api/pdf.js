@@ -1,6 +1,11 @@
 const chromium = require('@sparticuz/chromium-min');
 const puppeteer = require('puppeteer-core');
 
+// Vercel Body-Size-Limit auf 5mb erhöhen (CSS-Payload kann groß sein)
+module.exports.config = {
+  api: { bodyParser: { sizeLimit: '5mb' } }
+};
+
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
