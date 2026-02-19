@@ -63,9 +63,18 @@ const DB = {
   },
   async saveDocument(doc) {
     const user = await getUser();
-    const { data, error } = await db.from('documents')
-      .upsert({ ...doc, user_id: user.id, updated_at: new Date().toISOString() }, { onConflict: 'nr,user_id' })
-      .select().single();
+    const payload = { ...doc, user_id: user.id, updated_at: new Date().toISOString() };
+    let query;
+    if (doc.id) {
+      // Update existierendes Dokument via ID
+      query = db.from('documents').update(payload).eq('id', doc.id).select().single();
+    } else {
+      // Neues Dokument einfügen; falls Nummer+User schon existiert, aktualisieren
+      query = db.from('documents')
+        .upsert(payload, { onConflict: 'nr,user_id' })
+        .select().single();
+    }
+    const { data, error } = await query;
     if (error) throw error;
     return data;
   },
