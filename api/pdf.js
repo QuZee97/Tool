@@ -12,32 +12,90 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'page1 content required' });
   }
 
-  // Vollständiges HTML für das PDF bauen
+  // Wir bauen EINEN durchgehenden HTML-Fluss.
+  // Puppeteer paginiert selbst – kein festes min-height, kein overflow-hidden.
+  // 25 mm Rand an allen Seiten via @page margin.
+  // Seitenumbruch zwischen Angebot-Inhalt und AGB wird mit page-break-before erzwungen.
   const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <style>
+    /* ── Reset ── */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root { --accent: #4a4a4a; --accent-light: #f5f5f5; }
-    ${css || ''}
-    .print-page {
-      padding: 18mm 20mm 20mm 25mm;
-      page-break-after: always;
-      width: 210mm;
-      min-height: 297mm;
+
+    /* ── Basis-Typografie ── */
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      font-size: 13px;
+      color: #1a1a1a;
+      background: #fff;
     }
-    .print-page:last-child { page-break-after: auto; }
-    @page { size: A4; margin: 0; }
-    thead tr { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .totals tr.total-row { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .info-box { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    tbody tr:nth-child(even) { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    /* ── A4-Seite: Puppeteer übernimmt die Paginierung ── */
+    @page {
+      size: A4;
+      margin: 25mm;   /* 2,5 cm Weißraum an allen Seiten */
+    }
+
+    /* ── Seiteninhalt-Container ── */
+    /* page1 und page2 kommen direkt als innerHTML – ihre Styles bleiben erhalten */
+
+    /* Ursprüngliche .page-Klasse deaktivieren (kommt aus dem .innerHTML) */
+    .page {
+      width: auto !important;
+      min-height: 0 !important;
+      height: auto !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-shadow: none !important;
+      overflow: visible !important;
+    }
+
+    /* Trennlinie zwischen Seite 1 und AGB (Seite 2) */
+    .page-break {
+      page-break-before: always;
+    }
+
+    /* ── Farbtreue für Tabellen-Header, Totals, Info-Boxen ── */
+    thead tr,
+    .totals tr.total-row,
+    .info-box,
+    tbody tr:nth-child(even) {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* ── Alle ursprünglichen Tool-Styles ── */
+    ${css || ''}
+
+    /* ── Overrides die nach dem Tool-CSS kommen müssen ── */
+    /* Kein festes page-Rechteck mehr – Inhalt fließt frei */
+    #page1, #page2 {
+      display: block !important;
+      width: auto !important;
+      min-height: 0 !important;
+      height: auto !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      box-shadow: none !important;
+      overflow: visible !important;
+    }
+
+    /* Header-Abstand nach oben entfernen (kommt von @page margin) */
+    .header { margin-top: 0 !important; }
+
+    /* Footer immer sichtbar, kein position:absolute */
+    .doc-footer { position: static !important; }
+
+    /* Sicherstellen dass Seite 2 (AGB) immer auf neuer Seite beginnt */
+    #page2 { page-break-before: always; }
   </style>
 </head>
 <body>
-  <div class="print-page">${page1}</div>
-  ${page2 ? `<div class="print-page">${page2}</div>` : ''}
+  <div id="page1">${page1}</div>
+  ${page2 ? `<div id="page2">${page2}</div>` : ''}
 </body>
 </html>`;
 
@@ -56,11 +114,16 @@ export default async function handler(req, res) {
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
+      // Margin wird komplett über @page CSS gesteuert – hier 0
       margin: { top: 0, right: 0, bottom: 0, left: 0 },
+      displayHeaderFooter: false,
     });
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename || 'Dokument')}.pdf"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(filename || 'Dokument')}.pdf"`
+    );
     res.send(pdf);
 
   } catch (err) {
