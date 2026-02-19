@@ -9,17 +9,20 @@
 <style>
 /* ── TOKENS ─────────────────────────────────────────── */
 :root{
-  --bg:#0a0a0a;
-  --surface:#141414;
-  --surface2:#1c1c1c;
-  --surface3:#242424;
-  --border:#2a2a2a;
-  --border2:#333;
-  --text:#e8e8e8;
-  --text2:#999;
-  --text3:#555;
-  --accent:#e9e930;
-  --accent-dim:#b8b826;
+  /* Backgrounds: warm grays statt reines Schwarz */
+  --bg:#1e1f22;
+  --surface:#27282c;
+  --surface2:#2f3035;
+  --surface3:#383a40;
+  --border:#3d3f45;
+  --border2:#4a4c54;
+  --text:#e2e3e8;
+  --text2:#9a9ca5;
+  --text3:#5c5f6b;
+  /* Weniger saturiertes Gelb */
+  --accent:#d4cc2e;
+  --accent-dim:#a8a325;
+  --accent-bg:rgba(212,204,46,0.08);
   --red:#e05555;
   --green:#4ade80;
   --blue:#60a5fa;
@@ -63,7 +66,6 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
   position:relative;
 }
 #sidebar-content{flex:1;overflow-y:auto;padding:16px;}
-/* Custom scrollbar */
 #sidebar-content::-webkit-scrollbar{width:4px;}
 #sidebar-content::-webkit-scrollbar-track{background:transparent;}
 #sidebar-content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
@@ -85,7 +87,7 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
   margin-bottom:16px;
 }
 
-/* Form elements */
+/* Form elements – kein schwarzer Hintergrund, solid border */
 .field-group{margin-bottom:14px;}
 .field-label{font-size:11px;color:var(--text3);margin-bottom:5px;display:block;}
 .field-input,
@@ -95,12 +97,19 @@ textarea,select{
   border:1px solid var(--border2);border-radius:var(--radius-sm);
   color:var(--text);font-size:12px;padding:7px 10px;
   outline:none;font-family:var(--font);
-  transition:border-color .15s;
+  transition:border-color .15s,background .15s;
+  -webkit-appearance:none;
 }
-input:focus,textarea:focus,select:focus{border-color:var(--text3);}
+input:focus,textarea:focus,select:focus{
+  border-color:var(--accent);
+  background:var(--surface3);
+}
 textarea{resize:vertical;min-height:56px;line-height:1.6;}
-select{cursor:pointer;}
-select option{background:var(--surface2);}
+select{cursor:pointer;appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235c5f6b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center;
+  padding-right:28px;}
+select option{background:var(--surface2);color:var(--text);}
 
 /* Section header */
 .section-hd{
@@ -249,56 +258,88 @@ select option{background:var(--surface2);}
 
 /* Doc variables inside white doc */
 .doc-page{
-  --doc-accent:#4a4a4a;
-  --doc-light:#f5f5f5;
+  --doc-accent:#5a5a5a;
+  --doc-accent-soft:#888;
+  --doc-light:#f7f7f7;
   font-family:'Helvetica Neue',Arial,sans-serif;
   font-size:12.5px;
   line-height:1.5;
 }
 
-/* Inline edit styles – visible in editor, hidden in PDF */
+/* Inline edit styles – dashed, no black backgrounds */
 .ie{
   background:transparent;border:none;border-bottom:1px dashed #ccc;
   font-family:inherit;font-size:inherit;color:inherit;
   padding:1px 3px;outline:none;width:auto;
   min-width:40px;
 }
-.ie:focus{border-bottom-color:#4a4a4a;background:#f9f9e8;}
+.ie:focus{border-bottom-color:#888;background:#f5f5e8;}
 .ie-block{
   background:transparent;border:1px dashed #ddd;
   font-family:inherit;font-size:inherit;color:inherit;
   padding:3px 5px;outline:none;width:100%;
   border-radius:3px;
 }
-.ie-block:focus{border-color:#4a4a4a;background:#f9f9e8;}
+.ie-block:focus{border-color:#888;background:#f5f5e8;}
 .ie-select{
-  background:#f8f8f8;border:1px dashed #ccc;
+  background:transparent;border:1px dashed #ddd;
   font-family:inherit;font-size:inherit;color:inherit;
   padding:2px 4px;outline:none;border-radius:3px;cursor:pointer;
+  -webkit-appearance:none;appearance:none;
 }
-.ie-select:focus{border-color:#4a4a4a;}
+.ie-select:focus{border-color:#888;}
+/* Native date picker – behält den Kalender */
 .ie-date{
-  background:#f8f8f8;border:1px dashed #ccc;
+  background:transparent;border:1px dashed #ddd;
   font-family:inherit;font-size:inherit;color:inherit;
   padding:2px 4px;outline:none;border-radius:3px;cursor:pointer;
   width:130px;
+  /* Kalender-Icon zeigen */
+  -webkit-appearance:auto;
+  appearance:auto;
 }
-.ie-date:focus{border-color:#4a4a4a;}
+.ie-date:focus{border-color:#888;}
+.ie-date::-webkit-calendar-picker-indicator{
+  opacity:0.5;cursor:pointer;
+}
 
 /* Doc header */
 .doc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9mm;}
 .doc-logo{font-size:20px;font-weight:700;color:#111;letter-spacing:-.3px;}
-.doc-logo span{color:var(--doc-accent);font-weight:300;}
-.doc-name-sub{font-size:10.5px;color:#777;margin-top:2px;}
+.doc-logo span{color:var(--doc-accent-soft);font-weight:300;}
+.doc-name-sub{font-size:10.5px;color:#888;margin-top:2px;}
 .doc-meta{text-align:right;}
-.doc-meta h1{font-size:21px;font-weight:700;color:var(--doc-accent);margin-bottom:5px;}
+/* Typ-Titel kein hartes Schwarz – dunkles Grau */
+.doc-meta h1{font-size:21px;font-weight:700;color:#4a4a4a;margin-bottom:5px;}
 .doc-meta-row{font-size:11.5px;color:#555;line-height:1.9;}
 .doc-meta-label{color:#999;font-size:10.5px;}
 
 .sender-bar{font-size:9px;color:#aaa;margin-bottom:5mm;border-bottom:1px solid #eee;padding-bottom:2mm;}
 
-.recipient-block{margin-bottom:7mm;min-height:24mm;}
+/* Empfänger + Inline-Kunde */
+.recipient-block{margin-bottom:7mm;min-height:24mm;position:relative;}
 .recipient-block p{line-height:1.8;font-size:12px;}
+
+/* Kunde-Inline Toolbar */
+.recipient-toolbar{
+  display:flex;gap:5px;align-items:center;margin-bottom:4px;
+}
+.recipient-toolbar select.rc-sel{
+  font-size:10.5px;padding:2px 6px;border-radius:3px;
+  background:#f7f7f7;border:1px dashed #ccc;color:#666;
+  font-family:inherit;cursor:pointer;outline:none;
+  -webkit-appearance:none;appearance:none;
+  padding-right:18px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 5px center;
+}
+.recipient-toolbar button.rc-btn{
+  font-size:10px;padding:2px 7px;border-radius:3px;
+  border:1px dashed #ccc;background:#f7f7f7;color:#666;
+  cursor:pointer;font-family:inherit;white-space:nowrap;
+  transition:.15s;
+}
+.recipient-toolbar button.rc-btn:hover{border-color:#888;color:#333;}
 
 .doc-subject{
   font-size:13.5px;font-weight:700;color:#111;
@@ -306,7 +347,7 @@ select option{background:var(--surface2);}
 }
 .doc-intro{margin-bottom:5mm;line-height:1.75;color:#444;font-size:12px;}
 
-/* Table */
+/* Table – gedimmter Header statt Schwarz */
 .doc-table{width:100%;border-collapse:collapse;margin-bottom:5mm;font-size:12px;}
 .doc-table thead tr{background:var(--doc-accent);color:#fff;}
 .doc-table thead th{padding:7px 9px;text-align:left;font-weight:600;font-size:11.5px;}
@@ -333,7 +374,7 @@ select option{background:var(--surface2);}
   font-family:inherit;font-size:11px;color:#666;padding:1px 3px;
   outline:none;margin-top:2px;resize:none;min-height:0;overflow:hidden;
 }
-.pos-details-input:focus{border-bottom-color:#999;background:#f9f9f9;}
+.pos-details-input:focus{border-bottom-color:#999;background:#f5f5f5;}
 
 /* Totals */
 .totals-wrap{margin-left:auto;width:240px;margin-bottom:6mm;}
@@ -344,18 +385,21 @@ select option{background:var(--surface2);}
 
 /* Info boxes */
 .info-box{
-  background:#f8f8f8;border-left:3px solid var(--doc-accent);
+  background:#f8f8f8;border-left:3px solid #aaa;
   padding:9px 13px;margin-bottom:5mm;font-size:11.5px;line-height:1.75;color:#333;
 }
 .sign-block{margin-bottom:10mm;line-height:1.75;color:#444;font-size:12px;}
 
-/* Footer */
+/* Footer – keep-together per display:table-footer-group trick nicht nötig,
+   wir nutzen page-break-inside:avoid im PDF */
 .doc-footer{
   border-top:1px solid #e0e0e0;padding-top:4mm;
   display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;
-  font-size:10px;color:#777;line-height:1.85;
+  font-size:10px;color:#555;line-height:1.85;
+  page-break-inside:avoid;
+  break-inside:avoid;
 }
-.doc-footer strong{color:#444;font-size:10.5px;display:block;margin-bottom:2px;}
+.doc-footer strong{color:#333;font-size:10.5px;display:block;margin-bottom:2px;}
 
 /* AGB */
 .agb-section{margin-bottom:5mm;}
@@ -364,7 +408,7 @@ select option{background:var(--surface2);}
 .sig-block{margin-top:10mm;display:grid;grid-template-columns:1fr 1fr;gap:14mm;}
 .sig-field{border-top:1px solid #aaa;padding-top:2.5mm;font-size:9.5px;color:#888;}
 .sig-field .sig-line{height:13mm;}
-.agb-hint-box{background:#f8f8f8;border-left:3px solid var(--doc-accent);padding:9px 13px;font-size:11px;color:#555;}
+.agb-hint-box{background:#f8f8f8;border-left:3px solid #aaa;padding:9px 13px;font-size:11px;color:#555;}
 
 /* ── PRINT / PDF OVERRIDES ──────────────────────────── */
 @media print{
@@ -378,6 +422,8 @@ select option{background:var(--surface2);}
   .ie,.ie-block,.ie-select,.ie-date{border:none!important;background:transparent!important;}
   .doc-table .add-row-btn{display:none!important;}
   .pos-del{display:none!important;}
+  .doc-footer{page-break-inside:avoid;break-inside:avoid;}
+  .recipient-toolbar{display:none!important;}
 }
 </style>
 </head>
@@ -448,11 +494,6 @@ select option{background:var(--surface2);}
         <option value="50">50% Anzahlung</option>
       </select>
 
-      <div class="section-hd">Kunden</div>
-      <select id="f_kunde_select" onchange="loadCustomer()">
-        <option value="">— Kunde übernehmen —</option>
-      </select>
-
       <div class="section-hd">Aktionen</div>
       <button class="btn btn-ghost btn-full" onclick="convertDoc()">
         <i data-lucide="arrow-left-right"></i> Umwandeln
@@ -499,7 +540,7 @@ select option{background:var(--surface2);}
       <div style="display:flex;gap:8px;margin-top:8px;">
         <div style="flex:1">
           <label class="field-label">Menge</label>
-          <input type="number" id="nl_menge" value="1">
+          <input type="text" id="nl_menge" value="1">
         </div>
         <div style="flex:1">
           <label class="field-label">Einheit</label>
@@ -514,7 +555,7 @@ select option{background:var(--surface2);}
         </div>
       </div>
       <label class="field-label" style="margin-top:8px;">Preis (€)</label>
-      <input type="number" id="nl_preis" placeholder="0">
+      <input type="text" id="nl_preis" placeholder="0,00">
       <button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="saveLibItem()">
         <i data-lucide="check"></i> Speichern
       </button>
@@ -614,12 +655,12 @@ select option{background:var(--surface2);}
         </div>
         <div class="doc-meta-row">
           <span class="doc-meta-label" id="d_date_label">Datum:</span>
-          <input type="date" class="ie-date" id="f_datum" oninput="update()" style="width:130px;">
+          <input type="date" class="ie-date" id="f_datum" oninput="update()" style="width:138px;">
         </div>
         <div class="doc-meta-row" id="row_extra">
           <span class="doc-meta-label" id="d_extra_label">Gültig bis:</span>
-          <input type="date" class="ie-date" id="f_gueltig" oninput="update()" style="width:130px;">
-          <input type="date" class="ie-date" id="f_von" oninput="update()" style="display:none;width:130px;">
+          <input type="date" class="ie-date" id="f_gueltig" oninput="update()" style="width:138px;">
+          <input type="date" class="ie-date" id="f_von" oninput="update()" style="display:none;width:138px;">
         </div>
       </div>
     </div>
@@ -627,8 +668,15 @@ select option{background:var(--surface2);}
     <!-- Sender bar -->
     <div class="sender-bar">David Stiehler · Schiffenberger Weg 28A · 35394 Gießen · Germany</div>
 
-    <!-- Recipient (inline editable) -->
+    <!-- Recipient (inline editable) + Kunden-Toolbar -->
     <div class="recipient-block">
+      <!-- Kunden-Toolbar (nur Editor, nicht PDF) -->
+      <div class="recipient-toolbar no-print">
+        <select class="rc-sel" id="f_kunde_inline" onchange="loadCustomerInline()">
+          <option value="">Kunde aus Datenbank übernehmen …</option>
+        </select>
+        <button class="rc-btn" onclick="saveCurrentAsCustomer()" title="Aktuelle Adresse in Kundendatenbank speichern">+ in DB</button>
+      </div>
       <p>
         <input class="ie-block" id="f_firma" placeholder="Firma / Company" oninput="update()" style="font-weight:700;margin-bottom:2px;">
         <input class="ie-block" id="f_ansprechpartner" placeholder="Ansprechpartner" oninput="update()" style="margin-top:3px;">
@@ -674,7 +722,7 @@ select option{background:var(--surface2);}
 
     <!-- Lib select (inline) -->
     <div class="no-print" style="margin-top:-3mm;margin-bottom:5mm;">
-      <select id="f_lib_select" onchange="addFromLib()" style="width:auto;font-size:11px;padding:5px 8px;background:var(--doc-light);border:1px dashed #ccc;color:#666;">
+      <select id="f_lib_select" onchange="addFromLib()" style="width:auto;font-size:11px;padding:5px 8px;background:#f7f7f7;border:1px dashed #ccc;color:#666;border-radius:4px;cursor:pointer;outline:none;">
         <option value="">+ Aus Bibliothek hinzufügen</option>
       </select>
     </div>
@@ -708,7 +756,7 @@ select option{background:var(--surface2);}
 
     <!-- Footer -->
     <div class="doc-footer">
-      <div><strong id="t_contact">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br>david@viso.media</div>
+      <div><strong id="t_contact">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br>david&#64;viso.media</div>
       <div><strong id="t_tax_f">Steuer</strong><span id="t_taxnr_label">Steuernummer:</span> 02087201058<br><span id="t_vatid_label">USt-IdNr.:</span> DE354878347</div>
       <div><strong id="t_bank">Bankverbindung</strong><span id="t_accholder_label">Kontoinhaber:</span> David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
     </div>
@@ -736,9 +784,9 @@ select option{background:var(--surface2);}
       <div class="sig-field"><div class="sig-line"></div><span id="t_sig_date">Ort, Datum</span></div>
       <div class="sig-field"><div class="sig-line"></div><span id="t_sig_sign">Unterschrift Auftraggeber / Stempel</span></div>
     </div>
-    <div style="margin-top:8mm;font-size:10px;color:#aaa;text-align:center;" id="t_return">Bitte unterschriebene Seite per E-Mail zurücksenden an: david@viso.media</div>
+    <div style="margin-top:8mm;font-size:10px;color:#aaa;text-align:center;" id="t_return">Bitte unterschriebene Seite per E-Mail zurücksenden an: david&#64;viso.media</div>
     <div class="doc-footer" style="margin-top:7mm;">
-      <div><strong id="t_contact2">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br>david@viso.media</div>
+      <div><strong id="t_contact2">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br>david&#64;viso.media</div>
       <div><strong id="t_tax2">Steuer</strong><span id="t_taxnr_label2">Steuernummer:</span> 02087201058<br><span id="t_vatid_label2">USt-IdNr.:</span> DE354878347</div>
       <div><strong id="t_bank2">Bankverbindung</strong><span id="t_accholder_label2">Kontoinhaber:</span> David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
     </div>
@@ -761,6 +809,8 @@ let customers=[];
 let library=[];
 let history=[];
 let customEmailTpl={};
+// Track current loaded doc id for proper upsert
+let currentDocId=null;
 
 const UNITS={
   pauschal:{de:'pauschal',en:'flat rate'},
@@ -867,6 +917,18 @@ const EMAIL_TPL={
   followup_en:{subject:'Follow-up: Quote {{nr}} | VISO Media',body:`Dear {{name}},\n\nI wanted to follow up on Quote No. {{nr}} for "{{betreff}}" and check if you have any questions.\n\nThe quote remains valid until {{datum}}.\n\nKind regards,\nDavid Stiehler · VISO Media`}
 };
 
+// Parst Preis-Texteingaben: "1.500,50" → 1500.50 oder "1500.50" → 1500.50
+function parsePreis(s){
+  if(!s)return 0;
+  s=String(s).trim();
+  // Wenn Komma als Dezimal (DE-Format: "1.500,50")
+  if(/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(s)){
+    return parseFloat(s.replace(/\./g,'').replace(',','.'));
+  }
+  // Fallback: normales Float-Parsing
+  return parseFloat(s.replace(',','.').replace(/[^\d.]/g,''))||0;
+}
+
 const fmt=n=>n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+'\u00a0€';
 const fmtDate=v=>{if(!v)return'–';const[y,m,d]=v.split('-');return`${d}.${m}.${y}`;};
 const pad=n=>String(n).padStart(2,'0');
@@ -925,7 +987,6 @@ function setTax(t){
 }
 function setTyp(t,btn){
   typ=t;
-  $('f_typ_val') && ($('f_typ_val').value=t);
   // Update topbar buttons
   document.querySelectorAll('.doc-type-btn').forEach(b=>b.classList.remove('active'));
   if(btn)btn.classList.add('active');
@@ -953,8 +1014,9 @@ function newDoc(btn){
   const inM=new Date(today);inM.setMonth(inM.getMonth()+1);
   ['f_firma','f_ansprechpartner','f_strasse','f_ort','f_land','f_uid','f_betreff','f_hinweise','f_von'].forEach(id=>{if($(id))$(id).value='';});
   $('f_zahlung').value='voll';
-  $('f_kunde_select').value='';
+  $('f_kunde_inline').value='';
   typ='angebot';
+  currentDocId=null;
   $('f_nr').value=nextDocNr('angebot');
   $('f_datum').value=today.getFullYear()+'-'+pad(today.getMonth()+1)+'-'+pad(today.getDate());
   $('f_gueltig').value=inM.getFullYear()+'-'+pad(inM.getMonth()+1)+'-'+pad(inM.getDate());
@@ -970,6 +1032,7 @@ function newDoc(btn){
 // ── CONVERT ───────────────────────────────────────────────
 function convertDoc(){
   const newTyp=typ==='angebot'?'rechnung':'angebot';
+  currentDocId=null; // Umgewandelt = neues Dokument
   setTyp(newTyp, newTyp==='rechnung'?$('typ-rechnung'):$('typ-angebot'));
   toast('Umgewandelt ✓');
 }
@@ -999,7 +1062,7 @@ function renderPositionen(){
     return;
   }
   tbody.innerHTML=positionen.map((p,i)=>{
-    const m=parseFloat(p.menge)||0,pr=parseFloat(p.preis)||0,sum=m*pr;
+    const m=parsePreis(p.menge)||0,pr=parsePreis(p.preis)||0,sum=m*pr;
     return`<tr>
       <td style="color:#888;font-size:11px;vertical-align:top;padding-top:10px;">${i+1}</td>
       <td>
@@ -1010,14 +1073,14 @@ function renderPositionen(){
           rows="1">${p.details||''}</textarea>
       </td>
       <td style="text-align:right;vertical-align:top;padding-top:10px;">
-        <input class="ie" type="number" value="${p.menge}" style="width:44px;text-align:right;"
+        <input class="ie" type="text" value="${p.menge}" style="width:44px;text-align:right;"
           oninput="posUpdate(${p.id},'menge',this.value)">
       </td>
       <td style="text-align:right;vertical-align:top;padding-top:10px;">
         <select class="ie-select" onchange="posUpdate(${p.id},'einheit',this.value)" style="font-size:11px;">${unitOptions(p.einheit)}</select>
       </td>
       <td style="text-align:right;vertical-align:top;padding-top:10px;">
-        <input class="ie" type="number" value="${p.preis}" placeholder="0" style="width:70px;text-align:right;"
+        <input class="ie" type="text" value="${p.preis}" placeholder="0,00" style="width:70px;text-align:right;"
           oninput="posUpdate(${p.id},'preis',this.value)">
       </td>
       <td style="text-align:right;vertical-align:top;padding-top:10px;white-space:nowrap;font-weight:600;">
@@ -1032,7 +1095,7 @@ function renderPositionen(){
 
 // ── EMAIL ──────────────────────────────────────────────────
 function getDocVals(){
-  const netto=positionen.reduce((s,p)=>s+(parseFloat(p.menge)||0)*(parseFloat(p.preis)||0),0);
+  const netto=positionen.reduce((s,p)=>s+parsePreis(p.menge)*parsePreis(p.preis),0);
   const brutto=tax==='de'?netto*1.19:netto;
   return{
     name:val('f_ansprechpartner')||val('f_firma')||'…',
@@ -1082,9 +1145,6 @@ function update(){
   // Table headers
   document.querySelectorAll('.th').forEach((th,i)=>th.textContent=l.th[i]);
 
-  // Nr label sidebar
-  const lbl=$('lbl_nr');if(lbl)lbl.textContent=isRe?'Rechnungs-Nr.':'Angebots-Nr.';
-
   // Annex (page 2)
   ['d_nr','d_nr2'].forEach(id=>$(id)&&($(id).textContent=nr));
   $('t_annex_label').textContent=l.annex_label;
@@ -1100,7 +1160,7 @@ function update(){
 
   // Payment
   $('t_payment_title').textContent=l.payment;
-  const netto=positionen.reduce((s,p)=>s+(parseFloat(p.menge)||0)*(parseFloat(p.preis)||0),0);
+  const netto=positionen.reduce((s,p)=>s+parsePreis(p.menge)*parsePreis(p.preis),0);
   const mwst=tax==='de'?netto*.19:0,brutto=netto+mwst;
   const half=brutto/2;
   $('d_zahlung_text').innerHTML=val('f_zahlung')==='voll'?l.pay_full(fmt(brutto)):l.pay_50(fmt(half));
@@ -1173,6 +1233,29 @@ async function saveCustomer(){
     renderCustomerList();toast('Kunde gespeichert ✓');
   }catch(e){toast('Fehler: '+e.message);}
 }
+
+// Aktuell eingetragene Adresse als Kunde in DB speichern
+async function saveCurrentAsCustomer(){
+  const firma=val('f_firma').trim();
+  if(!firma){toast('Firma/Name im Dokument fehlt!');return;}
+  // Prüfen ob schon vorhanden
+  if(customers.find(c=>c.firma===firma)){toast('Kunde bereits in Datenbank.');return;}
+  const customer={
+    firma,
+    ansp:val('f_ansprechpartner').trim(),
+    str:val('f_strasse').trim(),
+    ort:val('f_ort').trim(),
+    land:val('f_land').trim(),
+    email:''
+  };
+  try{
+    const saved=await DB.saveCustomer(customer);
+    customers.unshift(saved);
+    renderCustomerList();
+    toast('Kunde in Datenbank gespeichert ✓');
+  }catch(e){toast('Fehler: '+e.message);}
+}
+
 async function deleteCustomer(id){
   try{await DB.deleteCustomer(id);customers=customers.filter(c=>c.id!==id);renderCustomerList();toast('Gelöscht');}
   catch(e){toast('Fehler: '+e.message);}
@@ -1188,12 +1271,30 @@ function useCustomer(i){
   toast('Kunde übernommen ✓');
 }
 function loadCustomer(){
-  const i=$('f_kunde_select').value;
-  if(i!=='')useCustomer(parseInt(i));
+  const i=$('f_kunde_select')?.value;
+  if(i!==''&&i!==undefined&&i!==null)useCustomer(parseInt(i));
+}
+// Inline Kunden-Dropdown im Dokument
+function loadCustomerInline(){
+  const i=$('f_kunde_inline').value;
+  if(i==='')return;
+  useCustomer(parseInt(i));
+  $('f_kunde_inline').value='';
 }
 function renderCustomerList(){
+  // Sidebar Kunden-Dropdown (falls noch vorhanden)
   const sel=$('f_kunde_select');
-  sel.innerHTML='<option value="">— Kunde übernehmen —</option>';
+  if(sel){
+    sel.innerHTML='<option value="">— Kunde übernehmen —</option>';
+    customers.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.firma;sel.appendChild(o);});
+  }
+  // Inline Dropdown im Dokument
+  const inlineSel=$('f_kunde_inline');
+  if(inlineSel){
+    inlineSel.innerHTML='<option value="">Kunde aus Datenbank übernehmen …</option>';
+    customers.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.firma+(c.ort?' ('+c.ort+')':'');inlineSel.appendChild(o);});
+  }
+  // Kunden-Karten in Sidebar
   const el=$('customer-list');
   if(!customers.length){el.innerHTML='<p style="color:var(--text3);font-size:11px;">Noch keine Kunden.</p>';return;}
   el.innerHTML=customers.map((c,i)=>`
@@ -1206,7 +1307,6 @@ function renderCustomerList(){
         <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="useCustomer(${i})">Übernehmen</button>
       </div>
     </div>`).join('');
-  customers.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.firma;sel.appendChild(o);});
   lucide.createIcons();
 }
 
@@ -1236,7 +1336,7 @@ function renderLibraryList(){
     <div class="card">
       <button class="btn-icon card-del" onclick="deleteLibItem('${l.id}')"><i data-lucide="x"></i></button>
       <div class="card-title">${l.desc}</div>
-      <div class="card-sub">${l.menge} ${UNITS[l.einheit]?UNITS[l.einheit].de:l.einheit}${l.preis?' · '+fmt(parseFloat(l.preis)):''}</div>
+      <div class="card-sub">${l.menge} ${UNITS[l.einheit]?UNITS[l.einheit].de:l.einheit}${l.preis?' · '+fmt(parsePreis(l.preis)):''}</div>
     </div>`).join('');
   library.forEach((l,i)=>{const o=document.createElement('option');o.value=i;o.textContent=l.desc;sel.appendChild(o);});
   lucide.createIcons();
@@ -1257,9 +1357,12 @@ async function saveDoc(){
     str:val('f_strasse'),ort:val('f_ort'),land:val('f_land'),uid:val('f_uid'),
     lang,tax,positionen
   };
+  // Wenn wir eine bekannte ID haben, Update via ID (kein upsert-Konflikt)
+  if(currentDocId){doc.id=currentDocId;}
   try{
     const saved=await DB.saveDocument(doc);
-    const idx=history.findIndex(h=>h.nr===doc.nr&&h.typ===doc.typ);
+    currentDocId=saved.id; // ID merken für nächstes Speichern
+    const idx=history.findIndex(h=>h.id===saved.id);
     if(idx>-1)history[idx]=saved; else history.unshift(saved);
     renderHistory();toast('Gespeichert ✓');
   }catch(e){toast('Fehler: '+e.message);}
@@ -1279,6 +1382,7 @@ async function deleteDoc(id){
 function loadDoc(i){
   const d=history[i];
   typ=d.typ||'angebot';
+  currentDocId=d.id||null; // ID für Speichern merken
   // Update topbar type buttons
   document.querySelectorAll('.doc-type-btn').forEach(b=>b.classList.remove('active'));
   $(typ==='rechnung'?'typ-rechnung':'typ-angebot').classList.add('active');
@@ -1379,11 +1483,10 @@ async function printPDF(){
   const firma=val('f_firma')||val('f_ansprechpartner')||'';
   const filename=firma?`${nr} – ${firma}`:nr;
 
-  // Notes: wenn leer, verstecken; wenn gefüllt, als info-box rendern
   const notes=val('f_hinweise').trim();
   const l=T[lang];
 
-  // Klone die Seiten und bereite sie für den PDF-Export vor
+  // Klone die Seiten
   const p1clone=$('page1').cloneNode(true);
   const p2clone=$('page2').cloneNode(true);
 
@@ -1391,24 +1494,24 @@ async function printPDF(){
   p1clone.querySelectorAll('.no-print').forEach(el=>el.remove());
   p2clone.querySelectorAll('.no-print').forEach(el=>el.remove());
 
-  // ie-inputs durch ihre Werte ersetzen (Text-Nodes)
+  // ie-inputs durch ihre Werte ersetzen
   function replaceInputs(container){
-    // .ie inputs → span mit Wert
+    // .ie inputs (inkl. type=text/date) → span mit Wert
     container.querySelectorAll('input.ie,input.ie-date').forEach(inp=>{
       const span=document.createElement('span');
       span.style.cssText=inp.style.cssText;
-      span.className=inp.className;
       const raw=inp.value;
-      // Datums-Inputs formatieren
       if(inp.type==='date'){span.textContent=fmtDate(raw);}
       else{span.textContent=raw||'';}
       inp.replaceWith(span);
     });
-    // .ie-block inputs → div mit Wert
+    // .ie-block inputs → div
     container.querySelectorAll('input.ie-block').forEach(inp=>{
       const div=document.createElement('div');
       div.textContent=inp.value||'';
       div.style.cssText=inp.style.cssText;
+      // Kein border im PDF
+      div.style.border='none';div.style.background='transparent';
       inp.replaceWith(div);
     });
     // ie-select → span
@@ -1417,12 +1520,13 @@ async function printPDF(){
       span.textContent=sel.options[sel.selectedIndex]?.text||'';
       sel.replaceWith(span);
     });
-    // textareas → div mit text
+    // textareas → div mit Bullet-Liste
     container.querySelectorAll('textarea.ie-block,textarea.pos-details-input').forEach(ta=>{
       if(!ta.value.trim()){ta.remove();return;}
       const div=document.createElement('div');
       div.style.cssText=ta.style.cssText;
-      div.style.fontSize='11px';div.style.color='#666';div.style.lineHeight='1.6';
+      div.style.fontSize='11px';div.style.color='#444';div.style.lineHeight='1.6';
+      div.style.border='none';div.style.background='transparent';
       ta.value.trim().split('\n').filter(x=>x.trim()).forEach(line=>{
         const d=document.createElement('div');
         d.style.paddingLeft='10px';d.style.position='relative';
@@ -1439,7 +1543,6 @@ async function printPDF(){
       box.innerHTML=`<strong>${l.notes}</strong><br>${ta.value.trim()}`;
       ta.replaceWith(box);
     });
-    // d_notes_rendered: zeigen falls Inhalt
     const dnr=container.querySelector('#d_notes_rendered');
     if(dnr)dnr.style.display=notes?'block':'none';
   }
