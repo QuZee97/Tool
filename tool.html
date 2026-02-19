@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VISO Media – Tool</title>
+<style>
+:root{--accent:#4a4a4a;--accent-light:#f5f5f5;--blue:#2563eb;--green:#16a34a;--red:#dc2626;--sidebar:#1e1e1e;--sidebar2:#2a2a2a;--input-bg:#333;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#1a1a1a;background:#e0e0e0;display:flex;min-height:100vh;}
+#nav{width:52px;background:#111;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;z-index:10;position:sticky;top:0;height:100vh;}
+.nav-btn{width:40px;height:40px;border:none;background:none;color:#888;cursor:pointer;border-radius:8px;font-size:18px;display:flex;align-items:center;justify-content:center;transition:.15s;}
+.nav-btn:hover,.nav-btn.active{background:#333;color:#fff;}
+.nav-btn.active{background:var(--accent);color:#fff;}
+.nav-sep{width:28px;height:1px;background:#333;margin:4px 0;}
+#sidebar{width:270px;background:var(--sidebar);color:#eee;overflow-y:auto;height:100vh;position:sticky;top:0;}
+.sidebar-panel{display:none;padding:16px;}
+.sidebar-panel.active{display:block;}
+.sidebar-panel h2{font-size:13px;font-weight:700;color:#fff;margin-bottom:14px;border-bottom:1px solid #333;padding-bottom:8px;}
+.sidebar-panel h3{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#777;margin:14px 0 7px;}
+label{font-size:11px;color:#aaa;display:block;margin-bottom:2px;margin-top:7px;}
+input,textarea,select{width:100%;background:var(--input-bg);border:1px solid #444;border-radius:4px;color:#eee;font-size:12px;padding:6px 8px;outline:none;font-family:inherit;}
+input:focus,textarea:focus,select:focus{border-color:#666;}
+textarea{resize:vertical;min-height:50px;}
+.btn{width:100%;padding:8px;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;margin-top:6px;}
+.btn-secondary{background:#333;color:#ccc;border:1px solid #444;}
+.btn-secondary:hover{background:#3a3a3a;}
+.btn-green{background:var(--green);color:#fff;}
+.btn-green:hover{background:#15803d;}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-blue:hover{background:#1d4ed8;}
+.btn-orange{background:#c2410c;color:#fff;}
+.btn-orange:hover{background:#9a3412;}
+.btn-sm{padding:5px 10px;font-size:11px;width:auto;margin-top:0;}
+.btn-print{width:100%;margin-top:10px;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;}
+.btn-print:hover{background:#333;}
+.btn-red{background:none;color:#f87171;border:1px solid #555;font-size:11px;padding:5px 8px;border-radius:4px;cursor:pointer;width:auto;}
+.btn-red:hover{background:#3a2020;}
+.card{background:var(--sidebar2);border-radius:6px;padding:10px 12px;margin-top:8px;position:relative;}
+.card-title{font-size:12px;font-weight:600;color:#eee;margin-bottom:2px;}
+.card-sub{font-size:10px;color:#888;line-height:1.5;}
+.card-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.card .del-btn{position:absolute;top:8px;right:8px;background:none;border:none;color:#666;cursor:pointer;font-size:13px;}
+.card .del-btn:hover{color:#f87171;}
+.pos-row{background:var(--sidebar2);border-radius:4px;padding:8px;margin-top:8px;position:relative;}
+.pos-row .del{position:absolute;top:6px;right:6px;background:none;border:none;color:#777;cursor:pointer;font-size:14px;}
+.pos-row .del:hover{color:#f87171;}
+.pos-row input,.pos-row select,.pos-row textarea{margin-top:4px;}
+.pos-label{font-size:10px;color:#888;margin-bottom:2px;}
+/* History */
+.hist-item{background:var(--sidebar2);border-radius:5px;padding:9px 12px;margin-top:7px;border:1px solid transparent;}
+.hist-item:hover{border-color:#444;}
+.hist-badge{display:inline-block;font-size:9px;padding:2px 6px;border-radius:3px;font-weight:700;margin-bottom:4px;}
+.badge-ang{background:#92400e;color:#fde68a;}
+.badge-re{background:#065f46;color:#a7f3d0;}
+.hist-nr{font-size:12px;font-weight:600;color:#eee;cursor:pointer;}
+.hist-sub{font-size:10px;color:#888;margin-top:1px;}
+.status-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.status-chip{display:flex;align-items:center;gap:4px;font-size:10px;padding:3px 8px;border-radius:20px;cursor:pointer;border:1px solid #444;color:#888;background:none;user-select:none;transition:.15s;}
+.status-chip:hover{border-color:#666;color:#ccc;}
+.status-chip.active-sent{background:#1e3a5f;border-color:#2563eb;color:#93c5fd;}
+.status-chip.active-accepted{background:#14532d;border-color:#16a34a;color:#86efac;}
+.status-chip.active-declined{background:#3a1a1a;border-color:#dc2626;color:#fca5a5;}
+.status-chip.active-paid{background:#1a3a2a;border-color:#059669;color:#6ee7b7;}
+/* Lang/Tax */
+.lang-toggle{display:flex;gap:6px;margin-bottom:4px;}
+.lang-btn{flex:1;padding:6px;border:1px solid #444;border-radius:4px;background:#333;color:#aaa;cursor:pointer;font-size:12px;font-weight:600;}
+.lang-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.tax-pill{display:flex;flex-direction:column;gap:4px;margin-top:4px;}
+.tax-btn{padding:7px 10px;border:1px solid #444;border-radius:4px;background:#333;color:#aaa;cursor:pointer;font-size:11px;text-align:left;}
+.tax-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:6px;font-size:12px;opacity:0;transition:.3s;pointer-events:none;z-index:999;}
+#toast.show{opacity:1;}
+/* DOC */
+#main{flex:1;padding:24px;overflow-y:auto;display:flex;flex-direction:column;gap:0;}
+.page{width:210mm;min-height:297mm;height:297mm;margin:0 auto 24px auto;background:#fff;padding:18mm 20mm 20mm 25mm;box-shadow:0 2px 20px rgba(0,0,0,.18);overflow:hidden;position:relative;}
+/* Wenn Inhalt länger als eine Seite: overflow sichtbar machen damit nichts abgeschnitten wird */
+#page1{overflow:visible;height:auto;min-height:297mm;}
+#page2{overflow:visible;height:auto;min-height:297mm;}
+.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10mm;}
+.logo{font-size:22px;font-weight:700;color:#111;}
+.logo span{color:var(--accent);font-weight:400;}
+.sender-small{font-size:9px;color:#888;margin-bottom:6mm;border-bottom:1px solid #ddd;padding-bottom:2mm;}
+.recipient{margin-bottom:8mm;min-height:28mm;}
+.recipient p{line-height:1.7;}
+.doc-meta{text-align:right;}
+.doc-meta h1{font-size:22px;font-weight:700;color:var(--accent);margin-bottom:4px;}
+.doc-meta p{font-size:12px;color:#555;line-height:1.8;}
+.subject{margin-bottom:6mm;font-size:14px;font-weight:700;}
+.intro{margin-bottom:5mm;line-height:1.7;color:#333;}
+table{width:100%;border-collapse:collapse;margin-bottom:6mm;}
+thead tr{background:var(--accent);color:#fff;}
+thead th{padding:8px 10px;text-align:left;font-size:12px;font-weight:600;}
+thead th:nth-child(n+3){text-align:right;white-space:nowrap;}
+tbody tr{border-bottom:1px solid #eee;}
+tbody tr:nth-child(even){background:var(--accent-light);}
+tbody td{padding:8px 10px;line-height:1.5;}
+tbody td:nth-child(n+3){text-align:right;white-space:nowrap;}
+.totals{margin-left:auto;width:260px;margin-bottom:8mm;}
+.totals table{margin-bottom:0;}
+.totals td{padding:4px 10px;font-size:13px;white-space:nowrap;}
+.totals tr.total-row{background:var(--accent);color:#fff;font-weight:700;font-size:14px;}
+.totals tr.total-row td{padding:8px 10px;}
+.info-box{background:var(--accent-light);border-left:3px solid var(--accent);padding:10px 14px;margin-bottom:8mm;font-size:12px;line-height:1.7;color:#333;}
+.sign{margin-bottom:12mm;line-height:1.7;color:#333;}
+.doc-footer{border-top:1px solid #ddd;padding-top:5mm;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:10px;color:#666;line-height:1.8;}
+.doc-footer strong{color:#333;font-size:11px;display:block;margin-bottom:2px;}
+.agb-section{margin-bottom:6mm;}
+.agb-section h3{font-size:12px;font-weight:700;color:var(--accent);margin-bottom:3mm;border-bottom:1px solid #eee;padding-bottom:2mm;}
+.agb-section p{font-size:11.5px;line-height:1.75;color:#333;}
+.sig-block{margin-top:12mm;display:grid;grid-template-columns:1fr 1fr;gap:16mm;}
+.sig-field{border-top:1px solid #555;padding-top:3mm;font-size:10px;color:#666;}
+.sig-field .sig-line{height:14mm;}
+
+@media print{
+  body{background:#fff;display:block;}
+  #nav,#sidebar{display:none!important;}
+  #main{padding:0;gap:0;}
+  .page{margin:0;box-shadow:none;width:100%;}
+  #page1{page-break-after:always;}
+  #page2{page-break-before:always!important;page-break-after:auto;}
+  @page{margin:14mm 10mm;size:A4;}
+  thead tr{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .totals tr.total-row{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  .info-box{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style>
+</head>
+<body>
+<div id="nav">
+  <button class="nav-btn active" onclick="showPanel('doc',this)" title="Dokument">📄</button>
+  <div class="nav-sep"></div>
+  <button class="nav-btn" onclick="showPanel('customers',this)" title="Kunden">👥</button>
+  <button class="nav-btn" onclick="showPanel('library',this)" title="Leistungen">📦</button>
+  <div class="nav-sep"></div>
+  <button class="nav-btn" onclick="showPanel('history',this)" title="Verlauf">🕓</button>
+  <button class="nav-btn" onclick="showPanel('email',this)" title="E-Mail">✉️</button>
+  <div class="nav-sep"></div>
+  <button class="nav-btn" onclick="showPanel('data',this)" title="Daten">💾</button>
+</div>
+
+<div id="sidebar">
+
+  <!-- DOC -->
+  <div class="sidebar-panel active" id="panel-doc">
+    <h2>📄 Dokument</h2>
+    <h3>Sprache / Language</h3>
+    <div class="lang-toggle">
+      <button class="lang-btn active" id="lang-de" onclick="setLang('de')">🇩🇪 Deutsch</button>
+      <button class="lang-btn" id="lang-en" onclick="setLang('en')">🇬🇧 English</button>
+    </div>
+    <h3>Steuer / Tax</h3>
+    <div class="tax-pill">
+      <button class="tax-btn active" id="tax-de" onclick="setTax('de')">🇩🇪 Standard (19% MwSt.)</button>
+      <button class="tax-btn" id="tax-eu" onclick="setTax('eu')">🇪🇺 EU B2B – Reverse Charge</button>
+      <button class="tax-btn" id="tax-int" onclick="setTax('int')">🌍 Drittland – steuerbefreit</button>
+    </div>
+    <div id="wrap_uid" style="display:none">
+      <label>USt-IdNr. Kunde / Client VAT ID</label>
+      <input type="text" id="f_uid" placeholder="DE123456789" oninput="update()">
+    </div>
+    <h3>Typ / Type</h3>
+    <select id="f_typ" onchange="update()">
+      <option value="angebot">Angebot / Quote</option>
+      <option value="rechnung">Rechnung / Invoice</option>
+    </select>
+    <button class="btn btn-blue" style="margin-top:6px;" onclick="convertDoc()">⇄ Umwandeln / Convert</button>
+    <h3>Empfänger / Recipient</h3>
+    <select id="f_kunde_select" onchange="loadCustomer()">
+      <option value="">— Kunde wählen / Select client —</option>
+    </select>
+    <label>Firma / Company</label><input type="text" id="f_firma" placeholder="Mustermann GmbH" oninput="update()">
+    <label>Ansprechpartner / Contact</label><input type="text" id="f_ansprechpartner" placeholder="Max Mustermann" oninput="update()">
+    <label>Straße / Street</label><input type="text" id="f_strasse" placeholder="Musterstraße 1" oninput="update()">
+    <label>PLZ & Ort / City</label><input type="text" id="f_ort" placeholder="12345 Berlin" oninput="update()">
+    <label>Land / Country</label><input type="text" id="f_land" placeholder="z. B. Netherlands" oninput="update()">
+    <h3>Dokument</h3>
+    <label id="lbl_nr">Angebots-Nr.</label><input type="text" id="f_nr" value="ANG-2025-001" oninput="update()">
+    <label>Datum / Date</label><input type="date" id="f_datum" oninput="update()">
+    <div id="wrap_gueltig"><label>Gültig bis / Valid until</label><input type="date" id="f_gueltig" oninput="update()"></div>
+    <div id="wrap_zeitraum" style="display:none">
+      <label>Leistung von / Service from</label><input type="date" id="f_von" oninput="update()">
+      <label>bis / to</label><input type="date" id="f_bis" oninput="update()">
+    </div>
+    <label>Betreff / Subject</label><input type="text" id="f_betreff" placeholder="z. B. Social Media Concept" oninput="update()">
+    <h3>Zahlung / Payment</h3>
+    <select id="f_zahlung" onchange="update()">
+      <option value="voll">Vollzahlung / Full payment (14 days)</option>
+      <option value="50">50 % / 50 % Anzahlung / Deposit</option>
+    </select>
+    <h3>Positionen / Line Items</h3>
+    <select id="f_lib_select" onchange="addFromLib()"><option value="">+ Aus Bibliothek / From library</option></select>
+    <div id="positionen"></div>
+    <button class="btn btn-secondary" style="margin-top:8px;" onclick="addPos()">+ Leere Position / Empty line</button>
+    <h3>Hinweise / Notes</h3>
+    <textarea id="f_hinweise" oninput="update()" placeholder="Leer = wird nicht angezeigt / Empty = hidden"></textarea>
+    <button class="btn btn-green" style="margin-top:14px;" onclick="saveDoc()">💾 Speichern / Save</button>
+    <button class="btn-print" onclick="printPDF()">🖨️ Als PDF drucken / Print PDF</button>
+  </div>
+
+  <!-- CUSTOMERS -->
+  <div class="sidebar-panel" id="panel-customers">
+    <h2>👥 Kundendatenbank</h2>
+    <div id="customer-list"></div>
+    <h3 style="margin-top:16px;">Neuen Kunden anlegen</h3>
+    <label>Firma / Name *</label><input type="text" id="nc_firma" placeholder="Mustermann GmbH">
+    <label>Ansprechpartner</label><input type="text" id="nc_ansp" placeholder="Max Mustermann">
+    <label>Straße</label><input type="text" id="nc_str" placeholder="Musterstraße 1">
+    <label>PLZ & Ort</label><input type="text" id="nc_ort" placeholder="12345 Berlin">
+    <label>Land</label><input type="text" id="nc_land" placeholder="z. B. Netherlands">
+    <label>E-Mail</label><input type="email" id="nc_email" placeholder="kontakt@firma.de">
+    <button class="btn btn-green" onclick="saveCustomer()">✓ Kunde speichern</button>
+  </div>
+
+  <!-- LIBRARY -->
+  <div class="sidebar-panel" id="panel-library">
+    <h2>📦 Leistungsbibliothek</h2>
+    <div id="lib-list"></div>
+    <h3 style="margin-top:16px;">Neue Leistung anlegen</h3>
+    <label>Bezeichnung *</label><input type="text" id="nl_desc" placeholder="Social Media Betreuung">
+    <label>Beschreibung (optional)</label><textarea id="nl_details" placeholder="- Erstellung von Inhalten&#10;- Beratung zur Strategie" style="min-height:60px;"></textarea>
+    <label>Menge</label><input type="number" id="nl_menge" value="1">
+    <label>Einheit / Unit</label>
+    <select id="nl_einheit">
+      <option value="pauschal">pauschal / flat rate</option>
+      <option value="stunde">Stunde / hour</option>
+      <option value="tag">Tag / day</option>
+      <option value="stueck">Stück / piece</option>
+      <option value="monat">Monat / month</option>
+      <option value="wort">Wort / word</option>
+    </select>
+    <label>Standardpreis (€)</label><input type="number" id="nl_preis" placeholder="0">
+    <button class="btn btn-green" onclick="saveLibItem()">✓ Leistung speichern</button>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="sidebar-panel" id="panel-history">
+    <h2>🕓 Verlauf</h2>
+    <div id="history-list"><p style="color:#666;font-size:11px;">Keine Dokumente.</p></div>
+  </div>
+
+  <!-- EMAIL -->
+  <div class="sidebar-panel" id="panel-email">
+    <h2>✉️ E-Mail-Vorlage</h2>
+    <p style="font-size:11px;color:#888;line-height:1.6;margin-bottom:12px;">Wird automatisch mit den aktuellen Dokumentdaten befüllt.</p>
+    <h3>Vorlage</h3>
+    <select id="email_template" onchange="loadEmailTemplate()">
+      <option value="angebot_de">Angebot versenden (DE)</option>
+      <option value="angebot_en">Quote submission (EN)</option>
+      <option value="rechnung_de">Rechnung versenden (DE)</option>
+      <option value="rechnung_en">Invoice submission (EN)</option>
+      <option value="followup_de">Follow-up Angebot (DE)</option>
+      <option value="followup_en">Follow-up Quote (EN)</option>
+    </select>
+    <h3>Empfänger E-Mail</h3>
+    <input type="email" id="email_to" placeholder="kunde@firma.de">
+    <h3>Betreff</h3><input type="text" id="email_subject">
+    <h3>Text</h3>
+    <textarea id="email_body" style="min-height:220px;font-size:12px;line-height:1.7;"></textarea>
+    <p style="font-size:10px;color:#666;line-height:1.6;margin-top:8px;">Platzhalter: <code style="color:#aaa;">{{name}}</code> <code style="color:#aaa;">{{nr}}</code> <code style="color:#aaa;">{{betreff}}</code> <code style="color:#aaa;">{{betrag}}</code> <code style="color:#aaa;">{{datum}}</code></p>
+    <button class="btn btn-green" onclick="saveEmailTemplate()">💾 Vorlage speichern</button>
+    <button class="btn btn-orange" style="margin-top:6px;" onclick="openGmail()">📨 In Gmail öffnen</button>
+    <button class="btn btn-secondary" style="margin-top:6px;" onclick="copyEmail()">📋 Text kopieren</button>
+  </div>
+
+  <!-- DATA -->
+  <div class="sidebar-panel" id="panel-data">
+    <h2>💾 Datensicherung</h2>
+    <p style="font-size:11px;color:#888;line-height:1.6;margin-bottom:12px;">Exportiere alle Daten als Backup und importiere sie jederzeit wieder – auch nach einem Update oder auf einem neuen Gerät.</p>
+    <h3>Export</h3>
+    <button class="btn btn-green" onclick="exportData()">⬇️ Alle Daten exportieren (.json)</button>
+    <h3 style="margin-top:16px;">Import</h3>
+    <p style="font-size:11px;color:#888;line-height:1.6;margin-bottom:8px;">Daten werden zusammengeführt, nichts geht verloren.</p>
+    <input type="file" id="import_file" accept=".json" style="font-size:11px;padding:4px;" onchange="importData(this)">
+    <h3 style="margin-top:16px;">Datenübersicht</h3>
+    <div id="data_stats" style="font-size:11px;color:#888;line-height:2;background:#2a2a2a;padding:10px 12px;border-radius:6px;margin-top:4px;"></div>
+    <h3 style="margin-top:16px;">⚠️ Zurücksetzen</h3>
+    <p style="font-size:11px;color:#888;line-height:1.6;margin-bottom:8px;">Löscht alle Daten unwiderruflich. Vorher exportieren!</p>
+    <button class="btn btn-red" style="width:100%;padding:8px;" onclick="resetData()">🗑️ Alle Daten löschen</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="main">
+  <!-- PAGE 1 -->
+  <div class="page" id="page1">
+    <div class="header">
+      <div>
+        <div class="logo">VISO <span>Media</span></div>
+        <div style="font-size:11px;color:#555;margin-top:3px;">David Stiehler</div>
+      </div>
+      <div class="doc-meta">
+        <h1 id="d_typ_title">ANGEBOT</h1>
+        <p>
+          <span id="d_nr_label">Angebots-Nr.:</span> <strong id="d_nr">–</strong><br>
+          <span id="d_date_label">Datum:</span> <strong id="d_datum">–</strong><br>
+          <span id="d_extra_label">Gültig bis:</span> <strong id="d_extra">–</strong>
+        </p>
+      </div>
+    </div>
+    <div class="sender-small">David Stiehler · Schiffenberger Weg 28A · 35394 Gießen · Germany</div>
+    <div class="recipient"><p id="d_empfaenger" style="color:#bbb;font-style:italic;">Empfängerdaten …</p></div>
+    <div class="subject" id="d_betreff" style="color:#bbb;font-style:italic;">Betreff …</div>
+    <p class="intro" id="d_intro"></p>
+    <table>
+      <thead><tr>
+        <th style="width:5%"><span class="th">Pos.</span></th>
+        <th style="width:47%"><span class="th">Leistungsbeschreibung</span></th>
+        <th style="width:8%"><span class="th">Menge</span></th>
+        <th style="width:13%"><span class="th">Einheit</span></th>
+        <th style="width:13%"><span class="th">Einzelpreis</span></th>
+        <th style="width:14%"><span class="th">Gesamt</span></th>
+      </tr></thead>
+      <tbody id="d_positionen"><tr><td colspan="6" style="color:#bbb;font-style:italic;text-align:center;padding:16px;">–</td></tr></tbody>
+    </table>
+    <div class="totals">
+      <table>
+        <tr id="row_netto"><td id="t_net">Nettobetrag</td><td id="d_netto">0,00 €</td></tr>
+        <tr id="row_tax"><td id="t_tax">zzgl. 19 % MwSt.</td><td id="d_mwst">0,00 €</td></tr>
+        <tr class="total-row"><td><strong id="t_total">Gesamtbetrag</strong></td><td><strong id="d_gesamt">0,00 €</strong></td></tr>
+      </table>
+    </div>
+    <div id="d_tax_note_box" class="info-box" style="display:none;font-size:11px;"></div>
+    <div class="info-box"><strong id="t_payment_title">Zahlungsbedingungen:</strong><br><span id="d_zahlung_text">–</span></div>
+    <div id="d_notes_box" class="info-box" style="display:none;"><strong id="t_notes_title">Hinweise:</strong><br><span id="d_hinweise"></span></div>
+    <p class="sign" id="d_sign"></p>
+    <!-- AGB-Hinweis -->
+    <div class="info-box" id="agb_hint" style="display:none;"></div>
+    <div class="doc-footer">
+      <div><strong id="t_contact">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="117570677875516778627e3f7c74757870">[email&#160;protected]</a></div>
+      <div><strong id="t_tax_f">Steuer</strong><span id="t_taxnr_label">Steuernummer:</span> 02087201058<br><span id="t_vatid_label">USt-IdNr.:</span> DE354878347</div>
+      <div><strong id="t_bank">Bankverbindung</strong><span id="t_accholder_label">Kontoinhaber:</span> David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
+    </div>
+  </div>
+
+  <!-- PAGE 2 -->
+  <div class="page" id="page2" style="display:none;flex-direction:column;">
+    <div class="header">
+      <div><div class="logo">VISO <span>Media</span></div><div style="font-size:11px;color:#555;margin-top:3px;">David Stiehler</div></div>
+      <div class="doc-meta" style="padding-top:4px;">
+        <p style="font-size:11px;color:#888;"><span id="t_annex_label">Anhang zu</span> <span id="d_typ2">Angebots</span>-Nr.: <strong id="d_nr2">–</strong></p>
+      </div>
+    </div>
+    <div class="sender-small">David Stiehler · Schiffenberger Weg 28A · 35394 Gießen · Germany</div>
+    <h2 style="font-size:16px;font-weight:700;margin-bottom:8mm;color:#111;" id="t_agb_title">Allgemeine Geschäftsbedingungen (AGB)</h2>
+    <div id="agb_content"></div>
+    <div class="info-box" style="margin-top:10mm;">
+      <strong id="t_confirm_title">Auftragsbestätigung</strong><br>
+      <span id="t_confirm_text"></span>
+    </div>
+    <div class="sig-block">
+      <div class="sig-field"><div class="sig-line"></div><span id="t_sig_date">Ort, Datum</span></div>
+      <div class="sig-field"><div class="sig-line"></div><span id="t_sig_sign">Unterschrift Auftraggeber / Stempel</span></div>
+    </div>
+    <div style="margin-top:10mm;font-size:10px;color:#999;text-align:center;" id="t_return">Bitte unterschriebene Seite per E-Mail zurücksenden an: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="ed898c9b8489ad9b849e82c3808889848c">[email&#160;protected]</a></div>
+    <div class="doc-footer" style="margin-top:8mm;">
+      <div><strong id="t_contact2">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="92f6f3e4fbf6d2e4fbe1fdbcfff7f6fbf3">[email&#160;protected]</a></div>
+      <div><strong id="t_tax2">Steuer</strong><span id="t_taxnr_label2">Steuernummer:</span> 02087201058<br><span id="t_vatid_label2">USt-IdNr.:</span> DE354878347</div>
+      <div><strong id="t_bank2">Bankverbindung</strong><span id="t_accholder_label2">Kontoinhaber:</span> David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase.js"></script>
+<script>
+
+// ── STATE ─────────────────────────────────────────────────
+let positionen=[];
+let lang='de',tax='de';
+let customers=[];
+let library=[];
+let history=[];
+let customEmailTpl={};
+
+const UNITS={
+  pauschal:{de:'pauschal',en:'flat rate'},
+  stunde:{de:'Std.',en:'hr'},
+  tag:{de:'Tag',en:'day'},
+  stueck:{de:'Stk.',en:'pcs'},
+  monat:{de:'Monat',en:'month'},
+  wort:{de:'Wort',en:'word'},
+};
+function unitLabel(key,l){return(UNITS[key]||{de:key,en:key})[l]||key;}
+
+const STATUS_ANG=[
+  {key:'sent',   label_de:'Abgeschickt', label_en:'Sent',     cls:'active-sent'},
+  {key:'accepted',label_de:'Angenommen', label_en:'Accepted', cls:'active-accepted'},
+  {key:'declined',label_de:'Abgelehnt',  label_en:'Declined', cls:'active-declined'},
+];
+const STATUS_RE=[
+  {key:'sent',  label_de:'Abgeschickt', label_en:'Sent',    cls:'active-sent'},
+  {key:'paid',  label_de:'Bezahlt',     label_en:'Paid',    cls:'active-paid'},
+];
+
+const T={
+  de:{
+    doc_q:'ANGEBOT',doc_i:'RECHNUNG',nr_q:'Angebots-Nr.:',nr_i:'Rechnungs-Nr.:',
+    date:'Datum:',valid:'Gültig bis:',period:'Leistungszeitraum:',
+    th:['Pos.','Leistungsbeschreibung','Menge','Einheit','Einzelpreis','Gesamt'],
+    net:'Nettobetrag',tax19:'zzgl. 19 % MwSt.',total_q:'Gesamtbetrag',total_i:'Rechnungsbetrag',
+    payment:'Zahlungsbedingungen:',notes:'Hinweise:',contact:'Kontakt',tax_f:'Steuer',bank:'Bankverbindung',
+    intro_q:'vielen Dank für Ihr Interesse. Gerne unterbreite ich Ihnen folgendes Angebot für die beschriebenen Leistungen:',
+    intro_i:'für die erbrachten Leistungen erlaube ich mir, Ihnen folgendes in Rechnung zu stellen:',
+    sign_q:'Für Rückfragen stehe ich Ihnen gerne zur Verfügung. Ich freue mich auf eine gute Zusammenarbeit.<br><br>Mit freundlichen Grüßen,<br><br><strong>David Stiehler</strong><br>VISO Media',
+    sign_i:'Für Rückfragen stehe ich Ihnen jederzeit gerne zur Verfügung.<br><br>Mit freundlichen Grüßen,<br><br><strong>David Stiehler</strong><br>VISO Media',
+    pay_full:b=>`Gesamtbetrag von <strong>${b}</strong> zahlbar innerhalb von 14 Tagen nach Rechnungsstellung.`,
+    pay_50:h=>`Zahlung in zwei Raten: <strong>1. Rate (50 % = ${h})</strong> nach Auftragsbestätigung, <strong>2. Rate (50 % = ${h})</strong> nach Projektabschluss – jeweils innerhalb von 14 Tagen.`,
+    tax_eu:'Hinweis: Steuerfreie innergemeinschaftliche Leistung gemäß § 3a Abs. 2 UStG. Steuerschuld geht auf den Leistungsempfänger über (Reverse Charge). USt-IdNr. des Empfängers: ',
+    tax_int:'Hinweis: Gemäß § 3a Abs. 2 UStG ist diese Leistung nicht im Inland steuerbar. Es wird keine Umsatzsteuer ausgewiesen.',
+    agb:'Allgemeine Geschäftsbedingungen (AGB)',
+    confirm_title:'Auftragsbestätigung',
+    confirm:nr=>`Mit Unterzeichnung bestätigt der Auftraggeber, das Angebot (Nr.: ${nr}) gelesen und akzeptiert zu haben, und erteilt verbindlich den Auftrag. Er erklärt sich mit den vorstehenden AGB einverstanden.`,
+    sig_date:'Ort, Datum',sig_sign:'Unterschrift Auftraggeber / Stempel',
+    return:'Bitte unterschriebene Seite per E-Mail zurücksenden an: david@viso.media',
+    prefix_q:'Angebot: ',prefix_i:'Rechnung: ',
+    empty_rec:'Empfängerdaten werden hier angezeigt …',empty_sub:'Betreff …',
+    annex_label:'Anhang zu',annex_q:'Angebots',annex_i:'Rechnungs',
+    taxnr:'Steuernummer:',vatid:'USt-IdNr.:',accholder:'Kontoinhaber:',bank_title:'Bankverbindung',
+    agb_hint:'AGB auf der nächsten Seite',
+  },
+  en:{
+    doc_q:'QUOTE',doc_i:'INVOICE',nr_q:'Quote No.:',nr_i:'Invoice No.:',
+    date:'Date:',valid:'Valid until:',period:'Service period:',
+    th:['No.','Description','Qty','Unit','Unit price','Total'],
+    net:'Net amount',tax19:'plus 19% VAT',total_q:'Total amount',total_i:'Invoice total',
+    payment:'Payment terms:',notes:'Notes:',contact:'Contact',tax_f:'Tax',bank:'Bank details',
+    intro_q:'Thank you for your interest. Please find our quote for the described services below:',
+    intro_i:'Please find below our invoice for services rendered:',
+    sign_q:'Please do not hesitate to contact me with any questions. I look forward to working with you.<br><br>Kind regards,<br><br><strong>David Stiehler</strong><br>VISO Media',
+    sign_i:'Please do not hesitate to contact me with any questions.<br><br>Kind regards,<br><br><strong>David Stiehler</strong><br>VISO Media',
+    pay_full:b=>`Total amount of <strong>${b}</strong> due within 14 days of invoice date.`,
+    pay_50:h=>`Payment in two instalments: <strong>1st (50% = ${h})</strong> upon order confirmation, <strong>2nd (50% = ${h})</strong> upon project completion – each due within 14 days.`,
+    tax_eu:'Note: VAT-exempt intra-community supply pursuant to § 3a para. 2 German VAT Act. Tax liability transferred to recipient (Reverse Charge). Customer VAT ID: ',
+    tax_int:'Note: This service is not subject to German VAT pursuant to § 3a para. 2 German VAT Act. No VAT is charged.',
+    agb:'Terms and Conditions (T&C)',
+    confirm_title:'Order Confirmation',
+    confirm:nr=>`By signing, the client confirms having read and accepted the quote (No.: ${nr}) and hereby places a binding order, agreeing to the Terms and Conditions stated above.`,
+    sig_date:'Place, Date',sig_sign:'Signature Client / Stamp',
+    return:'Please return the signed page by e-mail to: david@viso.media',
+    prefix_q:'Quote: ',prefix_i:'Invoice: ',
+    empty_rec:'Recipient details will appear here …',empty_sub:'Subject …',
+    annex_label:'Annex to',annex_q:'Quote',annex_i:'Invoice',
+    taxnr:'Tax No.:',vatid:'VAT ID:',accholder:'Account holder:',bank_title:'Bank details',
+    agb_hint:'T&C on the next page',
+  }
+};
+
+const AGB={
+  de:`<div class="agb-section"><h3>§ 1 – Geltungsbereich</h3><p>Diese AGB gelten für alle Verträge zwischen David Stiehler, VISO Media, Schiffenberger Weg 28A, 35394 Gießen (nachfolgend „Auftragnehmer") und dem Auftraggeber über Leistungen im Bereich Video-/Fotoproduktion sowie Social Media Management.</p></div>
+<div class="agb-section"><h3>§ 2 – Vertragsschluss</h3><p>Angebote sind freibleibend. Ein Vertrag kommt durch schriftliche Auftragsbestätigung oder Unterzeichnung des Angebots zustande. Mit Auftragserteilung erkennt der Auftraggeber diese AGB an.</p></div>
+<div class="agb-section"><h3>§ 3 – Korrekturrunden</h3><p>Im Preis inbegriffen sind <strong>zwei Korrekturrunden</strong> je Leistungsposition. Weitere Korrekturen werden nach Aufwand berechnet. Grundlegende inhaltliche Änderungen gelten nicht als Korrekturen.</p></div>
+<div class="agb-section"><h3>§ 4 – Mitwirkungspflichten</h3><p>Der Auftraggeber stellt Materialien und Freigaben rechtzeitig bereit. Verzögerungen berechtigen zur Terminanpassung; Mehrkosten trägt der Auftraggeber.</p></div>
+<div class="agb-section"><h3>§ 5 – Urheberrecht & Nutzungsrechte</h3><p>Alle Werke unterliegen dem Urheberrecht des Auftragnehmers. Mit vollständiger Bezahlung erhält der Auftraggeber ein einfaches Nutzungsrecht für die vereinbarten Zwecke. Weitergabe bedarf schriftlicher Zustimmung. Rohdaten verbleiben beim Auftragnehmer.</p></div>
+<div class="agb-section"><h3>§ 6 – Zahlungsbedingungen</h3><p>Rechnungen sind innerhalb von 14 Tagen netto zu begleichen. Bei Verzug fallen Zinsen von 9 Prozentpunkten über dem Basiszinssatz an (§ 288 BGB). Bei Anzahlungsmodell beginnt die Arbeit nach Eingang der ersten Rate. Die zweite Rate ist bei Projektabschluss fällig, unabhängig vom Zeitpunkt der Dateiübergabe.</p></div>
+<div class="agb-section"><h3>§ 7 – Stornierung</h3><p>Bei Absage weniger als <strong>7 Tage</strong> vor Leistungsbeginn werden <strong>50 % des Nettohonorars</strong> als Ausfallhonorar fällig. Bereits erbrachte Leistungen werden vollständig berechnet.</p></div>
+<div class="agb-section"><h3>§ 8 – Haftung</h3><p>Haftung nur bei Vorsatz oder grober Fahrlässigkeit. Indirekte Schäden und entgangener Gewinn sind ausgeschlossen. Der Auftraggeber haftet für die Rechtmäßigkeit bereitgestellter Inhalte.</p></div>
+<div class="agb-section"><h3>§ 9 – Referenzrecht</h3><p>Der Auftragnehmer darf erstellte Arbeiten zu Referenzzwecken veröffentlichen, sofern der Auftraggeber nicht widerspricht.</p></div>
+<div class="agb-section"><h3>§ 10 – Gerichtsstand</h3><p>Es gilt deutsches Recht. Gerichtsstand ist Gießen, soweit gesetzlich zulässig.</p></div>`,
+  en:`<div class="agb-section"><h3>§ 1 – Scope</h3><p>These Terms apply to all contracts between David Stiehler, VISO Media, Schiffenberger Weg 28A, 35394 Gießen, Germany ("Service Provider") and the client for video/photo production and social media management services.</p></div>
+<div class="agb-section"><h3>§ 2 – Contract Formation</h3><p>Quotes are non-binding. A contract is formed upon written order confirmation or signature of the quote. By placing an order, the client accepts these Terms.</p></div>
+<div class="agb-section"><h3>§ 3 – Revision Rounds</h3><p>The price includes <strong>two revision rounds</strong> per deliverable. Additional revisions are charged at the applicable rate. Fundamental scope changes do not constitute revisions.</p></div>
+<div class="agb-section"><h3>§ 4 – Client Responsibilities</h3><p>The client shall provide required materials and approvals in a timely manner. Client-caused delays may result in adjusted delivery dates; additional costs shall be borne by the client.</p></div>
+<div class="agb-section"><h3>§ 5 – Copyright & Usage Rights</h3><p>All works remain subject to the Service Provider's copyright. Upon full payment, the client receives a simple licence for the agreed purposes. Transfer to third parties requires written consent. Raw files remain with the Service Provider.</p></div>
+<div class="agb-section"><h3>§ 6 – Payment Terms</h3><p>Invoices are due within 14 days net. Late payment incurs interest of 9 percentage points above the base rate. For deposit agreements, work begins after receipt of the first instalment. The second instalment is due upon project completion, regardless of file delivery timing.</p></div>
+<div class="agb-section"><h3>§ 7 – Cancellation</h3><p>Cancellations less than <strong>7 days</strong> before the scheduled start incur a cancellation fee of <strong>50% of the net fee</strong>. Services already rendered are invoiced in full.</p></div>
+<div class="agb-section"><h3>§ 8 – Liability</h3><p>Liability is limited to intent or gross negligence. Indirect damages and loss of profit are excluded. The client is responsible for the legality of content provided.</p></div>
+<div class="agb-section"><h3>§ 9 – Portfolio Rights</h3><p>The Service Provider may publish completed work for portfolio purposes unless the client objects in writing.</p></div>
+<div class="agb-section"><h3>§ 10 – Governing Law</h3><p>German law applies. Place of jurisdiction is Gießen, Germany, to the extent permitted by law.</p></div>`
+};
+
+const EMAIL_TPL={
+  angebot_de:{subject:'Angebot {{nr}} – {{betreff}} | VISO Media',body:`Guten Tag {{name}},\n\nvielen Dank für Ihr Interesse an einer Zusammenarbeit mit VISO Media.\n\nIm Anhang erhalten Sie das Angebot Nr. {{nr}} für „{{betreff}}" über {{betrag}} (brutto inkl. MwSt.).\n\nDas Angebot ist bis zum {{datum}} gültig. Bitte senden Sie die unterschriebene Seite 2 zurück, um den Auftrag verbindlich zu erteilen.\n\nBei Fragen stehe ich Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen,\nDavid Stiehler\nVISO Media\n—\ndavid@viso.media · 015735386155`},
+  angebot_en:{subject:'Quote {{nr}} – {{betreff}} | VISO Media',body:`Dear {{name}},\n\nThank you for your interest in working with VISO Media.\n\nPlease find attached Quote No. {{nr}} for "{{betreff}}" totalling {{betrag}} (net).\n\nThis quote is valid until {{datum}}. Please sign and return page 2 to confirm your order.\n\nFeel free to reach out with any questions.\n\nKind regards,\nDavid Stiehler\nVISO Media\n—\ndavid@viso.media · +49 157 35386155`},
+  rechnung_de:{subject:'Rechnung {{nr}} – {{betreff}} | VISO Media',body:`Guten Tag {{name}},\n\nim Anhang erhalten Sie die Rechnung Nr. {{nr}} für „{{betreff}}" über {{betrag}}.\n\nBitte überweisen Sie den Betrag innerhalb von 14 Tagen auf das angegebene Konto.\n\nMit freundlichen Grüßen,\nDavid Stiehler\nVISO Media\n—\ndavid@viso.media · 015735386155`},
+  rechnung_en:{subject:'Invoice {{nr}} – {{betreff}} | VISO Media',body:`Dear {{name}},\n\nPlease find attached Invoice No. {{nr}} for "{{betreff}}" totalling {{betrag}}.\n\nPayment is due within 14 days to the bank account stated on the invoice.\n\nKind regards,\nDavid Stiehler\nVISO Media\n—\ndavid@viso.media · +49 157 35386155`},
+  followup_de:{subject:'Nachfrage: Angebot {{nr}} – {{betreff}} | VISO Media',body:`Guten Tag {{name}},\n\nich möchte kurz nachfragen, ob Sie das Angebot Nr. {{nr}} für „{{betreff}}" erhalten haben und ob es offene Fragen gibt.\n\nDas Angebot ist noch bis zum {{datum}} gültig.\n\nMit freundlichen Grüßen,\nDavid Stiehler\nVISO Media\n—\ndavid@viso.media · 015735386155`},
+  followup_en:{subject:'Follow-up: Quote {{nr}} – {{betreff}} | VISO Media',body:`Dear {{name}},\n\nI wanted to follow up on Quote No. {{nr}} for "{{betreff}}" and check if you have any questions.\n\nThe quote remains valid until {{datum}}.\n\nKind regards,\nDavid Stiehler\nVISO Media\n—\ndavid@viso.media · +49 157 35386155`}
+};
+
+const fmt=n=>n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+'\u00a0€';
+const fmtDate=v=>{if(!v)return'–';const[y,m,d]=v.split('-');return d+'.'+m+'.'+y;};
+const pad=n=>String(n).padStart(2,'0');
+const toast=msg=>{const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);};
+const $=id=>document.getElementById(id);
+const val=id=>$(id).value;
+
+function showPanel(p,btn){
+  document.querySelectorAll('.sidebar-panel').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));
+  $('panel-'+p).classList.add('active');
+  if(btn)btn.classList.add('active');
+function showPanel(p,btn){
+  document.querySelectorAll('.sidebar-panel').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));
+  $('panel-'+p).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(p==='email')refreshEmailPreview();
+  if(p==='data')updateDataStats();
+}
+
+function setLang(l){lang=l;$('lang-de').classList.toggle('active',l==='de');$('lang-en').classList.toggle('active',l==='en');update();}
+function setTax(t){tax=t;['de','eu','int'].forEach(x=>$('tax-'+x).classList.toggle('active',x===t));$('wrap_uid').style.display=t==='eu'?'block':'none';update();}
+
+function unitOptions(selected='pauschal'){
+  return Object.keys(UNITS).map(k=>`<option value="${k}"${k===selected?' selected':''}>${UNITS[k].de} / ${UNITS[k].en}</option>`).join('');
+}
+
+// ── CUSTOMERS ────────────────────────────────────────────
+function renderCustomerList(){
+  const sel=$('f_kunde_select');
+  sel.innerHTML='<option value="">— Kunde wählen / Select client —</option>';
+  const el=$('customer-list');
+  if(!customers.length){el.innerHTML='<p style="color:#666;font-size:11px;margin-top:8px;">Noch keine Kunden.</p>';return;}
+  el.innerHTML=customers.map((c,i)=>`
+    <div class="card">
+      <button class="del-btn" onclick="deleteCustomer(${i})">✕</button>
+      <div class="card-title">${c.firma}</div>
+      <div class="card-sub">${[c.ansp,c.str,c.ort,c.land].filter(Boolean).join(' · ')}</div>
+      ${c.email?`<div class="card-sub">${c.email}</div>`:''}
+      <div class="card-actions"><button class="btn btn-secondary btn-sm" onclick="useCustomer(${i})">Übernehmen</button></div>
+    </div>`).join('');
+  customers.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.firma;sel.appendChild(o);});
+}
+function saveCustomer(){
+  const firma=$('nc_firma').value.trim();if(!firma){toast('Name fehlt!');return;}
+  customers.push({firma,ansp:$('nc_ansp').value.trim(),str:$('nc_str').value.trim(),ort:$('nc_ort').value.trim(),land:$('nc_land').value.trim(),email:$('nc_email').value.trim()});
+  
+  ['nc_firma','nc_ansp','nc_str','nc_ort','nc_land','nc_email'].forEach(id=>$(id).value='');
+  renderCustomerList();toast('Kunde gespeichert ✓');
+}
+function deleteCustomer(i){customers.splice(i,1);renderCustomerList();toast('Gelöscht');}
+function useCustomer(i){
+  const c=customers[i];
+  $('f_firma').value=c.firma||'';$('f_ansprechpartner').value=c.ansp||'';
+  $('f_strasse').value=c.str||'';$('f_ort').value=c.ort||'';$('f_land').value=c.land||'';
+  update();showPanel('doc',document.querySelectorAll('.nav-btn')[0]);
+  document.querySelectorAll('.nav-btn')[0].classList.add('active');
+  toast('Kunde übernommen ✓');
+}
+function loadCustomer(){const i=$('f_kunde_select').value;if(i!=='')useCustomer(parseInt(i));}
+
+// ── LIBRARY ──────────────────────────────────────────────
+function renderLibraryList(){
+  const sel=$('f_lib_select');
+  sel.innerHTML='<option value="">+ Aus Bibliothek / From library</option>';
+  const el=$('lib-list');
+  if(!library.length){el.innerHTML='<p style="color:#666;font-size:11px;margin-top:8px;">Noch keine Leistungen.</p>';return;}
+  el.innerHTML=library.map((l,i)=>`
+    <div class="card">
+      <button class="del-btn" onclick="deleteLibItem(${i})">✕</button>
+      <div class="card-title">${l.desc}</div>
+      <div class="card-sub">${l.menge} ${UNITS[l.einheit]?UNITS[l.einheit].de:l.einheit} · ${l.preis?fmt(parseFloat(l.preis)):'-'}</div>
+    </div>`).join('');
+  library.forEach((l,i)=>{const o=document.createElement('option');o.value=i;o.textContent=l.desc;sel.appendChild(o);});
+}
+function saveLibItem(){
+  const desc=$('nl_desc').value.trim();if(!desc){toast('Bezeichnung fehlt!');return;}
+  library.push({desc,details:$('nl_details').value.trim(),menge:$('nl_menge').value||'1',einheit:$('nl_einheit').value||'pauschal',preis:$('nl_preis').value||''});
+  
+  ['nl_desc','nl_details','nl_preis'].forEach(id=>$(id).value='');$('nl_menge').value='1';
+  renderLibraryList();toast('Leistung gespeichert ✓');
+}
+function deleteLibItem(i){library.splice(i,1);renderLibraryList();toast('Gelöscht');}
+function addFromLib(){
+  const i=$('f_lib_select').value;if(i==='')return;
+  const l=library[parseInt(i)];
+  positionen.push({id:Date.now(),desc:l.desc,details:l.details||'',menge:l.menge,einheit:l.einheit,preis:l.preis});
+  renderSidebarPos();update();$('f_lib_select').value='';toast('Hinzugefügt ✓');
+}
+
+// ── POSITIONS ────────────────────────────────────────────
+function addPos(){positionen.push({id:Date.now(),desc:'',details:'',menge:'1',einheit:'pauschal',preis:''});renderSidebarPos();update();}
+function removePos(id){positionen=positionen.filter(p=>p.id!==id);renderSidebarPos();update();}
+function renderSidebarPos(){
+  $('positionen').innerHTML=positionen.map((p,i)=>`
+    <div class="pos-row">
+      <button class="del" onclick="removePos(${p.id})">✕</button>
+      <div class="pos-label">Position ${i+1}</div>
+      <input type="text" placeholder="Titel / Title" value="${p.desc.replace(/"/g,'&quot;')}" oninput="posUpdate(${p.id},'desc',this.value)">
+      <textarea placeholder="Beschreibung (optional) – eine Zeile = ein Bullet" style="min-height:60px;" oninput="posUpdate(${p.id},'details',this.value)">${p.details||''}</textarea>
+      <input type="number" placeholder="Menge" value="${p.menge}" oninput="posUpdate(${p.id},'menge',this.value)">
+      <select onchange="posUpdate(${p.id},'einheit',this.value)">${unitOptions(p.einheit)}</select>
+      <input type="number" placeholder="Preis (€)" value="${p.preis}" oninput="posUpdate(${p.id},'preis',this.value)">
+    </div>`).join('');
+}
+function posUpdate(id,field,v){const p=positionen.find(x=>x.id===id);if(p){p[field]=v;update();}}
+
+// ── CONVERT ──────────────────────────────────────────────
+function convertDoc(){
+  const t=$('f_typ'),nr=$('f_nr');
+  if(t.value==='angebot'){t.value='rechnung';nr.value=nr.value.replace('ANG','RE');}
+  else{t.value='angebot';nr.value=nr.value.replace('RE','ANG');}
+  update();toast('Umgewandelt ✓');
+}
+
+// ── HISTORY & STATUS ─────────────────────────────────────
+function saveDoc(){
+  const doc={
+    typ:val('f_typ'),nr:val('f_nr'),datum:val('f_datum'),gueltig:val('f_gueltig'),
+    von:val('f_von'),bis:val('f_bis'),betreff:val('f_betreff'),zahlung:val('f_zahlung'),
+    hinweise:val('f_hinweise'),firma:val('f_firma'),ansp:val('f_ansprechpartner'),
+    str:val('f_strasse'),ort:val('f_ort'),land:val('f_land'),uid:val('f_uid'),
+    lang,tax,positionen:[...positionen],status:{},savedAt:new Date().toISOString()
+  };
+  const idx=history.findIndex(h=>h.nr===doc.nr);
+  if(idx>-1){doc.status=history[idx].status||{};history[idx]=doc;}
+  else history.unshift(doc);
+  if(history.length>50)history=history.slice(0,50);
+  renderHistory();toast('Gespeichert ✓');
+}
+
+function toggleStatus(i,key,e){
+  e.stopPropagation();
+  if(!history[i].status)history[i].status={};
+  history[i].status[key]=!history[i].status[key];
+  renderHistory();
+}
+
+function loadDoc(i){
+  const d=history[i];
+  $('f_typ').value=d.typ||'angebot';$('f_nr').value=d.nr||'';$('f_datum').value=d.datum||'';
+  $('f_gueltig').value=d.gueltig||'';$('f_von').value=d.von||'';$('f_bis').value=d.bis||'';
+  $('f_betreff').value=d.betreff||'';$('f_zahlung').value=d.zahlung||'voll';
+  $('f_hinweise').value=d.hinweise||'';$('f_firma').value=d.firma||'';
+  $('f_ansprechpartner').value=d.ansp||'';$('f_strasse').value=d.str||'';
+  $('f_ort').value=d.ort||'';$('f_land').value=d.land||'';$('f_uid').value=d.uid||'';
+  positionen=d.positionen||[];
+  setLang(d.lang||'de');setTax(d.tax||'de');
+  renderSidebarPos();update();
+  showPanel('doc',document.querySelectorAll('.nav-btn')[0]);
+  document.querySelectorAll('.nav-btn')[0].classList.add('active');
+  toast('Geladen ✓');
+}
+
+function deleteDoc(i){history.splice(i,1);renderHistory();toast('Gelöscht');}
+
+function renderHistory(){
+  const el=$('history-list');
+  if(!history.length){el.innerHTML='<p style="color:#666;font-size:11px;">Keine Dokumente.</p>';return;}
+  el.innerHTML=history.map((h,i)=>{
+    const isRe=h.typ==='rechnung';
+    const chips=(isRe?STATUS_RE:STATUS_ANG).map(s=>{
+      const active=h.status&&h.status[s.key];
+      const lbl=lang==='en'?s.label_en:s.label_de;
+      return`<button class="status-chip${active?' '+s.cls:''}" onclick="toggleStatus(${i},'${s.key}',event)">${active?'✓ ':''} ${lbl}</button>`;
+    }).join('');
+    return`<div class="hist-item">
+      <div onclick="loadDoc(${i})" style="cursor:pointer;">
+        <span class="hist-badge ${isRe?'badge-re':'badge-ang'}">${isRe?'RECHNUNG':'ANGEBOT'}</span>
+        ${h.lang==='en'?'<span class="hist-badge" style="background:#1e3a5f;color:#93c5fd;margin-left:4px;">EN</span>':''}
+        <div class="hist-nr">${h.nr||'–'}</div>
+        <div class="hist-sub">${h.firma||'–'} · ${h.betreff||'–'}</div>
+      </div>
+      <div class="status-row">${chips}</div>
+      <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:10px;color:#555;">${new Date(h.savedAt).toLocaleDateString('de-DE')}</span>
+        <button class="btn-red" onclick="deleteDoc(${i})">Löschen</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── EMAIL ────────────────────────────────────────────────
+function getDocVals(){
+  const netto=positionen.reduce((s,p)=>s+(parseFloat(p.menge)||0)*(parseFloat(p.preis)||0),0);
+  const brutto=tax==='de'?netto*1.19:netto;
+  return{name:val('f_ansprechpartner')||val('f_firma')||'…',nr:val('f_nr')||'–',betreff:val('f_betreff')||'–',betrag:fmt(brutto),datum:fmtDate(val('f_gueltig')||val('f_bis'))};
+}
+function fillTpl(tpl,v){return tpl.replace(/\{\{(\w+)\}\}/g,(_,k)=>v[k]||'–');}
+function loadEmailTemplate(){
+  const key=$('email_template').value;
+  const tpl=customEmailTpl[key]||EMAIL_TPL[key];if(!tpl)return;
+  const v=getDocVals();
+  $('email_subject').value=fillTpl(tpl.subject,v);
+  $('email_body').value=fillTpl(tpl.body,v);
+  const c=customers.find(x=>x.firma===val('f_firma'));
+  if(c&&c.email)$('email_to').value=c.email;
+}
+function refreshEmailPreview(){loadEmailTemplate();}
+function saveEmailTemplate(){
+  const key=$('email_template').value;
+  customEmailTpl[key]={subject:val('email_subject'),body:val('email_body')};
+  toast('Vorlage gespeichert ✓');
+}
+function openGmail(){
+  const to=encodeURIComponent(val('email_to'));
+  const su=encodeURIComponent(val('email_subject'));
+  const bo=encodeURIComponent(val('email_body'));
+  window.open(`https://mail.google.com/mail/?view=cm&to=${to}&su=${su}&body=${bo}`,'_blank');
+}
+function copyEmail(){
+  const text=`Betreff: ${val('email_subject')}\n\n${val('email_body')}`;
+  navigator.clipboard.writeText(text).then(()=>toast('Kopiert ✓'));
+}
+
+// ── DATA ─────────────────────────────────────────────────
+function exportData(){
+  const data={customers,library,history,customEmailTpl,exportedAt:new Date().toISOString(),version:3};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;
+  a.download=`viso-media-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();URL.revokeObjectURL(url);toast('Export erfolgreich ✓');
+}
+function importData(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(data.customers){data.customers.forEach(c=>{if(!customers.find(x=>x.firma===c.firma))customers.push(c);});}
+      if(data.library){data.library.forEach(l=>{if(!library.find(x=>x.desc===l.desc))library.push(l);});}
+      if(data.history){data.history.forEach(h=>{if(!history.find(x=>x.nr===h.nr))history.unshift(h);});if(history.length>50)history=history.slice(0,50);}
+      if(data.customEmailTpl){Object.assign(customEmailTpl,data.customEmailTpl);}
+      renderCustomerList();renderLibraryList();renderHistory();updateDataStats();
+      toast(`Import erfolgreich ✓`);
+    }catch{toast('Fehler beim Import!');}
+  };
+  reader.readAsText(file);input.value='';
+}
+function resetData(){
+  if(!confirm('Wirklich alle Daten löschen?'))return;
+  customers=[];library=[];history=[];customEmailTpl={};
+  ['vm_customers','vm_library','vm_history','vm_email_tpl'].forEach(k=>localStorage.removeItem(k));
+  renderCustomerList();renderLibraryList();renderHistory();updateDataStats();toast('Alle Daten gelöscht');
+}
+function updateDataStats(){
+  $('data_stats').innerHTML=`👥 Kunden: <strong>${customers.length}</strong><br>📦 Leistungen: <strong>${library.length}</strong><br>🕓 Dokumente: <strong>${history.length}</strong>`;
+}
+
+// ── MAIN UPDATE ──────────────────────────────────────────
+function update(){
+  const typ=val('f_typ'),isRe=typ==='rechnung',l=T[lang],nr=val('f_nr')||'–';
+
+  $('d_typ_title').textContent=isRe?l.doc_i:l.doc_q;
+  $('t_annex_label').textContent=l.annex_label;
+  $('d_typ2').textContent=isRe?l.annex_i:l.annex_q;
+  $('d_nr_label').textContent=isRe?l.nr_i:l.nr_q;
+  $('d_date_label').textContent=l.date;
+  $('d_extra_label').textContent=isRe?l.period:l.valid;
+  $('lbl_nr').textContent=isRe?l.nr_i.replace(':',''):l.nr_q.replace(':','');
+  $('d_intro').textContent=isRe?l.intro_i:l.intro_q;
+  $('d_sign').innerHTML=isRe?l.sign_i:l.sign_q;
+  $('t_payment_title').textContent=l.payment;
+  $('t_notes_title').textContent=l.notes;
+  ['t_contact','t_contact2'].forEach(id=>$(id).textContent=l.contact);
+  $('t_tax_f').textContent=l.tax_f;
+  $('t_bank').textContent=l.bank;
+  $('t_agb_title').textContent=l.agb;
+  $('t_confirm_title').textContent=l.confirm_title;
+  $('t_confirm_text').textContent=l.confirm(nr);
+  $('t_sig_date').textContent=l.sig_date;
+  $('t_sig_sign').textContent=l.sig_sign;
+  $('t_return').textContent=l.return;
+  $('t_net').textContent=l.net;
+  $('t_tax').textContent=l.tax19;
+  $('t_total').textContent=isRe?l.total_i:l.total_q;
+  $('t_tax2').textContent=l.tax_f;
+  $('t_bank2').textContent=l.bank_title;
+  ['t_taxnr_label','t_taxnr_label2'].forEach(id=>$(id).textContent=l.taxnr);
+  ['t_vatid_label','t_vatid_label2'].forEach(id=>$(id).textContent=l.vatid);
+  ['t_accholder_label','t_accholder_label2'].forEach(id=>$(id).textContent=l.accholder);
+  document.querySelectorAll('.th').forEach((th,i)=>th.textContent=l.th[i]);
+  ['d_nr','d_nr2'].forEach(id=>$(id).textContent=nr);
+  $('d_datum').textContent=fmtDate(val('f_datum'));
+
+  if(isRe){
+    const von=fmtDate(val('f_von')),bis=fmtDate(val('f_bis'));
+    $('d_extra').textContent=(von!=='–'||bis!=='–')?von+' – '+bis:'–';
+  }else{$('d_extra').textContent=fmtDate(val('f_gueltig'));}
+
+  const betreff=val('f_betreff'),bEl=$('d_betreff');
+  if(betreff){bEl.textContent=(isRe?l.prefix_i:l.prefix_q)+betreff;bEl.style.cssText='';}
+  else{bEl.textContent=l.empty_sub;bEl.style.color='#bbb';bEl.style.fontStyle='italic';}
+
+  const firma=val('f_firma'),ansp=val('f_ansprechpartner'),str=val('f_strasse'),ort=val('f_ort'),land=val('f_land');
+  const eEl=$('d_empfaenger');
+  if(firma||ansp||str||ort){
+    eEl.style.cssText='';
+    eEl.innerHTML=[firma&&`<strong>${firma}</strong>`,ansp,str,ort,land].filter(Boolean).join('<br>');
+  }else{eEl.style.color='#bbb';eEl.style.fontStyle='italic';eEl.innerHTML=l.empty_rec;}
+
+  const tbody=$('d_positionen');
+  if(!positionen.length){
+    tbody.innerHTML='<tr><td colspan="6" style="color:#bbb;font-style:italic;text-align:center;padding:16px;">–</td></tr>';
+  }else{
+    tbody.innerHTML=positionen.map((p,i)=>{
+      const m=parseFloat(p.menge)||0,pr=parseFloat(p.preis)||0,sum=m*pr;
+      const details=p.details&&p.details.trim()
+        ?'<div style="margin-top:4px;font-size:11px;color:#555;line-height:1.6;">'
+          +p.details.trim().split('\n').filter(x=>x.trim()).map(x=>`<div style="padding-left:10px;position:relative;"><span style="position:absolute;left:0;">–</span>${x.trim()}</div>`).join('')
+          +'</div>':'';
+      return`<tr><td style="vertical-align:top;padding-top:10px;">${i+1}</td>
+        <td><strong>${p.desc||'–'}</strong>${details}</td>
+        <td style="text-align:right;white-space:nowrap;vertical-align:top;padding-top:10px;">${p.menge||'–'}</td>
+        <td style="text-align:right;white-space:nowrap;vertical-align:top;padding-top:10px;">${unitLabel(p.einheit,lang)}</td>
+        <td style="text-align:right;white-space:nowrap;vertical-align:top;padding-top:10px;">${pr?fmt(pr):'–'}</td>
+        <td style="text-align:right;white-space:nowrap;vertical-align:top;padding-top:10px;">${sum?fmt(sum):'–'}</td></tr>`;
+    }).join('');
+  }
+
+  const netto=positionen.reduce((s,p)=>s+(parseFloat(p.menge)||0)*(parseFloat(p.preis)||0),0);
+  const mwst=tax==='de'?netto*.19:0,brutto=netto+mwst;
+  $('d_netto').textContent=fmt(netto);$('d_mwst').textContent=fmt(mwst);$('d_gesamt').textContent=fmt(brutto);
+
+  const taxRow=$('row_tax'),taxNote=$('d_tax_note_box'),uid=val('f_uid');
+  if(tax==='de'){taxRow.style.display='';taxNote.style.display='none';}
+  else{taxRow.style.display='none';taxNote.style.display='block';taxNote.innerHTML=tax==='eu'?l.tax_eu+(uid?`<strong>${uid}</strong>`:'[VAT ID]'):l.tax_int;}
+
+  const zahlung=val('f_zahlung'),half=brutto/2;
+  $('d_zahlung_text').innerHTML=zahlung==='voll'?l.pay_full(fmt(brutto)):l.pay_50(fmt(half));
+
+  const notes=val('f_hinweise').trim();
+  $('d_notes_box').style.display=notes?'block':'none';
+  $('d_hinweise').textContent=notes;
+
+  $('agb_content').innerHTML=AGB[lang];
+
+  // AGB-Hinweis: nur bei Angebot sichtbar, bei Rechnung ausblenden
+  const hint=$('agb_hint');
+  if(!isRe){
+    hint.textContent=l.agb_hint;
+    hint.style.display='';
+  }else{
+    hint.style.display='none';
+  }
+
+  const p2=$('page2');
+  p2.style.display=!isRe?'flex':'none';
+  if(!isRe)p2.style.flexDirection='column';
+  $('wrap_gueltig').style.display=isRe?'none':'block';
+  $('wrap_zeitraum').style.display=isRe?'block':'none';
+}
+
+
+// ── SUPABASE: KUNDEN ──────────────────────────────────────
+async function saveCustomer(){
+  const firma=$('nc_firma').value.trim();
+  if(!firma){toast('Name fehlt!');return;}
+  const c={firma,ansp:$('nc_ansp').value.trim(),str:$('nc_str').value.trim(),ort:$('nc_ort').value.trim(),land:$('nc_land').value.trim(),email:$('nc_email').value.trim()};
+  try{
+    const saved=await DB.saveCustomer(c);
+    customers.unshift(saved);
+    ['nc_firma','nc_ansp','nc_str','nc_ort','nc_land','nc_email'].forEach(id=>$(id).value='');
+    renderCustomerList();toast('Kunde gespeichert ✓');
+  }catch(e){toast('Fehler: '+e.message);}
+}
+
+async function deleteCustomer(id){
+  try{await DB.deleteCustomer(id);customers=customers.filter(c=>c.id!==id);renderCustomerList();toast('Gelöscht');}
+  catch(e){toast('Fehler: '+e.message);}
+}
+
+function useCustomer(i){
+  const c=customers[i];
+  $('f_firma').value=c.firma||'';$('f_ansprechpartner').value=c.ansp||'';
+  $('f_strasse').value=c.str||'';$('f_ort').value=c.ort||'';$('f_land').value=c.land||'';
+  update();showPanel('doc',document.querySelectorAll('.nav-btn')[0]);
+  document.querySelectorAll('.nav-btn')[0].classList.add('active');toast('Kunde übernommen ✓');
+}
+function loadCustomer(){const i=$('f_kunde_select').value;if(i!=='')useCustomer(parseInt(i));}
+
+function renderCustomerList(){
+  const sel=$('f_kunde_select');
+  sel.innerHTML='<option value="">— Kunde wählen —</option>';
+  const el=$('customer-list');
+  if(!customers.length){el.innerHTML='<p style="color:#666;font-size:11px;margin-top:8px;">Noch keine Kunden.</p>';return;}
+  el.innerHTML=customers.map((c,i)=>`
+    <div class="card"><button class="del-btn" onclick="deleteCustomer('${c.id}')">✕</button>
+      <div class="card-title">${c.firma}</div>
+      <div class="card-sub">${[c.ansp,c.str,c.ort,c.land].filter(Boolean).join(' · ')}</div>
+      ${c.email?`<div class="card-sub">${c.email}</div>`:''}
+      <div class="card-actions"><button class="btn btn-secondary btn-sm" onclick="useCustomer(${i})">Übernehmen</button></div>
+    </div>`).join('');
+  customers.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.firma;sel.appendChild(o);});
+}
+
+// ── SUPABASE: BIBLIOTHEK ──────────────────────────────────
+async function saveLibItem(){
+  const desc=$('nl_desc').value.trim();if(!desc){toast('Bezeichnung fehlt!');return;}
+  const item={desc,details:$('nl_details').value.trim(),menge:$('nl_menge').value||'1',einheit:$('nl_einheit').value||'pauschal',preis:$('nl_preis').value||''};
+  try{
+    const saved=await DB.saveLibItem(item);
+    library.unshift(saved);
+    ['nl_desc','nl_details','nl_preis'].forEach(id=>$(id).value='');$('nl_menge').value='1';
+    renderLibraryList();toast('Leistung gespeichert ✓');
+  }catch(e){toast('Fehler: '+e.message);}
+}
+
+async function deleteLibItem(id){
+  try{await DB.deleteLibItem(id);library=library.filter(l=>l.id!==id);renderLibraryList();toast('Gelöscht');}
+  catch(e){toast('Fehler: '+e.message);}
+}
+
+function renderLibraryList(){
+  const sel=$('f_lib_select');
+  sel.innerHTML='<option value="">+ Aus Bibliothek</option>';
+  const el=$('lib-list');
+  if(!library.length){el.innerHTML='<p style="color:#666;font-size:11px;margin-top:8px;">Noch keine Leistungen.</p>';return;}
+  el.innerHTML=library.map((l,i)=>`
+    <div class="card"><button class="del-btn" onclick="deleteLibItem('${l.id}')">✕</button>
+      <div class="card-title">${l.desc}</div>
+      <div class="card-sub">${l.menge} ${UNITS[l.einheit]?UNITS[l.einheit].de:l.einheit} · ${l.preis?fmt(parseFloat(l.preis)):'-'}</div>
+    </div>`).join('');
+  library.forEach((l,i)=>{const o=document.createElement('option');o.value=i;o.textContent=l.desc;sel.appendChild(o);});
+}
+
+function addFromLib(){
+  const i=$('f_lib_select').value;if(i==='')return;
+  const l=library[parseInt(i)];
+  positionen.push({id:Date.now(),desc:l.desc,details:l.details||'',menge:l.menge,einheit:l.einheit,preis:l.preis});
+  renderSidebarPos();update();$('f_lib_select').value='';toast('Hinzugefügt ✓');
+}
+
+// ── SUPABASE: DOKUMENTE ───────────────────────────────────
+async function saveDoc(){
+  const doc={
+    typ:val('f_typ'),nr:val('f_nr'),datum:val('f_datum'),gueltig:val('f_gueltig'),
+    von:val('f_von'),bis:val('f_bis'),betreff:val('f_betreff'),zahlung:val('f_zahlung'),
+    hinweise:val('f_hinweise'),firma:val('f_firma'),ansp:val('f_ansprechpartner'),
+    str:val('f_strasse'),ort:val('f_ort'),land:val('f_land'),uid:val('f_uid'),
+    lang,tax,positionen:positionen
+  };
+  try{
+    const saved=await DB.saveDocument(doc);
+    const idx=history.findIndex(h=>h.nr===doc.nr);
+    if(idx>-1)history[idx]=saved; else history.unshift(saved);
+    renderHistory();toast('Gespeichert ✓');
+  }catch(e){toast('Fehler: '+e.message);}
+}
+
+async function toggleStatus(id,key,e){
+  e.stopPropagation();
+  const doc=history.find(h=>h.id===id);if(!doc)return;
+  if(!doc.status)doc.status={};
+  doc.status[key]=!doc.status[key];
+  try{await DB.updateDocStatus(id,doc.status);renderHistory();}
+  catch(e){toast('Fehler: '+e.message);}
+}
+
+async function deleteDoc(id){
+  try{await DB.deleteDocument(id);history=history.filter(h=>h.id!==id);renderHistory();toast('Gelöscht');}
+  catch(e){toast('Fehler: '+e.message);}
+}
+
+function loadDoc(i){
+  const d=history[i];
+  $('f_typ').value=d.typ||'angebot';$('f_nr').value=d.nr||'';$('f_datum').value=d.datum||'';
+  $('f_gueltig').value=d.gueltig||'';$('f_von').value=d.von||'';$('f_bis').value=d.bis||'';
+  $('f_betreff').value=d.betreff||'';$('f_zahlung').value=d.zahlung||'voll';
+  $('f_hinweise').value=d.hinweise||'';$('f_firma').value=d.firma||'';
+  $('f_ansprechpartner').value=d.ansp||'';$('f_strasse').value=d.str||'';
+  $('f_ort').value=d.ort||'';$('f_land').value=d.land||'';$('f_uid').value=d.uid||'';
+  positionen=(d.positionen||[]).map(p=>({...p,id:p.id||Date.now()+Math.random()}));
+  setLang(d.lang||'de');setTax(d.tax||'de');
+  renderSidebarPos();update();
+  showPanel('doc',document.querySelectorAll('.nav-btn')[0]);
+  document.querySelectorAll('.nav-btn')[0].classList.add('active');toast('Geladen ✓');
+}
+
+function renderHistory(){
+  const el=$('history-list');
+  if(!history.length){el.innerHTML='<p style="color:#666;font-size:11px;">Keine Dokumente.</p>';return;}
+  el.innerHTML=history.map((h,i)=>{
+    const isRe=h.typ==='rechnung';
+    const chips=(isRe?STATUS_RE:STATUS_ANG).map(s=>{
+      const active=h.status&&h.status[s.key];
+      const lbl=lang==='en'?s.label_en:s.label_de;
+      return`<button class="status-chip${active?' '+s.cls:''}" onclick="toggleStatus('${h.id}','${s.key}',event)">${active?'✓ ':''} ${lbl}</button>`;
+    }).join('');
+    return`<div class="hist-item">
+      <div onclick="loadDoc(${i})" style="cursor:pointer;">
+        <span class="hist-badge ${isRe?'badge-re':'badge-ang'}">${isRe?'RECHNUNG':'ANGEBOT'}</span>
+        ${h.lang==='en'?'<span class="hist-badge" style="background:#1e3a5f;color:#93c5fd;margin-left:4px;">EN</span>':''}
+        <div class="hist-nr">${h.nr||'–'}</div>
+        <div class="hist-sub">${h.firma||'–'} · ${h.betreff||'–'}</div>
+      </div>
+      <div class="status-row">${chips}</div>
+      <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:10px;color:#555;">${new Date(h.updated_at||h.created_at).toLocaleDateString('de-DE')}</span>
+        <button class="btn-red" onclick="deleteDoc('${h.id}')">Löschen</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── SUPABASE: E-MAIL ──────────────────────────────────────
+async function saveEmailTemplate(){
+  const key=$('email_template').value;
+  try{
+    await DB.saveEmailTemplate(key,val('email_subject'),val('email_body'));
+    customEmailTpl[key]={subject:val('email_subject'),body:val('email_body')};
+    toast('Vorlage gespeichert ✓');
+  }catch(e){toast('Fehler: '+e.message);}
+}
+
+// ── DATEN: EXPORT / IMPORT / RESET ───────────────────────
+function exportData(){
+  const blob=new Blob([JSON.stringify({customers,library,history,customEmailTpl,exportedAt:new Date().toISOString(),version:4},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`viso-media-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();toast('Export erfolgreich ✓');
+}
+
+async function importData(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      let imported=0;
+      if(data.customers){
+        for(const c of data.customers){
+          if(!customers.find(x=>x.firma===c.firma)){
+            try{const s=await DB.saveCustomer(c);customers.unshift(s);imported++;}catch{}
+          }
+        }
+        renderCustomerList();
+      }
+      if(data.library){
+        for(const l of data.library){
+          if(!library.find(x=>x.desc===l.desc)){
+            try{const s=await DB.saveLibItem(l);library.unshift(s);imported++;}catch{}
+          }
+        }
+        renderLibraryList();
+      }
+      if(data.history){
+        for(const h of data.history){
+          if(!history.find(x=>x.nr===h.nr)){
+            try{const s=await DB.saveDocument(h);history.unshift(s);imported++;}catch{}
+          }
+        }
+        renderHistory();
+      }
+      updateDataStats();
+      toast(`Import: ${imported} Einträge ✓`);
+    }catch(err){toast('Fehler beim Import!');}
+  };
+  reader.readAsText(file);input.value='';
+}
+
+async function resetData(){
+  if(!confirm('Wirklich alle Daten löschen? Das löscht auch die Datenbank!'))return;
+  // Lokaler Reset – DB-Einträge müssten manuell im Supabase Dashboard gelöscht werden
+  customers=[];library=[];history=[];customEmailTpl={};
+  renderCustomerList();renderLibraryList();renderHistory();updateDataStats();
+  toast('Lokale Daten zurückgesetzt');
+}
+
+function updateDataStats(){
+  $('data_stats').innerHTML=`👥 Kunden: <strong>${customers.length}</strong><br>📦 Leistungen: <strong>${library.length}</strong><br>🕓 Dokumente: <strong>${history.length}</strong>`;
+}
+
+// ── PDF via Vercel API ─────────────────────────────────────
+async function printPDF(){
+  const btn=document.querySelector('.btn-print');
+  btn.textContent='⏳ PDF wird erstellt…';
+  btn.disabled=true;
+
+  try{
+    // Dokumentinhalt aus dem aktuellen Vorschau-DOM extrahieren
+    const p1=document.getElementById('page1');
+    const p2=document.getElementById('page2');
+    const isRe=val('f_typ')==='rechnung';
+
+    // Alle relevanten CSS-Regeln sammeln
+    let css='';
+    try{css=Array.from(document.styleSheets).reduce((a,ss)=>{try{return a+Array.from(ss.cssRules).map(r=>r.cssText).join('\n');}catch{return a;}},'')}catch{}
+
+    const payload={
+      page1: p1 ? p1.innerHTML : '',
+      page2: (!isRe && p2) ? p2.innerHTML : '',
+      css,
+      filename: `${val('f_nr')||'Dokument'}${val('f_firma')?' – '+val('f_firma'):''}`,
+    };
+
+    const res=await fetch('/api/pdf',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+
+    if(!res.ok) throw new Error('API-Fehler: '+res.status);
+
+    // PDF als Blob empfangen und herunterladen
+    const blob=await res.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=payload.filename+'.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('PDF erstellt ✓');
+
+  }catch(err){
+    console.error(err);
+    // Fallback: Browser-Druck
+    toast('API nicht verfügbar – Browser-Druck wird verwendet');
+    window.print();
+  }finally{
+    btn.textContent='🖨️ Als PDF drucken / Print PDF';
+    btn.disabled=false;
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────
+async function init(){
+  // Auth-Check: falls nicht eingeloggt → Login-Seite
+  const user=await getUser();
+  if(!user){
+    window.location.href='index.html';
+    return;
+  }
+
+  // Benutzername in Nav anzeigen
+  const navEl=document.getElementById('nav');
+  const userBtn=document.createElement('button');
+  userBtn.className='nav-btn';userBtn.title='Abmelden ('+user.email+')';
+  userBtn.textContent='👤';userBtn.style.marginTop='auto';
+  userBtn.onclick=signOut;
+  navEl.appendChild(userBtn);
+
+  // Alle Daten parallel laden
+  try{
+    [customers, library, history, customEmailTpl] = await Promise.all([
+      DB.getCustomers(),
+      DB.getLibrary(),
+      DB.getDocuments(),
+      DB.getEmailTemplates(),
+    ]);
+  }catch(err){
+    console.error('Ladefehler:',err);
+    toast('Fehler beim Laden der Daten');
+  }
+
+  // UI initialisieren
+  const today=new Date();
+  $('f_datum').value=today.getFullYear()+'-'+pad(today.getMonth()+1)+'-'+pad(today.getDate());
+  const inM=new Date(today);inM.setMonth(inM.getMonth()+1);
+  $('f_gueltig').value=inM.getFullYear()+'-'+pad(inM.getMonth()+1)+'-'+pad(inM.getDate());
+
+  renderCustomerList();
+  renderLibraryList();
+  renderHistory();
+  updateDataStats();
+  addPos();
+  update();
+}
+
+init();
+</script>
+</body>
+</html>
