@@ -1,8 +1,1 @@
-{
-  "functions": {
-    "api/pdf.js": {
-      "memory": 1024,
-      "maxDuration": 30
-    }
-  }
-}
+{\n  "functions": {\n    "api/pdf.js": {\n      "memory": 1024,\n      "maxDuration": 30,\n      "includeFiles": "node_modules/@sparticuz/chromium/**"\n    }\n  }\n}\n
