@@ -3,349 +3,732 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Angebots- & Rechnungstool</title>
+<title>VISO Media – Dokumente</title>
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <style>
-:root{--accent:#4a4a4a;--accent-light:#f5f5f5;--blue:#2563eb;--green:#16a34a;--red:#dc2626;--sidebar:#1e1e1e;--sidebar2:#2a2a2a;--input-bg:#333;}
+/* ── TOKENS ─────────────────────────────────────────── */
+:root{
+  --bg:#0a0a0a;
+  --surface:#141414;
+  --surface2:#1c1c1c;
+  --surface3:#242424;
+  --border:#2a2a2a;
+  --border2:#333;
+  --text:#e8e8e8;
+  --text2:#999;
+  --text3:#555;
+  --accent:#e9e930;
+  --accent-dim:#b8b826;
+  --red:#e05555;
+  --green:#4ade80;
+  --blue:#60a5fa;
+  --radius:8px;
+  --radius-sm:5px;
+  --sidebar-w:300px;
+  --nav-w:52px;
+  --font:'Helvetica Neue',Arial,sans-serif;
+}
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#1a1a1a;background:#e0e0e0;display:flex;min-height:100vh;}
-#nav{width:52px;background:#111;display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;z-index:10;position:sticky;top:0;height:100vh;}
-.nav-btn{width:40px;height:40px;border:none;background:none;color:#888;cursor:pointer;border-radius:8px;font-size:18px;display:flex;align-items:center;justify-content:center;transition:.15s;}
-.nav-btn:hover,.nav-btn.active{background:#333;color:#fff;}
-.nav-btn.active{background:var(--accent);color:#fff;}
-.nav-sep{width:28px;height:1px;background:#333;margin:4px 0;}
-#sidebar{width:270px;background:var(--sidebar);color:#eee;overflow-y:auto;height:100vh;position:sticky;top:0;}
-.sidebar-panel{display:none;padding:16px;}
-.sidebar-panel.active{display:block;}
-.sidebar-panel h2{font-size:13px;font-weight:700;color:#fff;margin-bottom:14px;border-bottom:1px solid #333;padding-bottom:8px;}
-.sidebar-panel h3{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:#777;margin:14px 0 7px;}
-label{font-size:11px;color:#aaa;display:block;margin-bottom:2px;margin-top:7px;}
-input,textarea,select{width:100%;background:var(--input-bg);border:1px solid #444;border-radius:4px;color:#eee;font-size:12px;padding:6px 8px;outline:none;font-family:inherit;}
-input:focus,textarea:focus,select:focus{border-color:#666;}
-textarea{resize:vertical;min-height:50px;}
-.btn{width:100%;padding:8px;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;margin-top:6px;}
-.btn-secondary{background:#333;color:#ccc;border:1px solid #444;}
-.btn-secondary:hover{background:#3a3a3a;}
-.btn-green{background:var(--green);color:#fff;}
-.btn-green:hover{background:#15803d;}
-.btn-blue{background:var(--blue);color:#fff;}
-.btn-blue:hover{background:#1d4ed8;}
-.btn-orange{background:#c2410c;color:#fff;}
-.btn-orange:hover{background:#9a3412;}
-.btn-sm{padding:5px 10px;font-size:11px;width:auto;margin-top:0;}
-.btn-print{width:100%;margin-top:10px;padding:10px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;}
-.btn-print:hover{background:#333;}
-.btn-red{background:none;color:#f87171;border:1px solid #555;font-size:11px;padding:5px 8px;border-radius:4px;cursor:pointer;width:auto;}
-.btn-red:hover{background:#3a2020;}
-.card{background:var(--sidebar2);border-radius:6px;padding:10px 12px;margin-top:8px;position:relative;}
-.card-title{font-size:12px;font-weight:600;color:#eee;margin-bottom:2px;}
-.card-sub{font-size:10px;color:#888;line-height:1.5;}
-.card-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
-.card .del-btn{position:absolute;top:8px;right:8px;background:none;border:none;color:#666;cursor:pointer;font-size:13px;}
-.card .del-btn:hover{color:#f87171;}
-.pos-row{background:var(--sidebar2);border-radius:4px;padding:8px;margin-top:8px;position:relative;}
-.pos-row .del{position:absolute;top:6px;right:6px;background:none;border:none;color:#777;cursor:pointer;font-size:14px;}
-.pos-row .del:hover{color:#f87171;}
-.pos-row input,.pos-row select,.pos-row textarea{margin-top:4px;}
-.pos-label{font-size:10px;color:#888;margin-bottom:2px;}
-/* History */
-.hist-item{background:var(--sidebar2);border-radius:5px;padding:9px 12px;margin-top:7px;border:1px solid transparent;}
-.hist-item:hover{border-color:#444;}
-.hist-badge{display:inline-block;font-size:9px;padding:2px 6px;border-radius:3px;font-weight:700;margin-bottom:4px;}
-.badge-ang{background:#92400e;color:#fde68a;}
-.badge-re{background:#065f46;color:#a7f3d0;}
-.hist-nr{font-size:12px;font-weight:600;color:#eee;cursor:pointer;}
-.hist-sub{font-size:10px;color:#888;margin-top:1px;}
-.status-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
-.status-chip{display:flex;align-items:center;gap:4px;font-size:10px;padding:3px 8px;border-radius:20px;cursor:pointer;border:1px solid #444;color:#888;background:none;user-select:none;transition:.15s;}
-.status-chip:hover{border-color:#666;color:#ccc;}
-.status-chip.active-sent{background:#1e3a5f;border-color:#2563eb;color:#93c5fd;}
-.status-chip.active-accepted{background:#14532d;border-color:#16a34a;color:#86efac;}
-.status-chip.active-declined{background:#3a1a1a;border-color:#dc2626;color:#fca5a5;}
-.status-chip.active-paid{background:#1a3a2a;border-color:#059669;color:#6ee7b7;}
-/* Lang/Tax */
-.lang-toggle{display:flex;gap:6px;margin-bottom:4px;}
-.lang-btn{flex:1;padding:6px;border:1px solid #444;border-radius:4px;background:#333;color:#aaa;cursor:pointer;font-size:12px;font-weight:600;}
-.lang-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-.tax-pill{display:flex;flex-direction:column;gap:4px;margin-top:4px;}
-.tax-btn{padding:7px 10px;border:1px solid #444;border-radius:4px;background:#333;color:#aaa;cursor:pointer;font-size:11px;text-align:left;}
-.tax-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:6px;font-size:12px;opacity:0;transition:.3s;pointer-events:none;z-index:999;}
-#toast.show{opacity:1;}
-/* DOC */
-#main{flex:1;padding:24px;overflow-y:auto;display:flex;flex-direction:column;gap:0;}
-.page{width:210mm;min-height:297mm;height:297mm;margin:0 auto 24px auto;background:#fff;padding:18mm 20mm 20mm 25mm;box-shadow:0 2px 20px rgba(0,0,0,.18);overflow:hidden;position:relative;}
-/* Wenn Inhalt länger als eine Seite: overflow sichtbar machen damit nichts abgeschnitten wird */
-#page1{overflow:visible;height:auto;min-height:297mm;}
-#page2{overflow:visible;height:auto;min-height:297mm;}
-.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10mm;}
-.logo{font-size:22px;font-weight:700;color:#111;}
-.logo span{color:var(--accent);font-weight:400;}
-.sender-small{font-size:9px;color:#888;margin-bottom:6mm;border-bottom:1px solid #ddd;padding-bottom:2mm;}
-.recipient{margin-bottom:8mm;min-height:28mm;}
-.recipient p{line-height:1.7;}
-.doc-meta{text-align:right;}
-.doc-meta h1{font-size:22px;font-weight:700;color:var(--accent);margin-bottom:4px;}
-.doc-meta p{font-size:12px;color:#555;line-height:1.8;}
-.subject{margin-bottom:6mm;font-size:14px;font-weight:700;}
-.intro{margin-bottom:5mm;line-height:1.7;color:#333;}
-table{width:100%;border-collapse:collapse;margin-bottom:6mm;}
-thead tr{background:var(--accent);color:#fff;}
-thead th{padding:8px 10px;text-align:left;font-size:12px;font-weight:600;}
-thead th:nth-child(n+3){text-align:right;white-space:nowrap;}
-tbody tr{border-bottom:1px solid #eee;}
-tbody tr:nth-child(even){background:var(--accent-light);}
-tbody td{padding:8px 10px;line-height:1.5;}
-tbody td:nth-child(n+3){text-align:right;white-space:nowrap;}
-.totals{margin-left:auto;width:260px;margin-bottom:8mm;}
-.totals table{margin-bottom:0;}
-.totals td{padding:4px 10px;font-size:13px;white-space:nowrap;}
-.totals tr.total-row{background:var(--accent);color:#fff;font-weight:700;font-size:14px;}
-.totals tr.total-row td{padding:8px 10px;}
-.info-box{background:var(--accent-light);border-left:3px solid var(--accent);padding:10px 14px;margin-bottom:8mm;font-size:12px;line-height:1.7;color:#333;}
-.sign{margin-bottom:12mm;line-height:1.7;color:#333;}
-.doc-footer{border-top:1px solid #ddd;padding-top:5mm;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:10px;color:#666;line-height:1.8;}
-.doc-footer strong{color:#333;font-size:11px;display:block;margin-bottom:2px;}
-.agb-section{margin-bottom:6mm;}
-.agb-section h3{font-size:12px;font-weight:700;color:var(--accent);margin-bottom:3mm;border-bottom:1px solid #eee;padding-bottom:2mm;}
-.agb-section p{font-size:11.5px;line-height:1.75;color:#333;}
-.sig-block{margin-top:12mm;display:grid;grid-template-columns:1fr 1fr;gap:16mm;}
-.sig-field{border-top:1px solid #555;padding-top:3mm;font-size:10px;color:#666;}
-.sig-field .sig-line{height:14mm;}
+body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);display:flex;height:100vh;overflow:hidden;}
 
+/* ── NAV ────────────────────────────────────────────── */
+#nav{
+  width:var(--nav-w);flex-shrink:0;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;
+  padding:10px 0;gap:2px;
+  z-index:20;
+}
+.nav-btn{
+  width:36px;height:36px;border:none;background:none;
+  color:var(--text3);cursor:pointer;border-radius:var(--radius-sm);
+  display:flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s;position:relative;
+}
+.nav-btn:hover{background:var(--surface3);color:var(--text);}
+.nav-btn.active{background:var(--surface3);color:var(--accent);}
+.nav-btn svg{width:16px;height:16px;stroke-width:1.8;}
+.nav-sep{width:24px;height:1px;background:var(--border);margin:4px 0;}
+.nav-logo{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border);width:100%;text-align:center;}
+
+/* ── SIDEBAR ────────────────────────────────────────── */
+#sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  position:relative;
+}
+#sidebar-content{flex:1;overflow-y:auto;padding:16px;}
+/* Custom scrollbar */
+#sidebar-content::-webkit-scrollbar{width:4px;}
+#sidebar-content::-webkit-scrollbar-track{background:transparent;}
+#sidebar-content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+/* Resize handle */
+#resize-handle{
+  position:absolute;right:0;top:0;bottom:0;width:4px;
+  cursor:col-resize;z-index:10;
+  background:transparent;transition:background .15s;
+}
+#resize-handle:hover,#resize-handle.dragging{background:var(--accent);}
+
+/* Sidebar panels */
+.panel{display:none;}
+.panel.active{display:block;}
+.panel-title{
+  font-size:11px;font-weight:600;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.8px;
+  margin-bottom:16px;
+}
+
+/* Form elements */
+.field-group{margin-bottom:14px;}
+.field-label{font-size:11px;color:var(--text3);margin-bottom:5px;display:block;}
+.field-input,
+input[type=text],input[type=email],input[type=number],input[type=date],
+textarea,select{
+  width:100%;background:var(--surface2);
+  border:1px solid var(--border2);border-radius:var(--radius-sm);
+  color:var(--text);font-size:12px;padding:7px 10px;
+  outline:none;font-family:var(--font);
+  transition:border-color .15s;
+}
+input:focus,textarea:focus,select:focus{border-color:var(--text3);}
+textarea{resize:vertical;min-height:56px;line-height:1.6;}
+select{cursor:pointer;}
+select option{background:var(--surface2);}
+
+/* Section header */
+.section-hd{
+  font-size:10px;font-weight:600;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.7px;
+  margin:18px 0 8px;
+  display:flex;align-items:center;gap:6px;
+}
+.section-hd::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* Buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:7px 12px;border:none;border-radius:var(--radius-sm);
+  font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);
+  transition:opacity .15s,background .15s;white-space:nowrap;
+}
+.btn:hover{opacity:.85;}
+.btn-primary{background:var(--accent);color:#111;}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2);}
+.btn-ghost:hover{background:var(--surface3);opacity:1;}
+.btn-danger{background:transparent;color:var(--red);border:1px solid var(--border2);}
+.btn-danger:hover{background:#2a1515;opacity:1;}
+.btn-full{width:100%;margin-top:6px;}
+.btn svg{width:14px;height:14px;stroke-width:2;}
+.btn-icon{
+  width:28px;height:28px;padding:0;background:transparent;
+  border:none;color:var(--text3);cursor:pointer;border-radius:4px;
+  display:inline-flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s;
+}
+.btn-icon:hover{background:var(--surface3);color:var(--text);}
+.btn-icon svg{width:14px;height:14px;stroke-width:1.8;}
+
+/* Cards */
+.card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;
+  position:relative;
+}
+.card:hover{border-color:var(--border2);}
+.card-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.card-sub{font-size:11px;color:var(--text3);line-height:1.5;}
+.card-actions{display:flex;gap:6px;margin-top:8px;align-items:center;}
+.card-del{position:absolute;top:8px;right:8px;}
+
+/* Status chips */
+.status-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
+.chip{
+  font-size:10px;padding:3px 8px;border-radius:20px;cursor:pointer;
+  border:1px solid var(--border2);color:var(--text3);background:none;
+  font-family:var(--font);transition:.15s;user-select:none;
+}
+.chip:hover{border-color:var(--text3);color:var(--text2);}
+.chip.sent{background:#1a2a3f;border-color:var(--blue);color:var(--blue);}
+.chip.accepted{background:#0f2a1a;border-color:var(--green);color:var(--green);}
+.chip.declined{background:#2a1515;border-color:var(--red);color:var(--red);}
+.chip.paid{background:#0f2a1a;border-color:var(--green);color:var(--green);}
+
+/* Toggle row */
+.toggle-row{display:flex;gap:6px;}
+.toggle-btn{
+  flex:1;padding:6px 8px;border:1px solid var(--border2);
+  border-radius:var(--radius-sm);background:var(--surface2);
+  color:var(--text3);cursor:pointer;font-size:11px;font-weight:500;
+  font-family:var(--font);transition:.15s;text-align:center;
+}
+.toggle-btn:hover{border-color:var(--text3);color:var(--text2);}
+.toggle-btn.active{background:var(--accent);color:#111;border-color:var(--accent);}
+
+/* Tax pills */
+.tax-group{display:flex;flex-direction:column;gap:4px;}
+.tax-btn{
+  padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);
+  background:var(--surface2);color:var(--text3);cursor:pointer;
+  font-size:11px;font-family:var(--font);text-align:left;transition:.15s;
+}
+.tax-btn:hover{border-color:var(--text3);color:var(--text2);}
+.tax-btn.active{background:var(--surface3);border-color:var(--accent);color:var(--accent);}
+
+/* Hist item */
+.hist-item{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:10px 12px;margin-bottom:7px;
+  transition:border-color .15s;
+}
+.hist-item:hover{border-color:var(--border2);}
+.hist-badge{
+  display:inline-block;font-size:9px;padding:2px 6px;
+  border-radius:3px;font-weight:700;margin-bottom:5px;
+}
+.badge-ang{background:#3a2a0a;color:#fbbf24;}
+.badge-re{background:#0a2a1a;color:var(--green);}
+.hist-nr{font-size:12px;font-weight:600;color:var(--text);cursor:pointer;}
+.hist-nr:hover{color:var(--accent);}
+.hist-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+
+/* Toast */
+#toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--surface3);color:var(--text);border:1px solid var(--border2);
+  padding:9px 18px;border-radius:var(--radius);font-size:12px;
+  opacity:0;transition:.25s;pointer-events:none;z-index:999;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);
+}
+#toast.show{opacity:1;}
+
+/* ── MAIN / DOCUMENT AREA ───────────────────────────── */
+#main{
+  flex:1;overflow-y:auto;background:var(--bg);
+  padding:24px 32px;
+  display:flex;flex-direction:column;align-items:center;gap:0;
+}
+#main::-webkit-scrollbar{width:6px;}
+#main::-webkit-scrollbar-track{background:transparent;}
+#main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* Top action bar */
+#topbar{
+  width:210mm;max-width:100%;
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:16px;
+  flex-shrink:0;
+}
+#topbar .spacer{flex:1;}
+#topbar .doc-type-toggle{display:flex;gap:4px;}
+#topbar .doc-type-btn{
+  padding:6px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);
+  background:var(--surface2);color:var(--text3);cursor:pointer;
+  font-size:12px;font-weight:500;font-family:var(--font);transition:.15s;
+}
+#topbar .doc-type-btn.active{background:var(--accent);color:#111;border-color:var(--accent);}
+
+/* ── DOCUMENT PAGES ─────────────────────────────────── */
+.doc-page{
+  width:210mm;max-width:100%;
+  background:#fff;color:#1a1a1a;
+  padding:20mm 20mm 18mm 22mm;
+  box-shadow:0 2px 24px rgba(0,0,0,.35);
+  margin-bottom:20px;
+  position:relative;
+  flex-shrink:0;
+}
+/* Page 2 starts on new page always */
+#page2{display:none;}
+
+/* Doc variables inside white doc */
+.doc-page{
+  --doc-accent:#4a4a4a;
+  --doc-light:#f5f5f5;
+  font-family:'Helvetica Neue',Arial,sans-serif;
+  font-size:12.5px;
+  line-height:1.5;
+}
+
+/* Inline edit styles – visible in editor, hidden in PDF */
+.ie{
+  background:transparent;border:none;border-bottom:1px dashed #ccc;
+  font-family:inherit;font-size:inherit;color:inherit;
+  padding:1px 3px;outline:none;width:auto;
+  min-width:40px;
+}
+.ie:focus{border-bottom-color:#4a4a4a;background:#f9f9e8;}
+.ie-block{
+  background:transparent;border:1px dashed #ddd;
+  font-family:inherit;font-size:inherit;color:inherit;
+  padding:3px 5px;outline:none;width:100%;
+  border-radius:3px;
+}
+.ie-block:focus{border-color:#4a4a4a;background:#f9f9e8;}
+.ie-select{
+  background:#f8f8f8;border:1px dashed #ccc;
+  font-family:inherit;font-size:inherit;color:inherit;
+  padding:2px 4px;outline:none;border-radius:3px;cursor:pointer;
+}
+.ie-select:focus{border-color:#4a4a4a;}
+.ie-date{
+  background:#f8f8f8;border:1px dashed #ccc;
+  font-family:inherit;font-size:inherit;color:inherit;
+  padding:2px 4px;outline:none;border-radius:3px;cursor:pointer;
+  width:130px;
+}
+.ie-date:focus{border-color:#4a4a4a;}
+
+/* Doc header */
+.doc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9mm;}
+.doc-logo{font-size:20px;font-weight:700;color:#111;letter-spacing:-.3px;}
+.doc-logo span{color:var(--doc-accent);font-weight:300;}
+.doc-name-sub{font-size:10.5px;color:#777;margin-top:2px;}
+.doc-meta{text-align:right;}
+.doc-meta h1{font-size:21px;font-weight:700;color:var(--doc-accent);margin-bottom:5px;}
+.doc-meta-row{font-size:11.5px;color:#555;line-height:1.9;}
+.doc-meta-label{color:#999;font-size:10.5px;}
+
+.sender-bar{font-size:9px;color:#aaa;margin-bottom:5mm;border-bottom:1px solid #eee;padding-bottom:2mm;}
+
+.recipient-block{margin-bottom:7mm;min-height:24mm;}
+.recipient-block p{line-height:1.8;font-size:12px;}
+
+.doc-subject{
+  font-size:13.5px;font-weight:700;color:#111;
+  margin-bottom:4mm;
+}
+.doc-intro{margin-bottom:5mm;line-height:1.75;color:#444;font-size:12px;}
+
+/* Table */
+.doc-table{width:100%;border-collapse:collapse;margin-bottom:5mm;font-size:12px;}
+.doc-table thead tr{background:var(--doc-accent);color:#fff;}
+.doc-table thead th{padding:7px 9px;text-align:left;font-weight:600;font-size:11.5px;}
+.doc-table thead th:nth-child(n+3){text-align:right;white-space:nowrap;}
+.doc-table tbody tr{border-bottom:1px solid #eee;}
+.doc-table tbody tr:nth-child(even){background:var(--doc-light);}
+.doc-table tbody td{padding:7px 9px;vertical-align:top;}
+.doc-table tbody td:nth-child(n+3){text-align:right;white-space:nowrap;}
+.doc-table .add-row-btn{
+  display:block;width:100%;padding:6px;margin-top:4px;
+  background:none;border:1px dashed #ccc;border-radius:4px;
+  color:#aaa;font-size:11px;cursor:pointer;font-family:inherit;
+  transition:.15s;
+}
+.doc-table .add-row-btn:hover{border-color:#999;color:#666;}
+.pos-del{
+  background:none;border:none;color:#ccc;cursor:pointer;
+  font-size:13px;padding:0 2px;vertical-align:middle;
+  transition:color .15s;
+}
+.pos-del:hover{color:#e05555;}
+.pos-details-input{
+  width:100%;background:transparent;border:none;border-bottom:1px dashed #ddd;
+  font-family:inherit;font-size:11px;color:#666;padding:1px 3px;
+  outline:none;margin-top:2px;resize:none;min-height:0;overflow:hidden;
+}
+.pos-details-input:focus{border-bottom-color:#999;background:#f9f9f9;}
+
+/* Totals */
+.totals-wrap{margin-left:auto;width:240px;margin-bottom:6mm;}
+.totals-wrap table{width:100%;border-collapse:collapse;}
+.totals-wrap td{padding:4px 9px;font-size:12px;}
+.totals-wrap tr.total-final{background:var(--doc-accent);color:#fff;font-weight:700;font-size:13px;}
+.totals-wrap tr.total-final td{padding:7px 9px;}
+
+/* Info boxes */
+.info-box{
+  background:#f8f8f8;border-left:3px solid var(--doc-accent);
+  padding:9px 13px;margin-bottom:5mm;font-size:11.5px;line-height:1.75;color:#333;
+}
+.sign-block{margin-bottom:10mm;line-height:1.75;color:#444;font-size:12px;}
+
+/* Footer */
+.doc-footer{
+  border-top:1px solid #e0e0e0;padding-top:4mm;
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;
+  font-size:10px;color:#777;line-height:1.85;
+}
+.doc-footer strong{color:#444;font-size:10.5px;display:block;margin-bottom:2px;}
+
+/* AGB */
+.agb-section{margin-bottom:5mm;}
+.agb-section h3{font-size:11.5px;font-weight:700;color:var(--doc-accent);margin-bottom:2mm;border-bottom:1px solid #eee;padding-bottom:1.5mm;}
+.agb-section p{font-size:11px;line-height:1.75;color:#444;}
+.sig-block{margin-top:10mm;display:grid;grid-template-columns:1fr 1fr;gap:14mm;}
+.sig-field{border-top:1px solid #aaa;padding-top:2.5mm;font-size:9.5px;color:#888;}
+.sig-field .sig-line{height:13mm;}
+.agb-hint-box{background:#f8f8f8;border-left:3px solid var(--doc-accent);padding:9px 13px;font-size:11px;color:#555;}
+
+/* ── PRINT / PDF OVERRIDES ──────────────────────────── */
 @media print{
   body{background:#fff;display:block;}
-  #nav,#sidebar{display:none!important;}
-  #main{padding:0;gap:0;}
-  .page{margin:0;box-shadow:none;width:100%;}
+  #nav,#sidebar,#topbar{display:none!important;}
+  #main{padding:0;overflow:visible;}
+  .doc-page{box-shadow:none;margin:0;width:100%;padding:0;}
   #page1{page-break-after:always;}
-  #page2{page-break-before:always!important;page-break-after:auto;}
-  @page{margin:25mm;size:A4;}
-  thead tr{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .totals tr.total-row{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-  .info-box{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  #page2{display:block!important;page-break-before:always;page-break-after:auto;}
+  @page{size:A4;margin:25mm;}
+  .ie,.ie-block,.ie-select,.ie-date{border:none!important;background:transparent!important;}
+  .doc-table .add-row-btn{display:none!important;}
+  .pos-del{display:none!important;}
 }
 </style>
 </head>
 <body>
+
+<!-- ── LEFT NAV ──────────────────────────────────────────── -->
 <div id="nav">
-  <button class="nav-btn active" onclick="showPanel('doc',this)" title="Dokument">📄</button>
-  <button class="nav-btn" onclick="newDoc(this)" title="Neues Dokument">➕</button>
+  <div class="nav-logo">VM</div>
+  <button class="nav-btn active" onclick="showPanel('doc',this)" title="Dokument" id="nav-doc">
+    <i data-lucide="file-text"></i>
+  </button>
+  <button class="nav-btn" onclick="newDoc(this)" title="Neues Dokument" id="nav-new">
+    <i data-lucide="plus"></i>
+  </button>
   <div class="nav-sep"></div>
-  <button class="nav-btn" onclick="showPanel('customers',this)" title="Kunden">👥</button>
-  <button class="nav-btn" onclick="showPanel('library',this)" title="Leistungen">📦</button>
+  <button class="nav-btn" onclick="showPanel('customers',this)" title="Kunden" id="nav-customers">
+    <i data-lucide="users"></i>
+  </button>
+  <button class="nav-btn" onclick="showPanel('library',this)" title="Leistungen" id="nav-library">
+    <i data-lucide="package"></i>
+  </button>
   <div class="nav-sep"></div>
-  <button class="nav-btn" onclick="showPanel('history',this)" title="Verlauf">🕓</button>
-  <button class="nav-btn" onclick="showPanel('email',this)" title="E-Mail">✉️</button>
+  <button class="nav-btn" onclick="showPanel('history',this)" title="Verlauf" id="nav-history">
+    <i data-lucide="clock"></i>
+  </button>
+  <button class="nav-btn" onclick="showPanel('email',this)" title="E-Mail" id="nav-email">
+    <i data-lucide="mail"></i>
+  </button>
   <div class="nav-sep"></div>
-  <button class="nav-btn" onclick="showPanel('data',this)" title="Daten">💾</button>
+  <button class="nav-btn" onclick="showPanel('data',this)" title="Daten" id="nav-data">
+    <i data-lucide="database"></i>
+  </button>
+  <div style="flex:1"></div>
+  <button class="nav-btn" id="nav-logout" onclick="signOut()" title="Abmelden">
+    <i data-lucide="log-out"></i>
+  </button>
 </div>
 
+<!-- ── SIDEBAR ───────────────────────────────────────────── -->
 <div id="sidebar">
+  <div id="resize-handle"></div>
+  <div id="sidebar-content">
 
-  <!-- DOC -->
-  <div class="sidebar-panel active" id="panel-doc">
-    <h2>📄 Dokument</h2>
-    <h3>Sprache / Language</h3>
-    <div class="lang-toggle">
-      <button class="lang-btn active" id="lang-de" onclick="setLang('de')">🇩🇪 Deutsch</button>
-      <button class="lang-btn" id="lang-en" onclick="setLang('en')">🇬🇧 English</button>
+    <!-- DOC SETTINGS -->
+    <div class="panel active" id="panel-doc">
+      <div class="panel-title">Einstellungen</div>
+
+      <div class="section-hd">Sprache</div>
+      <div class="toggle-row">
+        <button class="toggle-btn active" id="lang-de" onclick="setLang('de')">DE</button>
+        <button class="toggle-btn" id="lang-en" onclick="setLang('en')">EN</button>
+      </div>
+
+      <div class="section-hd">Steuer</div>
+      <div class="tax-group">
+        <button class="tax-btn active" id="tax-de" onclick="setTax('de')">Standard 19% MwSt.</button>
+        <button class="tax-btn" id="tax-eu" onclick="setTax('eu')">EU B2B – Reverse Charge</button>
+        <button class="tax-btn" id="tax-int" onclick="setTax('int')">Drittland – steuerbefreit</button>
+      </div>
+      <div id="wrap_uid" style="display:none;margin-top:8px;">
+        <label class="field-label">USt-IdNr. Kunde</label>
+        <input type="text" id="f_uid" placeholder="DE123456789" oninput="update()">
+      </div>
+
+      <div class="section-hd">Zahlung</div>
+      <select id="f_zahlung" onchange="update()">
+        <option value="voll">Vollzahlung (14 Tage)</option>
+        <option value="50">50% Anzahlung</option>
+      </select>
+
+      <div class="section-hd">Kunden</div>
+      <select id="f_kunde_select" onchange="loadCustomer()">
+        <option value="">— Kunde übernehmen —</option>
+      </select>
+
+      <div class="section-hd">Aktionen</div>
+      <button class="btn btn-ghost btn-full" onclick="convertDoc()">
+        <i data-lucide="arrow-left-right"></i> Umwandeln
+      </button>
+      <button class="btn btn-ghost btn-full" style="margin-top:6px;" onclick="saveDoc()">
+        <i data-lucide="save"></i> Speichern
+      </button>
+      <button class="btn btn-primary btn-full" style="margin-top:6px;" onclick="printPDF()">
+        <i data-lucide="download"></i> PDF Download
+      </button>
     </div>
-    <h3>Steuer / Tax</h3>
-    <div class="tax-pill">
-      <button class="tax-btn active" id="tax-de" onclick="setTax('de')">🇩🇪 Standard (19% MwSt.)</button>
-      <button class="tax-btn" id="tax-eu" onclick="setTax('eu')">🇪🇺 EU B2B – Reverse Charge</button>
-      <button class="tax-btn" id="tax-int" onclick="setTax('int')">🌍 Drittland – steuerbefreit</button>
+
+    <!-- CUSTOMERS -->
+    <div class="panel" id="panel-customers">
+      <div class="panel-title">Kundendatenbank</div>
+      <div id="customer-list"></div>
+      <div class="section-hd">Neu anlegen</div>
+      <label class="field-label">Firma / Name *</label>
+      <input type="text" id="nc_firma" placeholder="Mustermann GmbH">
+      <label class="field-label" style="margin-top:8px;">Ansprechpartner</label>
+      <input type="text" id="nc_ansp" placeholder="Max Mustermann">
+      <label class="field-label" style="margin-top:8px;">Straße</label>
+      <input type="text" id="nc_str" placeholder="Musterstraße 1">
+      <label class="field-label" style="margin-top:8px;">PLZ & Ort</label>
+      <input type="text" id="nc_ort" placeholder="12345 Berlin">
+      <label class="field-label" style="margin-top:8px;">Land</label>
+      <input type="text" id="nc_land" placeholder="Deutschland">
+      <label class="field-label" style="margin-top:8px;">E-Mail</label>
+      <input type="email" id="nc_email" placeholder="kontakt@firma.de">
+      <button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="saveCustomer()">
+        <i data-lucide="check"></i> Speichern
+      </button>
     </div>
-    <div id="wrap_uid" style="display:none">
-      <label>USt-IdNr. Kunde / Client VAT ID</label>
-      <input type="text" id="f_uid" placeholder="DE123456789" oninput="update()">
+
+    <!-- LIBRARY -->
+    <div class="panel" id="panel-library">
+      <div class="panel-title">Leistungsbibliothek</div>
+      <div id="lib-list"></div>
+      <div class="section-hd">Neu anlegen</div>
+      <label class="field-label">Bezeichnung *</label>
+      <input type="text" id="nl_desc" placeholder="Social Media Betreuung">
+      <label class="field-label" style="margin-top:8px;">Beschreibung</label>
+      <textarea id="nl_details" placeholder="Details..." style="min-height:50px;"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <div style="flex:1">
+          <label class="field-label">Menge</label>
+          <input type="number" id="nl_menge" value="1">
+        </div>
+        <div style="flex:1">
+          <label class="field-label">Einheit</label>
+          <select id="nl_einheit">
+            <option value="pauschal">pauschal</option>
+            <option value="stunde">Stunde</option>
+            <option value="tag">Tag</option>
+            <option value="stueck">Stück</option>
+            <option value="monat">Monat</option>
+            <option value="wort">Wort</option>
+          </select>
+        </div>
+      </div>
+      <label class="field-label" style="margin-top:8px;">Preis (€)</label>
+      <input type="number" id="nl_preis" placeholder="0">
+      <button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="saveLibItem()">
+        <i data-lucide="check"></i> Speichern
+      </button>
     </div>
-    <h3>Typ / Type</h3>
-    <select id="f_typ" onchange="onTypChange()">
-      <option value="angebot">Angebot / Quote</option>
-      <option value="rechnung">Rechnung / Invoice</option>
-    </select>
-    <button class="btn btn-blue" style="margin-top:6px;" onclick="convertDoc()">⇄ Umwandeln / Convert</button>
-    <h3>Empfänger / Recipient</h3>
-    <select id="f_kunde_select" onchange="loadCustomer()">
-      <option value="">— Kunde wählen / Select client —</option>
-    </select>
-    <label>Firma / Company</label><input type="text" id="f_firma" placeholder="Mustermann GmbH" oninput="update()">
-    <label>Ansprechpartner / Contact</label><input type="text" id="f_ansprechpartner" placeholder="Max Mustermann" oninput="update()">
-    <label>Straße / Street</label><input type="text" id="f_strasse" placeholder="Musterstraße 1" oninput="update()">
-    <label>PLZ & Ort / City</label><input type="text" id="f_ort" placeholder="12345 Berlin" oninput="update()">
-    <label>Land / Country</label><input type="text" id="f_land" placeholder="z. B. Netherlands" oninput="update()">
-    <h3>Dokument</h3>
-    <label id="lbl_nr">Angebots-Nr.</label><input type="text" id="f_nr" value="ANG-2025-001" oninput="update()">
-    <label>Datum / Date</label><input type="date" id="f_datum" oninput="update()">
-    <div id="wrap_gueltig"><label>Gültig bis / Valid until</label><input type="date" id="f_gueltig" oninput="update()"></div>
-    <div id="wrap_zeitraum" style="display:none">
-      <label>Lieferdatum / Service date</label><input type="date" id="f_von" oninput="update()">
+
+    <!-- HISTORY -->
+    <div class="panel" id="panel-history">
+      <div class="panel-title">Verlauf</div>
+      <div id="history-list"><p style="color:var(--text3);font-size:11px;">Keine Dokumente.</p></div>
     </div>
-    <label>Betreff / Subject</label><input type="text" id="f_betreff" placeholder="z. B. Social Media Concept" oninput="update()">
-    <h3>Zahlung / Payment</h3>
-    <select id="f_zahlung" onchange="update()">
-      <option value="voll">Vollzahlung / Full payment (14 days)</option>
-      <option value="50">50 % / 50 % Anzahlung / Deposit</option>
-    </select>
-    <h3>Positionen / Line Items</h3>
-    <select id="f_lib_select" onchange="addFromLib()"><option value="">+ Aus Bibliothek / From library</option></select>
-    <div id="positionen"></div>
-    <button class="btn btn-secondary" style="margin-top:8px;" onclick="addPos()">+ Leere Position / Empty line</button>
-    <h3>Hinweise / Notes</h3>
-    <textarea id="f_hinweise" oninput="update()" placeholder="Leer = wird nicht angezeigt / Empty = hidden"></textarea>
-    <button class="btn btn-green" style="margin-top:14px;" onclick="saveDoc()">💾 Speichern / Save</button>
-    <button class="btn-print" onclick="printPDF()">🖨️ Als PDF drucken / Print PDF</button>
-  </div>
 
-  <!-- CUSTOMERS -->
-  <div class="sidebar-panel" id="panel-customers">
-    <h2>👥 Kundendatenbank</h2>
-    <div id="customer-list"></div>
-    <h3 style="margin-top:16px;">Neuen Kunden anlegen</h3>
-    <label>Firma / Name *</label><input type="text" id="nc_firma" placeholder="Mustermann GmbH">
-    <label>Ansprechpartner</label><input type="text" id="nc_ansp" placeholder="Max Mustermann">
-    <label>Straße</label><input type="text" id="nc_str" placeholder="Musterstraße 1">
-    <label>PLZ & Ort</label><input type="text" id="nc_ort" placeholder="12345 Berlin">
-    <label>Land</label><input type="text" id="nc_land" placeholder="z. B. Netherlands">
-    <label>E-Mail</label><input type="email" id="nc_email" placeholder="kontakt@firma.de">
-    <button class="btn btn-green" onclick="saveCustomer()">✓ Kunde speichern</button>
-  </div>
+    <!-- EMAIL -->
+    <div class="panel" id="panel-email">
+      <div class="panel-title">E-Mail-Vorlage</div>
+      <label class="field-label">Vorlage</label>
+      <select id="email_template" onchange="loadEmailTemplate()">
+        <option value="angebot_de">Angebot (DE)</option>
+        <option value="angebot_en">Quote (EN)</option>
+        <option value="rechnung_de">Rechnung (DE)</option>
+        <option value="rechnung_en">Invoice (EN)</option>
+        <option value="followup_de">Follow-up (DE)</option>
+        <option value="followup_en">Follow-up (EN)</option>
+      </select>
+      <label class="field-label" style="margin-top:10px;">An</label>
+      <input type="email" id="email_to" placeholder="kunde@firma.de">
+      <label class="field-label" style="margin-top:8px;">Betreff</label>
+      <input type="text" id="email_subject">
+      <label class="field-label" style="margin-top:8px;">Text</label>
+      <textarea id="email_body" style="min-height:180px;font-size:11px;line-height:1.7;"></textarea>
+      <p style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.6;">
+        Platzhalter: <code style="color:var(--text2);">{{name}}</code> <code style="color:var(--text2);">{{nr}}</code> <code style="color:var(--text2);">{{betreff}}</code> <code style="color:var(--text2);">{{betrag}}</code> <code style="color:var(--text2);">{{datum}}</code>
+      </p>
+      <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="saveEmailTemplate()">
+        <i data-lucide="save"></i> Vorlage speichern
+      </button>
+      <button class="btn btn-primary btn-full" style="margin-top:6px;" onclick="openGmail()">
+        <i data-lucide="external-link"></i> In Gmail öffnen
+      </button>
+      <button class="btn btn-ghost btn-full" style="margin-top:6px;" onclick="copyEmail()">
+        <i data-lucide="copy"></i> Kopieren
+      </button>
+    </div>
 
-  <!-- LIBRARY -->
-  <div class="sidebar-panel" id="panel-library">
-    <h2>📦 Leistungsbibliothek</h2>
-    <div id="lib-list"></div>
-    <h3 style="margin-top:16px;">Neue Leistung anlegen</h3>
-    <label>Bezeichnung *</label><input type="text" id="nl_desc" placeholder="Social Media Betreuung">
-    <label>Beschreibung (optional)</label><textarea id="nl_details" placeholder="- Erstellung von Inhalten&#10;- Beratung zur Strategie" style="min-height:60px;"></textarea>
-    <label>Menge</label><input type="number" id="nl_menge" value="1">
-    <label>Einheit / Unit</label>
-    <select id="nl_einheit">
-      <option value="pauschal">pauschal / flat rate</option>
-      <option value="stunde">Stunde / hour</option>
-      <option value="tag">Tag / day</option>
-      <option value="stueck">Stück / piece</option>
-      <option value="monat">Monat / month</option>
-      <option value="wort">Wort / word</option>
-    </select>
-    <label>Standardpreis (€)</label><input type="number" id="nl_preis" placeholder="0">
-    <button class="btn btn-green" onclick="saveLibItem()">✓ Leistung speichern</button>
-  </div>
+    <!-- DATA -->
+    <div class="panel" id="panel-data">
+      <div class="panel-title">Datensicherung</div>
+      <button class="btn btn-ghost btn-full" onclick="exportData()">
+        <i data-lucide="download"></i> Export (.json)
+      </button>
+      <div class="section-hd" style="margin-top:14px;">Import</div>
+      <input type="file" id="import_file" accept=".json" style="font-size:11px;color:var(--text2);width:100%;" onchange="importData(this)">
+      <div class="section-hd" style="margin-top:14px;">Statistik</div>
+      <div id="data_stats" style="font-size:11px;color:var(--text3);line-height:2.2;background:var(--surface2);padding:10px 12px;border-radius:var(--radius);border:1px solid var(--border);margin-top:4px;"></div>
+      <div class="section-hd" style="margin-top:14px;">Reset</div>
+      <button class="btn btn-danger btn-full" onclick="resetData()">
+        <i data-lucide="trash-2"></i> Alle Daten löschen
+      </button>
+    </div>
 
-  <!-- HISTORY -->
-  <div class="sidebar-panel" id="panel-history">
-    <h2>🕓 Verlauf</h2>
-    <div id="history-list"><p style="color:#666;font-size:11px;">Keine Dokumente.</p></div>
-  </div>
-
-  <!-- EMAIL -->
-  <div class="sidebar-panel" id="panel-email">
-    <h2>✉️ E-Mail-Vorlage</h2>
-    <p style="font-size:11px;color:#888;line-height:1.6;margin-bottom:12px;">Wird automatisch mit den aktuellen Dokumentdaten befüllt.</p>
-    <h3>Vorlage</h3>
-    <select id="email_template" onchange="loadEmailTemplate()">
-      <option value="angebot_de">Angebot versenden (DE)</option>
-      <option value="angebot_en">Quote submission (EN)</option>
-      <option value="rechnung_de">Rechnung versenden (DE)</option>
-      <option value="rechnung_en">Invoice submission (EN)</option>
-      <option value="followup_de">Follow-up Angebot (DE)</option>
-      <option value="followup_en">Follow-up Quote (EN)</option>
-    </select>
-    <h3>Empfänger E-Mail</h3>
-    <input type="email" id="email_to" placeholder="kunde@firma.de">
-    <h3>Betreff</h3><input type="text" id="email_subject">
-    <h3>Text</h3>
-    <textarea id="email_body" style="min-height:220px;font-size:12px;line-height:1.7;"></textarea>
-    <p style="font-size:10px;color:#666;line-height:1.6;margin-top:8px;">Platzhalter: <code style="color:#aaa;">{{name}}</code> <code style="color:#aaa;">{{nr}}</code> <code style="color:#aaa;">{{betreff}}</code> <code style="color:#aaa;">{{betrag}}</code> <code style="color:#aaa;">{{datum}}</code></p>
-    <button class="btn btn-green" onclick="saveEmailTemplate()">💾 Vorlage speichern</button>
-    <button class="btn btn-orange" style="margin-top:6px;" onclick="openGmail()">📨 In Gmail öffnen</button>
-    <button class="btn btn-secondary" style="margin-top:6px;" onclick="copyEmail()">📋 Text kopieren</button>
-  </div>
-
-  <!-- DATA -->
-  <div class="sidebar-panel" id="panel-data">
-    <h2>💾 Datensicherung</h2>
-    <p style="font-size:11px;color:#888;line-height:1.6;margin-bottom:12px;">Exportiere alle Daten als Backup und importiere sie jederzeit wieder – auch nach einem Update oder auf einem neuen Gerät.</p>
-    <h3>Export</h3>
-    <button class="btn btn-green" onclick="exportData()">⬇️ Alle Daten exportieren (.json)</button>
-    <h3 style="margin-top:16px;">Import</h3>
-    <p style="font-size:11px;color:#888;line-height:1.6;margin-bottom:8px;">Daten werden zusammengeführt, nichts geht verloren.</p>
-    <input type="file" id="import_file" accept=".json" style="font-size:11px;padding:4px;" onchange="importData(this)">
-    <h3 style="margin-top:16px;">Datenübersicht</h3>
-    <div id="data_stats" style="font-size:11px;color:#888;line-height:2;background:#2a2a2a;padding:10px 12px;border-radius:6px;margin-top:4px;"></div>
-    <h3 style="margin-top:16px;">⚠️ Zurücksetzen</h3>
-    <p style="font-size:11px;color:#888;line-height:1.6;margin-bottom:8px;">Löscht alle Daten unwiderruflich. Vorher exportieren!</p>
-    <button class="btn btn-red" style="width:100%;padding:8px;" onclick="resetData()">🗑️ Alle Daten löschen</button>
-  </div>
-</div>
+  </div><!-- /sidebar-content -->
+</div><!-- /sidebar -->
 
 <div id="toast"></div>
 
+<!-- ── MAIN ──────────────────────────────────────────────── -->
 <div id="main">
+
+  <!-- Top bar -->
+  <div id="topbar">
+    <div class="doc-type-toggle">
+      <button class="doc-type-btn active" id="typ-angebot" onclick="setTyp('angebot',this)">Angebot</button>
+      <button class="doc-type-btn" id="typ-rechnung" onclick="setTyp('rechnung',this)">Rechnung</button>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn btn-ghost" onclick="saveDoc()">
+      <i data-lucide="save"></i> Speichern
+    </button>
+    <button class="btn btn-primary" onclick="printPDF()">
+      <i data-lucide="download"></i> PDF
+    </button>
+  </div>
+
   <!-- PAGE 1 -->
-  <div class="page" id="page1">
-    <div class="header">
+  <div class="doc-page" id="page1">
+
+    <!-- Header -->
+    <div class="doc-header">
       <div>
-        <div class="logo">VISO <span>Media</span></div>
-        <div style="font-size:11px;color:#555;margin-top:3px;">David Stiehler</div>
+        <div class="doc-logo">VISO <span>Media</span></div>
+        <div class="doc-name-sub">David Stiehler</div>
       </div>
       <div class="doc-meta">
         <h1 id="d_typ_title">ANGEBOT</h1>
-        <p>
-          <span id="d_nr_label">Angebots-Nr.:</span> <strong id="d_nr">–</strong><br>
-          <span id="d_date_label">Datum:</span> <strong id="d_datum">–</strong><br>
-          <span id="d_extra_label">Gültig bis:</span> <strong id="d_extra">–</strong>
-        </p>
+        <div class="doc-meta-row">
+          <span class="doc-meta-label" id="d_nr_label">Angebots-Nr.:</span>
+          <input class="ie" id="f_nr" value="ANG-2026-001" oninput="update()" style="font-weight:700;font-size:11.5px;width:120px;">
+        </div>
+        <div class="doc-meta-row">
+          <span class="doc-meta-label" id="d_date_label">Datum:</span>
+          <input type="date" class="ie-date" id="f_datum" oninput="update()" style="width:130px;">
+        </div>
+        <div class="doc-meta-row" id="row_extra">
+          <span class="doc-meta-label" id="d_extra_label">Gültig bis:</span>
+          <input type="date" class="ie-date" id="f_gueltig" oninput="update()" style="width:130px;">
+          <input type="date" class="ie-date" id="f_von" oninput="update()" style="display:none;width:130px;">
+        </div>
       </div>
     </div>
-    <div class="sender-small">David Stiehler · Schiffenberger Weg 28A · 35394 Gießen · Germany</div>
-    <div class="recipient"><p id="d_empfaenger" style="color:#bbb;font-style:italic;">Empfängerdaten …</p></div>
-    <div class="subject" id="d_betreff" style="color:#bbb;font-style:italic;">Betreff …</div>
-    <p class="intro" id="d_intro"></p>
-    <table>
-      <thead><tr>
-        <th style="width:5%"><span class="th">Pos.</span></th>
-        <th style="width:47%"><span class="th">Leistungsbeschreibung</span></th>
-        <th style="width:8%"><span class="th">Menge</span></th>
-        <th style="width:13%"><span class="th">Einheit</span></th>
-        <th style="width:13%"><span class="th">Einzelpreis</span></th>
-        <th style="width:14%"><span class="th">Gesamt</span></th>
-      </tr></thead>
-      <tbody id="d_positionen"><tr><td colspan="6" style="color:#bbb;font-style:italic;text-align:center;padding:16px;">–</td></tr></tbody>
+
+    <!-- Sender bar -->
+    <div class="sender-bar">David Stiehler · Schiffenberger Weg 28A · 35394 Gießen · Germany</div>
+
+    <!-- Recipient (inline editable) -->
+    <div class="recipient-block">
+      <p>
+        <input class="ie-block" id="f_firma" placeholder="Firma / Company" oninput="update()" style="font-weight:700;margin-bottom:2px;">
+        <input class="ie-block" id="f_ansprechpartner" placeholder="Ansprechpartner" oninput="update()" style="margin-top:3px;">
+        <input class="ie-block" id="f_strasse" placeholder="Straße" oninput="update()" style="margin-top:3px;">
+        <input class="ie-block" id="f_ort" placeholder="PLZ & Ort" oninput="update()" style="margin-top:3px;">
+        <input class="ie-block" id="f_land" placeholder="Land (optional)" oninput="update()" style="margin-top:3px;">
+      </p>
+    </div>
+
+    <!-- Subject -->
+    <div class="doc-subject">
+      <span id="d_subj_prefix" style="color:#888;font-weight:400;font-size:12px;"></span>
+      <input class="ie" id="f_betreff" placeholder="Betreff / Subject" oninput="update()" style="font-size:13px;font-weight:700;width:80%;">
+    </div>
+
+    <!-- Intro -->
+    <p class="doc-intro" id="d_intro"></p>
+
+    <!-- Positions table -->
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th style="width:5%"><span class="th">Pos.</span></th>
+          <th style="width:46%"><span class="th">Leistungsbeschreibung</span></th>
+          <th style="width:8%;text-align:right;"><span class="th">Menge</span></th>
+          <th style="width:12%;text-align:right;"><span class="th">Einheit</span></th>
+          <th style="width:13%;text-align:right;"><span class="th">Einzelpreis</span></th>
+          <th style="width:14%;text-align:right;"><span class="th">Gesamt</span></th>
+          <th style="width:2%;" class="no-print"></th>
+        </tr>
+      </thead>
+      <tbody id="d_positionen">
+        <tr><td colspan="7" style="color:#bbb;font-style:italic;text-align:center;padding:14px;">– Positionen werden hier angezeigt –</td></tr>
+      </tbody>
+      <tfoot>
+        <tr class="no-print">
+          <td colspan="7">
+            <button class="add-row-btn" onclick="addPos()">+ Position hinzufügen</button>
+          </td>
+        </tr>
+      </tfoot>
     </table>
-    <div class="totals">
+
+    <!-- Lib select (inline) -->
+    <div class="no-print" style="margin-top:-3mm;margin-bottom:5mm;">
+      <select id="f_lib_select" onchange="addFromLib()" style="width:auto;font-size:11px;padding:5px 8px;background:var(--doc-light);border:1px dashed #ccc;color:#666;">
+        <option value="">+ Aus Bibliothek hinzufügen</option>
+      </select>
+    </div>
+
+    <!-- Totals -->
+    <div class="totals-wrap">
       <table>
-        <tr id="row_netto"><td id="t_net">Nettobetrag</td><td id="d_netto">0,00 €</td></tr>
-        <tr id="row_tax"><td id="t_tax">zzgl. 19 % MwSt.</td><td id="d_mwst">0,00 €</td></tr>
-        <tr class="total-row"><td><strong id="t_total">Gesamtbetrag</strong></td><td><strong id="d_gesamt">0,00 €</strong></td></tr>
+        <tr id="row_netto"><td id="t_net">Nettobetrag</td><td style="text-align:right;" id="d_netto">0,00 €</td></tr>
+        <tr id="row_tax"><td id="t_tax">zzgl. 19% MwSt.</td><td style="text-align:right;" id="d_mwst">0,00 €</td></tr>
+        <tr class="total-final"><td><strong id="t_total">Gesamtbetrag</strong></td><td style="text-align:right;"><strong id="d_gesamt">0,00 €</strong></td></tr>
       </table>
     </div>
+
+    <!-- Tax note -->
     <div id="d_tax_note_box" class="info-box" style="display:none;font-size:11px;"></div>
+
+    <!-- Hinweise (inline) -->
+    <div style="margin-bottom:5mm;">
+      <textarea class="ie-block" id="f_hinweise" placeholder="Hinweise (leer = wird nicht angezeigt)" oninput="update();autoResize(this)" style="min-height:36px;font-size:11.5px;" rows="1"></textarea>
+    </div>
+    <div id="d_notes_rendered" style="display:none;" class="info-box"></div>
+
+    <!-- Payment -->
     <div class="info-box"><strong id="t_payment_title">Zahlungsbedingungen:</strong><br><span id="d_zahlung_text">–</span></div>
-    <div id="d_notes_box" class="info-box" style="display:none;"><strong id="t_notes_title">Hinweise:</strong><br><span id="d_hinweise"></span></div>
-    <p class="sign" id="d_sign"></p>
-    <!-- AGB-Hinweis -->
-    <div class="info-box" id="agb_hint" style="display:none;"></div>
+
+    <!-- Sign -->
+    <p class="sign-block" id="d_sign"></p>
+
+    <!-- AGB hint (Angebot only) -->
+    <div class="agb-hint-box" id="agb_hint" style="display:none;"></div>
+
+    <!-- Footer -->
     <div class="doc-footer">
       <div><strong id="t_contact">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br>david@viso.media</div>
       <div><strong id="t_tax_f">Steuer</strong><span id="t_taxnr_label">Steuernummer:</span> 02087201058<br><span id="t_vatid_label">USt-IdNr.:</span> DE354878347</div>
       <div><strong id="t_bank">Bankverbindung</strong><span id="t_accholder_label">Kontoinhaber:</span> David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
     </div>
-  </div>
+  </div><!-- /page1 -->
 
-  <!-- PAGE 2 -->
-  <div class="page" id="page2" style="display:none;flex-direction:column;">
-    <div class="header">
-      <div><div class="logo">VISO <span>Media</span></div><div style="font-size:11px;color:#555;margin-top:3px;">David Stiehler</div></div>
+  <!-- PAGE 2 (AGB – Angebot only) -->
+  <div class="doc-page" id="page2">
+    <div class="doc-header">
+      <div>
+        <div class="doc-logo">VISO <span>Media</span></div>
+        <div class="doc-name-sub">David Stiehler</div>
+      </div>
       <div class="doc-meta" style="padding-top:4px;">
-        <p style="font-size:11px;color:#888;"><span id="t_annex_label">Anhang zu</span> <span id="d_typ2">Angebots</span>-Nr.: <strong id="d_nr2">–</strong></p>
+        <p style="font-size:10.5px;color:#aaa;"><span id="t_annex_label">Anhang zu</span> <span id="d_typ2">Angebots</span>-Nr.: <strong id="d_nr2">–</strong></p>
       </div>
     </div>
-    <div class="sender-small">David Stiehler · Schiffenberger Weg 28A · 35394 Gießen · Germany</div>
-    <h2 style="font-size:16px;font-weight:700;margin-bottom:8mm;color:#111;" id="t_agb_title">Allgemeine Geschäftsbedingungen (AGB)</h2>
+    <div class="sender-bar">David Stiehler · Schiffenberger Weg 28A · 35394 Gießen · Germany</div>
+    <h2 style="font-size:15px;font-weight:700;margin-bottom:7mm;color:#111;" id="t_agb_title">Allgemeine Geschäftsbedingungen (AGB)</h2>
     <div id="agb_content"></div>
-    <div class="info-box" style="margin-top:10mm;">
+    <div class="info-box" style="margin-top:8mm;">
       <strong id="t_confirm_title">Auftragsbestätigung</strong><br>
       <span id="t_confirm_text"></span>
     </div>
@@ -353,28 +736,31 @@ tbody td:nth-child(n+3){text-align:right;white-space:nowrap;}
       <div class="sig-field"><div class="sig-line"></div><span id="t_sig_date">Ort, Datum</span></div>
       <div class="sig-field"><div class="sig-line"></div><span id="t_sig_sign">Unterschrift Auftraggeber / Stempel</span></div>
     </div>
-    <div style="margin-top:10mm;font-size:10px;color:#999;text-align:center;" id="t_return">Bitte unterschriebene Seite per E-Mail zurücksenden an: david@viso.media</div>
-    <div class="doc-footer" style="margin-top:8mm;">
+    <div style="margin-top:8mm;font-size:10px;color:#aaa;text-align:center;" id="t_return">Bitte unterschriebene Seite per E-Mail zurücksenden an: david@viso.media</div>
+    <div class="doc-footer" style="margin-top:7mm;">
       <div><strong id="t_contact2">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br>david@viso.media</div>
       <div><strong id="t_tax2">Steuer</strong><span id="t_taxnr_label2">Steuernummer:</span> 02087201058<br><span id="t_vatid_label2">USt-IdNr.:</span> DE354878347</div>
       <div><strong id="t_bank2">Bankverbindung</strong><span id="t_accholder_label2">Kontoinhaber:</span> David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
     </div>
-  </div>
-</div>
+  </div><!-- /page2 -->
+
+</div><!-- /main -->
 
 <!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase.js"></script>
 <script>
 
-// ── STATE ─────────────────────────────────────────────────
+// ── INIT LUCIDE ICONS ──────────────────────────────────────
+lucide.createIcons();
+
+// ── STATE ──────────────────────────────────────────────────
 let positionen=[];
-let lang='de',tax='de';
+let lang='de',tax='de',typ='angebot';
 let customers=[];
 let library=[];
 let history=[];
 let customEmailTpl={};
-
 
 const UNITS={
   pauschal:{de:'pauschal',en:'flat rate'},
@@ -386,15 +772,14 @@ const UNITS={
 };
 function unitLabel(key,l){return(UNITS[key]||{de:key,en:key})[l]||key;}
 
-// Status config
 const STATUS_ANG=[
-  {key:'sent',   label_de:'Abgeschickt', label_en:'Sent',     cls:'active-sent'},
-  {key:'accepted',label_de:'Angenommen', label_en:'Accepted', cls:'active-accepted'},
-  {key:'declined',label_de:'Abgelehnt',  label_en:'Declined', cls:'active-declined'},
+  {key:'sent',   label_de:'Abgeschickt',label_en:'Sent',    cls:'sent'},
+  {key:'accepted',label_de:'Angenommen',label_en:'Accepted',cls:'accepted'},
+  {key:'declined',label_de:'Abgelehnt', label_en:'Declined',cls:'declined'},
 ];
 const STATUS_RE=[
-  {key:'sent',  label_de:'Abgeschickt', label_en:'Sent',    cls:'active-sent'},
-  {key:'paid',  label_de:'Bezahlt',     label_en:'Paid',    cls:'active-paid'},
+  {key:'sent',label_de:'Abgeschickt',label_en:'Sent',cls:'sent'},
+  {key:'paid',label_de:'Bezahlt',    label_en:'Paid',cls:'paid'},
 ];
 
 const T={
@@ -402,14 +787,14 @@ const T={
     doc_q:'ANGEBOT',doc_i:'RECHNUNG',nr_q:'Angebots-Nr.:',nr_i:'Rechnungs-Nr.:',
     date:'Datum:',valid:'Gültig bis:',period:'Lieferdatum:',
     th:['Pos.','Leistungsbeschreibung','Menge','Einheit','Einzelpreis','Gesamt'],
-    net:'Nettobetrag',tax19:'zzgl. 19 % MwSt.',total_q:'Gesamtbetrag',total_i:'Rechnungsbetrag',
+    net:'Nettobetrag',tax19:'zzgl. 19% MwSt.',total_q:'Gesamtbetrag',total_i:'Rechnungsbetrag',
     payment:'Zahlungsbedingungen:',notes:'Hinweise:',contact:'Kontakt',tax_f:'Steuer',bank:'Bankverbindung',
     intro_q:'vielen Dank für Ihr Interesse. Gerne unterbreite ich Ihnen folgendes Angebot für die beschriebenen Leistungen:',
     intro_i:'Für die erbrachten Leistungen stelle ich Ihnen folgendes in Rechnung:',
     sign_q:'Für Rückfragen stehe ich Ihnen gerne zur Verfügung. Ich freue mich auf eine gute Zusammenarbeit.<br><br>Mit freundlichen Grüßen,<br><br><strong>David Stiehler</strong><br>VISO Media',
     sign_i:'Für Rückfragen stehe ich Ihnen jederzeit gerne zur Verfügung.<br><br>Mit freundlichen Grüßen,<br><br><strong>David Stiehler</strong><br>VISO Media',
     pay_full:b=>`Gesamtbetrag von <strong>${b}</strong> zahlbar innerhalb von 14 Tagen nach Rechnungsstellung.`,
-    pay_50:h=>`Zahlung in zwei Raten: <strong>1. Rate (50 % = ${h})</strong> nach Auftragsbestätigung, <strong>2. Rate (50 % = ${h})</strong> nach Projektabschluss – jeweils innerhalb von 14 Tagen.`,
+    pay_50:h=>`Zahlung in zwei Raten: <strong>1. Rate (50% = ${h})</strong> nach Auftragsbestätigung, <strong>2. Rate (50% = ${h})</strong> nach Projektabschluss – jeweils innerhalb von 14 Tagen.`,
     tax_eu:'Hinweis: Steuerfreie innergemeinschaftliche Leistung gemäß § 3a Abs. 2 UStG. Steuerschuld geht auf den Leistungsempfänger über (Reverse Charge). USt-IdNr. des Empfängers: ',
     tax_int:'Hinweis: Gemäß § 3a Abs. 2 UStG ist diese Leistung nicht im Inland steuerbar. Es wird keine Umsatzsteuer ausgewiesen.',
     agb:'Allgemeine Geschäftsbedingungen (AGB)',
@@ -418,7 +803,7 @@ const T={
     sig_date:'Ort, Datum',sig_sign:'Unterschrift Auftraggeber / Stempel',
     return:'Bitte unterschriebene Seite per E-Mail zurücksenden an: david@viso.media',
     prefix_q:'Angebot: ',prefix_i:'Rechnung: ',
-    empty_rec:'Empfängerdaten werden hier angezeigt …',empty_sub:'Betreff …',
+    empty_sub:'Betreff …',
     annex_label:'Anhang zu',annex_q:'Angebots',annex_i:'Rechnungs',
     taxnr:'Steuernummer:',vatid:'USt-IdNr.:',accholder:'Kontoinhaber:',bank_title:'Bankverbindung',
     agb_hint:'AGB auf der nächsten Seite',
@@ -443,7 +828,7 @@ const T={
     sig_date:'Place, Date',sig_sign:'Signature Client / Stamp',
     return:'Please return the signed page by e-mail to: david@viso.media',
     prefix_q:'Quote: ',prefix_i:'Invoice: ',
-    empty_rec:'Recipient details will appear here …',empty_sub:'Subject …',
+    empty_sub:'Subject …',
     annex_label:'Annex to',annex_q:'Quote',annex_i:'Invoice',
     taxnr:'Tax No.:',vatid:'VAT ID:',accholder:'Account holder:',bank_title:'Bank details',
     agb_hint:'T&C on the next page',
@@ -453,44 +838,47 @@ const T={
 const AGB={
   de:`<div class="agb-section"><h3>§ 1 – Geltungsbereich</h3><p>Diese AGB gelten für alle Verträge zwischen David Stiehler, VISO Media, Schiffenberger Weg 28A, 35394 Gießen (nachfolgend „Auftragnehmer") und dem Auftraggeber über Leistungen im Bereich Video-/Fotoproduktion sowie Social Media Management.</p></div>
 <div class="agb-section"><h3>§ 2 – Vertragsschluss</h3><p>Angebote sind freibleibend. Ein Vertrag kommt durch schriftliche Auftragsbestätigung oder Unterzeichnung des Angebots zustande. Mit Auftragserteilung erkennt der Auftraggeber diese AGB an.</p></div>
-<div class="agb-section"><h3>§ 3 – Korrekturrunden</h3><p>Im Preis inbegriffen sind <strong>zwei Korrekturrunden</strong> je Leistungsposition. Weitere Korrekturen werden nach Aufwand berechnet. Grundlegende inhaltliche Änderungen gelten nicht als Korrekturen.</p></div>
+<div class="agb-section"><h3>§ 3 – Korrekturrunden</h3><p>Im Preis inbegriffen sind <strong>zwei Korrekturrunden</strong> je Leistungsposition. Weitere Korrekturen werden nach Aufwand berechnet.</p></div>
 <div class="agb-section"><h3>§ 4 – Mitwirkungspflichten</h3><p>Der Auftraggeber stellt Materialien und Freigaben rechtzeitig bereit. Verzögerungen berechtigen zur Terminanpassung; Mehrkosten trägt der Auftraggeber.</p></div>
-<div class="agb-section"><h3>§ 5 – Urheberrecht & Nutzungsrechte</h3><p>Alle Werke unterliegen dem Urheberrecht des Auftragnehmers. Mit vollständiger Bezahlung erhält der Auftraggeber ein einfaches Nutzungsrecht für die vereinbarten Zwecke. Weitergabe bedarf schriftlicher Zustimmung. Rohdaten verbleiben beim Auftragnehmer.</p></div>
-<div class="agb-section"><h3>§ 6 – Zahlungsbedingungen</h3><p>Rechnungen sind innerhalb von 14 Tagen netto zu begleichen. Bei Verzug fallen Zinsen von 9 Prozentpunkten über dem Basiszinssatz an (§ 288 BGB). Bei Anzahlungsmodell beginnt die Arbeit nach Eingang der ersten Rate. Die zweite Rate ist bei Projektabschluss fällig, unabhängig vom Zeitpunkt der Dateiübergabe.</p></div>
-<div class="agb-section"><h3>§ 7 – Stornierung</h3><p>Bei Absage weniger als <strong>7 Tage</strong> vor Leistungsbeginn werden <strong>50 % des Nettohonorars</strong> als Ausfallhonorar fällig. Bereits erbrachte Leistungen werden vollständig berechnet.</p></div>
-<div class="agb-section"><h3>§ 8 – Haftung</h3><p>Haftung nur bei Vorsatz oder grober Fahrlässigkeit. Indirekte Schäden und entgangener Gewinn sind ausgeschlossen. Der Auftraggeber haftet für die Rechtmäßigkeit bereitgestellter Inhalte.</p></div>
-<div class="agb-section"><h3>§ 9 – Referenzrecht</h3><p>Der Auftragnehmer darf erstellte Arbeiten zu Referenzzwecken veröffentlichen, sofern der Auftraggeber nicht widerspricht.</p></div>
+<div class="agb-section"><h3>§ 5 – Urheberrecht & Nutzungsrechte</h3><p>Alle Werke unterliegen dem Urheberrecht des Auftragnehmers. Mit vollständiger Bezahlung erhält der Auftraggeber ein einfaches Nutzungsrecht für die vereinbarten Zwecke. Rohdaten verbleiben beim Auftragnehmer.</p></div>
+<div class="agb-section"><h3>§ 6 – Zahlungsbedingungen</h3><p>Rechnungen sind innerhalb von 14 Tagen netto zu begleichen. Bei Verzug fallen Zinsen von 9 Prozentpunkten über dem Basiszinssatz an (§ 288 BGB).</p></div>
+<div class="agb-section"><h3>§ 7 – Stornierung</h3><p>Bei Absage weniger als <strong>7 Tage</strong> vor Leistungsbeginn werden <strong>50% des Nettohonorars</strong> als Ausfallhonorar fällig.</p></div>
+<div class="agb-section"><h3>§ 8 – Haftung</h3><p>Haftung nur bei Vorsatz oder grober Fahrlässigkeit. Indirekte Schäden sind ausgeschlossen.</p></div>
+<div class="agb-section"><h3>§ 9 – Referenzrecht</h3><p>Der Auftragnehmer darf erstellte Arbeiten zu Referenzzwecken veröffentlichen, sofern nicht widersprochen.</p></div>
 <div class="agb-section"><h3>§ 10 – Gerichtsstand</h3><p>Es gilt deutsches Recht. Gerichtsstand ist Gießen, soweit gesetzlich zulässig.</p></div>`,
   en:`<div class="agb-section"><h3>§ 1 – Scope</h3><p>These Terms apply to all contracts between David Stiehler, VISO Media, Schiffenberger Weg 28A, 35394 Gießen, Germany ("Service Provider") and the client for video/photo production and social media management services.</p></div>
-<div class="agb-section"><h3>§ 2 – Contract Formation</h3><p>Quotes are non-binding. A contract is formed upon written order confirmation or signature of the quote. By placing an order, the client accepts these Terms.</p></div>
-<div class="agb-section"><h3>§ 3 – Revision Rounds</h3><p>The price includes <strong>two revision rounds</strong> per deliverable. Additional revisions are charged at the applicable rate. Fundamental scope changes do not constitute revisions.</p></div>
-<div class="agb-section"><h3>§ 4 – Client Responsibilities</h3><p>The client shall provide required materials and approvals in a timely manner. Client-caused delays may result in adjusted delivery dates; additional costs shall be borne by the client.</p></div>
-<div class="agb-section"><h3>§ 5 – Copyright & Usage Rights</h3><p>All works remain subject to the Service Provider's copyright. Upon full payment, the client receives a simple licence for the agreed purposes. Transfer to third parties requires written consent. Raw files remain with the Service Provider.</p></div>
-<div class="agb-section"><h3>§ 6 – Payment Terms</h3><p>Invoices are due within 14 days net. Late payment incurs interest of 9 percentage points above the base rate. For deposit agreements, work begins after receipt of the first instalment. The second instalment is due upon project completion, regardless of file delivery timing.</p></div>
-<div class="agb-section"><h3>§ 7 – Cancellation</h3><p>Cancellations less than <strong>7 days</strong> before the scheduled start incur a cancellation fee of <strong>50% of the net fee</strong>. Services already rendered are invoiced in full.</p></div>
-<div class="agb-section"><h3>§ 8 – Liability</h3><p>Liability is limited to intent or gross negligence. Indirect damages and loss of profit are excluded. The client is responsible for the legality of content provided.</p></div>
-<div class="agb-section"><h3>§ 9 – Portfolio Rights</h3><p>The Service Provider may publish completed work for portfolio purposes unless the client objects in writing.</p></div>
-<div class="agb-section"><h3>§ 10 – Governing Law</h3><p>German law applies. Place of jurisdiction is Gießen, Germany, to the extent permitted by law.</p></div>`
+<div class="agb-section"><h3>§ 2 – Contract Formation</h3><p>Quotes are non-binding. A contract is formed upon written order confirmation or signature of the quote.</p></div>
+<div class="agb-section"><h3>§ 3 – Revision Rounds</h3><p>The price includes <strong>two revision rounds</strong> per deliverable. Additional revisions are charged at the applicable rate.</p></div>
+<div class="agb-section"><h3>§ 4 – Client Responsibilities</h3><p>The client shall provide required materials and approvals in a timely manner.</p></div>
+<div class="agb-section"><h3>§ 5 – Copyright & Usage Rights</h3><p>All works remain subject to the Service Provider's copyright. Upon full payment, the client receives a simple licence for the agreed purposes.</p></div>
+<div class="agb-section"><h3>§ 6 – Payment Terms</h3><p>Invoices are due within 14 days net. Late payment incurs interest of 9 percentage points above the base rate.</p></div>
+<div class="agb-section"><h3>§ 7 – Cancellation</h3><p>Cancellations less than <strong>7 days</strong> before the scheduled start incur a cancellation fee of <strong>50% of the net fee</strong>.</p></div>
+<div class="agb-section"><h3>§ 8 – Liability</h3><p>Liability is limited to intent or gross negligence. Indirect damages are excluded.</p></div>
+<div class="agb-section"><h3>§ 9 – Portfolio Rights</h3><p>The Service Provider may publish completed work for portfolio purposes unless the client objects.</p></div>
+<div class="agb-section"><h3>§ 10 – Governing Law</h3><p>German law applies. Place of jurisdiction is Gießen, Germany.</p></div>`
 };
 
 const EMAIL_TPL={
-  angebot_de:{subject:'Angebot {{nr}} – {{betreff}} | VISO Media',body:`Guten Tag {{name}},\n\nvielen Dank für Ihr Interesse an einer Zusammenarbeit mit VISO Media.\n\nIm Anhang erhalten Sie das Angebot Nr. {{nr}} für „{{betreff}}" über {{betrag}} (brutto inkl. MwSt.).\n\nDas Angebot ist bis zum {{datum}} gültig. Bitte senden Sie die unterschriebene Seite 2 zurück, um den Auftrag verbindlich zu erteilen.\n\nBei Fragen stehe ich Ihnen gerne zur Verfügung.\n\nMit freundlichen Grüßen,\nDavid Stiehler\nVISO Media\n—\ndavid@viso.media · 015735386155`},
-  angebot_en:{subject:'Quote {{nr}} – {{betreff}} | VISO Media',body:`Dear {{name}},\n\nThank you for your interest in working with VISO Media.\n\nPlease find attached Quote No. {{nr}} for "{{betreff}}" totalling {{betrag}} (net).\n\nThis quote is valid until {{datum}}. Please sign and return page 2 to confirm your order.\n\nFeel free to reach out with any questions.\n\nKind regards,\nDavid Stiehler\nVISO Media\n—\ndavid@viso.media · +49 157 35386155`},
-  rechnung_de:{subject:'Rechnung {{nr}} – {{betreff}} | VISO Media',body:`Guten Tag {{name}},\n\nim Anhang erhalten Sie die Rechnung Nr. {{nr}} für „{{betreff}}" über {{betrag}}.\n\nBitte überweisen Sie den Betrag innerhalb von 14 Tagen auf das angegebene Konto.\n\nMit freundlichen Grüßen,\nDavid Stiehler\nVISO Media\n—\ndavid@viso.media · 015735386155`},
-  rechnung_en:{subject:'Invoice {{nr}} – {{betreff}} | VISO Media',body:`Dear {{name}},\n\nPlease find attached Invoice No. {{nr}} for "{{betreff}}" totalling {{betrag}}.\n\nPayment is due within 14 days to the bank account stated on the invoice.\n\nKind regards,\nDavid Stiehler\nVISO Media\n—\ndavid@viso.media · +49 157 35386155`},
-  followup_de:{subject:'Nachfrage: Angebot {{nr}} – {{betreff}} | VISO Media',body:`Guten Tag {{name}},\n\nich möchte kurz nachfragen, ob Sie das Angebot Nr. {{nr}} für „{{betreff}}" erhalten haben und ob es offene Fragen gibt.\n\nDas Angebot ist noch bis zum {{datum}} gültig.\n\nMit freundlichen Grüßen,\nDavid Stiehler\nVISO Media\n—\ndavid@viso.media · 015735386155`},
-  followup_en:{subject:'Follow-up: Quote {{nr}} – {{betreff}} | VISO Media',body:`Dear {{name}},\n\nI wanted to follow up on Quote No. {{nr}} for "{{betreff}}" and check if you have any questions.\n\nThe quote remains valid until {{datum}}.\n\nKind regards,\nDavid Stiehler\nVISO Media\n—\ndavid@viso.media · +49 157 35386155`}
+  angebot_de:{subject:'Angebot {{nr}} – {{betreff}} | VISO Media',body:`Guten Tag {{name}},\n\nvielen Dank für Ihr Interesse an einer Zusammenarbeit mit VISO Media.\n\nIm Anhang erhalten Sie das Angebot Nr. {{nr}} für „{{betreff}}" über {{betrag}} (brutto inkl. MwSt.).\n\nDas Angebot ist bis zum {{datum}} gültig. Bitte senden Sie die unterschriebene Seite 2 zurück, um den Auftrag verbindlich zu erteilen.\n\nMit freundlichen Grüßen,\nDavid Stiehler · VISO Media\ndavid@viso.media · 015735386155`},
+  angebot_en:{subject:'Quote {{nr}} – {{betreff}} | VISO Media',body:`Dear {{name}},\n\nThank you for your interest in working with VISO Media.\n\nPlease find attached Quote No. {{nr}} for "{{betreff}}" totalling {{betrag}} (net).\n\nThis quote is valid until {{datum}}. Please sign and return page 2 to confirm your order.\n\nKind regards,\nDavid Stiehler · VISO Media\ndavid@viso.media · +49 157 35386155`},
+  rechnung_de:{subject:'Rechnung {{nr}} – {{betreff}} | VISO Media',body:`Guten Tag {{name}},\n\nim Anhang erhalten Sie die Rechnung Nr. {{nr}} für „{{betreff}}" über {{betrag}}.\n\nBitte überweisen Sie den Betrag innerhalb von 14 Tagen auf das angegebene Konto.\n\nMit freundlichen Grüßen,\nDavid Stiehler · VISO Media\ndavid@viso.media · 015735386155`},
+  rechnung_en:{subject:'Invoice {{nr}} – {{betreff}} | VISO Media',body:`Dear {{name}},\n\nPlease find attached Invoice No. {{nr}} for "{{betreff}}" totalling {{betrag}}.\n\nPayment is due within 14 days to the bank account stated on the invoice.\n\nKind regards,\nDavid Stiehler · VISO Media\ndavid@viso.media · +49 157 35386155`},
+  followup_de:{subject:'Nachfrage: Angebot {{nr}} | VISO Media',body:`Guten Tag {{name}},\n\nich möchte kurz nachfragen, ob Sie das Angebot Nr. {{nr}} für „{{betreff}}" erhalten haben.\n\nDas Angebot ist noch bis zum {{datum}} gültig.\n\nMit freundlichen Grüßen,\nDavid Stiehler · VISO Media`},
+  followup_en:{subject:'Follow-up: Quote {{nr}} | VISO Media',body:`Dear {{name}},\n\nI wanted to follow up on Quote No. {{nr}} for "{{betreff}}" and check if you have any questions.\n\nThe quote remains valid until {{datum}}.\n\nKind regards,\nDavid Stiehler · VISO Media`}
 };
 
 const fmt=n=>n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+'\u00a0€';
-const fmtDate=v=>{if(!v)return'–';const[y,m,d]=v.split('-');return d+'.'+m+'.'+y;};
+const fmtDate=v=>{if(!v)return'–';const[y,m,d]=v.split('-');return`${d}.${m}.${y}`;};
 const pad=n=>String(n).padStart(2,'0');
 const toast=msg=>{const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);};
 const $=id=>document.getElementById(id);
-const val=id=>$(id).value;
+const val=id=>$(id)?$(id).value:'';
 
+function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+
+// ── SIDEBAR PANELS ─────────────────────────────────────────
 function showPanel(p,btn){
-  document.querySelectorAll('.sidebar-panel').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(e=>e.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));
   $('panel-'+p).classList.add('active');
   if(btn)btn.classList.add('active');
@@ -498,90 +886,161 @@ function showPanel(p,btn){
   if(p==='data')updateDataStats();
 }
 
-function setLang(l){lang=l;$('lang-de').classList.toggle('active',l==='de');$('lang-en').classList.toggle('active',l==='en');update();}
-function setTax(t){tax=t;['de','eu','int'].forEach(x=>$('tax-'+x).classList.toggle('active',x===t));$('wrap_uid').style.display=t==='eu'?'block':'none';update();}
+// ── RESIZABLE SIDEBAR ──────────────────────────────────────
+(function(){
+  const handle=$('resize-handle');
+  const sidebar=$('sidebar');
+  let dragging=false,startX=0,startW=0;
+  handle.addEventListener('mousedown',e=>{
+    dragging=true;startX=e.clientX;
+    startW=parseInt(getComputedStyle(sidebar).width,10);
+    handle.classList.add('dragging');
+    document.body.style.cursor='col-resize';
+    document.body.style.userSelect='none';
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!dragging)return;
+    const w=Math.max(200,Math.min(500,startW+(e.clientX-startX)));
+    sidebar.style.width=w+'px';
+  });
+  document.addEventListener('mouseup',()=>{
+    if(!dragging)return;
+    dragging=false;handle.classList.remove('dragging');
+    document.body.style.cursor='';document.body.style.userSelect='';
+  });
+})();
 
-function unitOptions(selected='pauschal'){
-  return Object.keys(UNITS).map(k=>`<option value="${k}"${k===selected?' selected':''}>${UNITS[k].de} / ${UNITS[k].en}</option>`).join('');
+// ── LANG / TAX / TYP ──────────────────────────────────────
+function setLang(l){
+  lang=l;
+  $('lang-de').classList.toggle('active',l==='de');
+  $('lang-en').classList.toggle('active',l==='en');
+  update();
+}
+function setTax(t){
+  tax=t;
+  ['de','eu','int'].forEach(x=>$('tax-'+x).classList.toggle('active',x===t));
+  $('wrap_uid').style.display=t==='eu'?'block':'none';
+  update();
+}
+function setTyp(t,btn){
+  typ=t;
+  $('f_typ_val') && ($('f_typ_val').value=t);
+  // Update topbar buttons
+  document.querySelectorAll('.doc-type-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  // Auto-nummer wenn noch altes Präfix
+  const nr=val('f_nr');
+  if(t==='rechnung'&&nr.startsWith('ANG')){$('f_nr').value=nextDocNr('rechnung');}
+  else if(t==='angebot'&&nr.startsWith('RE')){$('f_nr').value=nextDocNr('angebot');}
+  update();
 }
 
-// ── CUSTOMERS ────────────────────────────────────────────
-function addPos(){positionen.push({id:Date.now(),desc:'',details:'',menge:'1',einheit:'pauschal',preis:''});renderSidebarPos();update();}
-function removePos(id){positionen=positionen.filter(p=>p.id!==id);renderSidebarPos();update();}
-function renderSidebarPos(){
-  $('positionen').innerHTML=positionen.map((p,i)=>`
-    <div class="pos-row">
-      <button class="del" onclick="removePos(${p.id})">✕</button>
-      <div class="pos-label">Position ${i+1}</div>
-      <input type="text" placeholder="Titel / Title" value="${p.desc.replace(/"/g,'&quot;')}" oninput="posUpdate(${p.id},'desc',this.value)">
-      <textarea placeholder="Beschreibung (optional) – eine Zeile = ein Bullet" style="min-height:60px;" oninput="posUpdate(${p.id},'details',this.value)">${p.details||''}</textarea>
-      <input type="number" placeholder="Menge" value="${p.menge}" oninput="posUpdate(${p.id},'menge',this.value)">
-      <select onchange="posUpdate(${p.id},'einheit',this.value)">${unitOptions(p.einheit)}</select>
-      <input type="number" placeholder="Preis (€)" value="${p.preis}" oninput="posUpdate(${p.id},'preis',this.value)">
-    </div>`).join('');
-}
-function posUpdate(id,field,v){const p=positionen.find(x=>x.id===id);if(p){p[field]=v;update();}}
-
-// ── NUMMERNVERGABE ────────────────────────────────────────
-function nextDocNr(typ){
+// ── NUMMERNVERGABE ─────────────────────────────────────────
+function nextDocNr(t){
   const year=new Date().getFullYear();
-  const prefix=typ==='rechnung'?'RE':'ANG';
-  const existing=history.filter(h=>h.typ===typ&&h.nr&&h.nr.startsWith(prefix+'-'+year));
+  const prefix=t==='rechnung'?'RE':'ANG';
+  const existing=history.filter(h=>h.typ===t&&h.nr&&h.nr.startsWith(prefix+'-'+year));
   const nums=existing.map(h=>{const m=h.nr.match(/(\d+)$/);return m?parseInt(m[1]):0;}).filter(n=>!isNaN(n));
   const next=nums.length?Math.max(...nums)+1:1;
   return`${prefix}-${year}-${String(next).padStart(3,'0')}`;
 }
 
-function onTypChange(){
-  // Nur Nummer aktualisieren wenn sie noch dem alten Typ entspricht (nicht manuell geändert)
-  const typ=$('f_typ').value;
-  const nr=val('f_nr');
-  if(typ==='rechnung'&&nr.startsWith('ANG')){$('f_nr').value=nextDocNr('rechnung');}
-  else if(typ==='angebot'&&nr.startsWith('RE')){$('f_nr').value=nextDocNr('angebot');}
-  update();
-}
-
-// ── NEUES DOKUMENT ────────────────────────────────────────
+// ── NEUES DOKUMENT ─────────────────────────────────────────
 function newDoc(btn){
   if(!confirm('Neues Dokument erstellen? Nicht gespeicherte Änderungen gehen verloren.'))return;
   const today=new Date();
   const inM=new Date(today);inM.setMonth(inM.getMonth()+1);
-  // Felder leeren
-  $('f_firma').value='';$('f_ansprechpartner').value='';$('f_strasse').value='';
-  $('f_ort').value='';$('f_land').value='';$('f_uid').value='';$('f_betreff').value='';
-  $('f_hinweise').value='';$('f_zahlung').value='voll';$('f_kunde_select').value='';
-  $('f_von').value='';
-  // Typ auf Angebot, neue Nummer
-  $('f_typ').value='angebot';
+  ['f_firma','f_ansprechpartner','f_strasse','f_ort','f_land','f_uid','f_betreff','f_hinweise','f_von'].forEach(id=>{if($(id))$(id).value='';});
+  $('f_zahlung').value='voll';
+  $('f_kunde_select').value='';
+  typ='angebot';
   $('f_nr').value=nextDocNr('angebot');
   $('f_datum').value=today.getFullYear()+'-'+pad(today.getMonth()+1)+'-'+pad(today.getDate());
   $('f_gueltig').value=inM.getFullYear()+'-'+pad(inM.getMonth()+1)+'-'+pad(inM.getDate());
-  // Sprache + Steuer zurücksetzen
+  // Reset topbar
+  document.querySelectorAll('.doc-type-btn').forEach(b=>b.classList.remove('active'));
+  $('typ-angebot').classList.add('active');
   setLang('de');setTax('de');
-  // Positionen leeren, eine neue hinzufügen
-  positionen=[];renderSidebarPos();addPos();
-  showPanel('doc',document.querySelectorAll('.nav-btn')[0]);
+  positionen=[];renderPositionen();addPos();
+  showPanel('doc',$('nav-doc'));
   update();toast('Neues Dokument ✓');
 }
 
-// ── CONVERT ──────────────────────────────────────────────
+// ── CONVERT ───────────────────────────────────────────────
 function convertDoc(){
-  const t=$('f_typ'),nr=$('f_nr');
-  if(t.value==='angebot'){
-    t.value='rechnung';
-    nr.value=nr.value.replace(/^ANG/,'RE');
-  }else{
-    t.value='angebot';
-    nr.value=nr.value.replace(/^RE/,'ANG');
-  }
-  update();toast('Umgewandelt ✓');
+  const newTyp=typ==='angebot'?'rechnung':'angebot';
+  setTyp(newTyp, newTyp==='rechnung'?$('typ-rechnung'):$('typ-angebot'));
+  toast('Umgewandelt ✓');
 }
 
-// ── HISTORY & STATUS ─────────────────────────────────────
+// ── POSITIONEN ─────────────────────────────────────────────
+function addPos(){
+  positionen.push({id:Date.now(),desc:'',details:'',menge:'1',einheit:'pauschal',preis:''});
+  renderPositionen();update();
+}
+function removePos(id){
+  positionen=positionen.filter(p=>p.id!==id);
+  renderPositionen();update();
+}
+function posUpdate(id,field,v){
+  const p=positionen.find(x=>x.id===id);
+  if(p){p[field]=v;update();}
+}
+
+function unitOptions(selected='pauschal'){
+  return Object.keys(UNITS).map(k=>`<option value="${k}"${k===selected?' selected':''}>${UNITS[k].de} / ${UNITS[k].en}</option>`).join('');
+}
+
+function renderPositionen(){
+  const tbody=$('d_positionen');
+  if(!positionen.length){
+    tbody.innerHTML='<tr><td colspan="7" style="color:#bbb;font-style:italic;text-align:center;padding:14px;">– Positionen werden hier angezeigt –</td></tr>';
+    return;
+  }
+  tbody.innerHTML=positionen.map((p,i)=>{
+    const m=parseFloat(p.menge)||0,pr=parseFloat(p.preis)||0,sum=m*pr;
+    return`<tr>
+      <td style="color:#888;font-size:11px;vertical-align:top;padding-top:10px;">${i+1}</td>
+      <td>
+        <input class="ie-block" value="${(p.desc||'').replace(/"/g,'&quot;')}" placeholder="Bezeichnung"
+          oninput="posUpdate(${p.id},'desc',this.value)" style="font-weight:600;margin-bottom:3px;">
+        <textarea class="pos-details-input" placeholder="Details (optional, eine Zeile = ein Bullet)"
+          oninput="posUpdate(${p.id},'details',this.value);autoResize(this)"
+          rows="1">${p.details||''}</textarea>
+      </td>
+      <td style="text-align:right;vertical-align:top;padding-top:10px;">
+        <input class="ie" type="number" value="${p.menge}" style="width:44px;text-align:right;"
+          oninput="posUpdate(${p.id},'menge',this.value)">
+      </td>
+      <td style="text-align:right;vertical-align:top;padding-top:10px;">
+        <select class="ie-select" onchange="posUpdate(${p.id},'einheit',this.value)" style="font-size:11px;">${unitOptions(p.einheit)}</select>
+      </td>
+      <td style="text-align:right;vertical-align:top;padding-top:10px;">
+        <input class="ie" type="number" value="${p.preis}" placeholder="0" style="width:70px;text-align:right;"
+          oninput="posUpdate(${p.id},'preis',this.value)">
+      </td>
+      <td style="text-align:right;vertical-align:top;padding-top:10px;white-space:nowrap;font-weight:600;">
+        ${sum?fmt(sum):'–'}
+      </td>
+      <td style="vertical-align:top;padding-top:8px;" class="no-print">
+        <button class="pos-del" onclick="removePos(${p.id})" title="Löschen">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── EMAIL ──────────────────────────────────────────────────
 function getDocVals(){
   const netto=positionen.reduce((s,p)=>s+(parseFloat(p.menge)||0)*(parseFloat(p.preis)||0),0);
   const brutto=tax==='de'?netto*1.19:netto;
-  return{name:val('f_ansprechpartner')||val('f_firma')||'…',nr:val('f_nr')||'–',betreff:val('f_betreff')||'–',betrag:fmt(brutto),datum:fmtDate(val('f_gueltig')||val('f_bis'))};
+  return{
+    name:val('f_ansprechpartner')||val('f_firma')||'…',
+    nr:val('f_nr')||'–',
+    betreff:val('f_betreff')||'–',
+    betrag:fmt(brutto),
+    datum:fmtDate(val('f_gueltig')||val('f_von'))
+  };
 }
 function fillTpl(tpl,v){return tpl.replace(/\{\{(\w+)\}\}/g,(_,k)=>v[k]||'–');}
 function loadEmailTemplate(){
@@ -601,120 +1060,111 @@ function openGmail(){
   window.open(`https://mail.google.com/mail/?view=cm&to=${to}&su=${su}&body=${bo}`,'_blank');
 }
 function copyEmail(){
-  const text=`Betreff: ${val('email_subject')}\n\n${val('email_body')}`;
-  navigator.clipboard.writeText(text).then(()=>toast('Kopiert ✓'));
+  navigator.clipboard.writeText(`Betreff: ${val('email_subject')}\n\n${val('email_body')}`).then(()=>toast('Kopiert ✓'));
 }
 
-// ── DATA ─────────────────────────────────────────────────
+// ── UPDATE (document render) ───────────────────────────────
 function update(){
-  const typ=val('f_typ'),isRe=typ==='rechnung',l=T[lang],nr=val('f_nr')||'–';
+  const isRe=typ==='rechnung';
+  const l=T[lang];
+  const nr=val('f_nr')||'–';
 
+  // Typ-Title
   $('d_typ_title').textContent=isRe?l.doc_i:l.doc_q;
-  $('t_annex_label').textContent=l.annex_label;
-  $('d_typ2').textContent=isRe?l.annex_i:l.annex_q;
   $('d_nr_label').textContent=isRe?l.nr_i:l.nr_q;
   $('d_date_label').textContent=l.date;
   $('d_extra_label').textContent=isRe?l.period:l.valid;
-  $('lbl_nr').textContent=isRe?l.nr_i.replace(':',''):l.nr_q.replace(':','');
+
+  // Datum-Felder ein/ausblenden
+  $('f_gueltig').style.display=isRe?'none':'inline-block';
+  $('f_von').style.display=isRe?'inline-block':'none';
+
+  // Table headers
+  document.querySelectorAll('.th').forEach((th,i)=>th.textContent=l.th[i]);
+
+  // Nr label sidebar
+  const lbl=$('lbl_nr');if(lbl)lbl.textContent=isRe?'Rechnungs-Nr.':'Angebots-Nr.';
+
+  // Annex (page 2)
+  ['d_nr','d_nr2'].forEach(id=>$(id)&&($(id).textContent=nr));
+  $('t_annex_label').textContent=l.annex_label;
+  $('d_typ2').textContent=isRe?l.annex_i:l.annex_q;
+
+  // Intro & sign
   $('d_intro').textContent=isRe?l.intro_i:l.intro_q;
   $('d_sign').innerHTML=isRe?l.sign_i:l.sign_q;
+
+  // Subject prefix
+  const betreff=val('f_betreff');
+  $('d_subj_prefix').textContent=betreff?(isRe?l.prefix_i:l.prefix_q):'';
+
+  // Payment
   $('t_payment_title').textContent=l.payment;
-  $('t_notes_title').textContent=l.notes;
-  ['t_contact','t_contact2'].forEach(id=>$(id).textContent=l.contact);
+  const netto=positionen.reduce((s,p)=>s+(parseFloat(p.menge)||0)*(parseFloat(p.preis)||0),0);
+  const mwst=tax==='de'?netto*.19:0,brutto=netto+mwst;
+  const half=brutto/2;
+  $('d_zahlung_text').innerHTML=val('f_zahlung')==='voll'?l.pay_full(fmt(brutto)):l.pay_50(fmt(half));
+
+  // Totals
+  $('d_netto').textContent=fmt(netto);
+  $('d_mwst').textContent=fmt(mwst);
+  $('d_gesamt').textContent=fmt(brutto);
+  $('t_net').textContent=l.net;
+  $('t_tax').textContent=l.tax19;
+  $('t_total').textContent=isRe?l.total_i:l.total_q;
+
+  // Tax row visibility
+  const taxRow=$('row_tax');
+  const taxNote=$('d_tax_note_box');
+  const uid=val('f_uid');
+  if(tax==='de'){taxRow.style.display='';taxNote.style.display='none';}
+  else{taxRow.style.display='none';taxNote.style.display='block';taxNote.innerHTML=tax==='eu'?l.tax_eu+(uid?`<strong>${uid}</strong>`:'[VAT ID]'):l.tax_int;}
+
+  // Notes
+  const notes=val('f_hinweise').trim();
+  const nbox=$('d_notes_rendered');
+  const ninput=$('f_hinweise');
+  if(notes){
+    nbox.style.display='block';
+    nbox.innerHTML=`<strong>${l.notes}</strong><br>${notes}`;
+    ninput.style.display='none';
+  }else{
+    nbox.style.display='none';
+    ninput.style.display='block';
+  }
+
+  // Footer labels
+  ['t_contact','t_contact2'].forEach(id=>$(id)&&($(id).textContent=l.contact));
   $('t_tax_f').textContent=l.tax_f;
   $('t_bank').textContent=l.bank;
+  ['t_taxnr_label','t_taxnr_label2'].forEach(id=>$(id)&&($(id).textContent=l.taxnr));
+  ['t_vatid_label','t_vatid_label2'].forEach(id=>$(id)&&($(id).textContent=l.vatid));
+  ['t_accholder_label','t_accholder_label2'].forEach(id=>$(id)&&($(id).textContent=l.accholder));
+  $('t_bank2')&&($('t_bank2').textContent=l.bank_title);
+  $('t_tax2')&&($('t_tax2').textContent=l.tax_f);
+
+  // AGB
+  $('agb_content').innerHTML=AGB[lang];
   $('t_agb_title').textContent=l.agb;
   $('t_confirm_title').textContent=l.confirm_title;
   $('t_confirm_text').textContent=l.confirm(nr);
   $('t_sig_date').textContent=l.sig_date;
   $('t_sig_sign').textContent=l.sig_sign;
   $('t_return').textContent=l.return;
-  $('t_net').textContent=l.net;
-  $('t_tax').textContent=l.tax19;
-  $('t_total').textContent=isRe?l.total_i:l.total_q;
-  $('t_tax2').textContent=l.tax_f;
-  $('t_bank2').textContent=l.bank_title;
-  ['t_taxnr_label','t_taxnr_label2'].forEach(id=>$(id).textContent=l.taxnr);
-  ['t_vatid_label','t_vatid_label2'].forEach(id=>$(id).textContent=l.vatid);
-  ['t_accholder_label','t_accholder_label2'].forEach(id=>$(id).textContent=l.accholder);
-  document.querySelectorAll('.th').forEach((th,i)=>th.textContent=l.th[i]);
-  ['d_nr','d_nr2'].forEach(id=>$(id).textContent=nr);
-  $('d_datum').textContent=fmtDate(val('f_datum'));
 
-  if(isRe){
-    $('d_extra').textContent=fmtDate(val('f_von'));
-  }else{$('d_extra').textContent=fmtDate(val('f_gueltig'));}
-
-  const betreff=val('f_betreff'),bEl=$('d_betreff');
-  if(betreff){bEl.textContent=(isRe?l.prefix_i:l.prefix_q)+betreff;bEl.style.cssText='';}
-  else{bEl.textContent=l.empty_sub;bEl.style.color='#bbb';bEl.style.fontStyle='italic';}
-
-  const firma=val('f_firma'),ansp=val('f_ansprechpartner'),str=val('f_strasse'),ort=val('f_ort'),land=val('f_land');
-  const eEl=$('d_empfaenger');
-  if(firma||ansp||str||ort){
-    eEl.style.cssText='';
-    eEl.innerHTML=[firma&&`<strong>${firma}</strong>`,ansp,str,ort,land].filter(Boolean).join('<br>');
-  }else{eEl.style.color='#bbb';eEl.style.fontStyle='italic';eEl.innerHTML=l.empty_rec;}
-
-  const tbody=$('d_positionen');
-  if(!positionen.length){
-    tbody.innerHTML='<tr><td colspan="6" style="color:#bbb;font-style:italic;text-align:center;padding:16px;">–</td></tr>';
-  }else{
-    tbody.innerHTML=positionen.map((p,i)=>{
-      const m=parseFloat(p.menge)||0,pr=parseFloat(p.preis)||0,sum=m*pr;
-      const details=p.details&&p.details.trim()
-        ?'<div style="margin-top:4px;font-size:11px;color:#555;line-height:1.6;">'
-          +p.details.trim().split('\n').filter(x=>x.trim()).map(x=>`<div style="padding-left:10px;position:relative;"><span style="position:absolute;left:0;">–</span>${x.trim()}</div>`).join('')
-          +'</div>':'';
-      return`<tr><td style="vertical-align:top;padding-top:10px;">${i+1}</td>
-        <td><strong>${p.desc||'–'}</strong>${details}</td>
-        <td style="text-align:right;white-space:nowrap;vertical-align:top;padding-top:10px;">${p.menge||'–'}</td>
-        <td style="text-align:right;white-space:nowrap;vertical-align:top;padding-top:10px;">${unitLabel(p.einheit,lang)}</td>
-        <td style="text-align:right;white-space:nowrap;vertical-align:top;padding-top:10px;">${pr?fmt(pr):'–'}</td>
-        <td style="text-align:right;white-space:nowrap;vertical-align:top;padding-top:10px;">${sum?fmt(sum):'–'}</td></tr>`;
-    }).join('');
-  }
-
-  const netto=positionen.reduce((s,p)=>s+(parseFloat(p.menge)||0)*(parseFloat(p.preis)||0),0);
-  const mwst=tax==='de'?netto*.19:0,brutto=netto+mwst;
-  $('d_netto').textContent=fmt(netto);$('d_mwst').textContent=fmt(mwst);$('d_gesamt').textContent=fmt(brutto);
-
-  const taxRow=$('row_tax'),taxNote=$('d_tax_note_box'),uid=val('f_uid');
-  if(tax==='de'){taxRow.style.display='';taxNote.style.display='none';}
-  else{taxRow.style.display='none';taxNote.style.display='block';taxNote.innerHTML=tax==='eu'?l.tax_eu+(uid?`<strong>${uid}</strong>`:'[VAT ID]'):l.tax_int;}
-
-  const zahlung=val('f_zahlung'),half=brutto/2;
-  $('d_zahlung_text').innerHTML=zahlung==='voll'?l.pay_full(fmt(brutto)):l.pay_50(fmt(half));
-
-  const notes=val('f_hinweise').trim();
-  $('d_notes_box').style.display=notes?'block':'none';
-  $('d_hinweise').textContent=notes;
-
-  $('agb_content').innerHTML=AGB[lang];
-
-  // AGB-Hinweis: nur bei Angebot sichtbar, bei Rechnung ausblenden
+  // AGB hint
   const hint=$('agb_hint');
-  if(!isRe){
-    hint.textContent=l.agb_hint;
-    hint.style.display='';
-  }else{
-    hint.style.display='none';
-  }
+  if(!isRe){hint.textContent=l.agb_hint;hint.style.display='block';}
+  else{hint.style.display='none';}
 
-  const p2=$('page2');
-  p2.style.display=!isRe?'flex':'none';
-  if(!isRe)p2.style.flexDirection='column';
-  $('wrap_gueltig').style.display=isRe?'none':'block';
-  $('wrap_zeitraum').style.display=isRe?'block':'none';
+  // Page 2 visibility
+  $('page2').style.display=isRe?'none':'block';
 }
 
-async function deleteCustomer(id){
-  try{await DB.deleteCustomer(id);customers=customers.filter(c=>c.id!==id);renderCustomerList();toast('Gelöscht');}
-  catch(e){toast('Fehler: '+e.message);}
-}
-
+// ── CUSTOMERS ──────────────────────────────────────────────
 async function saveCustomer(){
-  const firma=$('nc_firma').value.trim();if(!firma){toast('Firma fehlt!');return;}
+  const firma=$('nc_firma').value.trim();
+  if(!firma){toast('Firma fehlt!');return;}
   const customer={firma,ansp:$('nc_ansp').value.trim(),str:$('nc_str').value.trim(),ort:$('nc_ort').value.trim(),land:$('nc_land').value.trim(),email:$('nc_email').value.trim()};
   try{
     const saved=await DB.saveCustomer(customer);
@@ -723,85 +1173,97 @@ async function saveCustomer(){
     renderCustomerList();toast('Kunde gespeichert ✓');
   }catch(e){toast('Fehler: '+e.message);}
 }
-
+async function deleteCustomer(id){
+  try{await DB.deleteCustomer(id);customers=customers.filter(c=>c.id!==id);renderCustomerList();toast('Gelöscht');}
+  catch(e){toast('Fehler: '+e.message);}
+}
 function useCustomer(i){
   const c=customers[i];
-  $('f_firma').value=c.firma||'';$('f_ansprechpartner').value=c.ansp||'';
-  $('f_strasse').value=c.str||'';$('f_ort').value=c.ort||'';$('f_land').value=c.land||'';
-  update();showPanel('doc',document.querySelectorAll('.nav-btn')[0]);
+  $('f_firma').value=c.firma||'';
+  $('f_ansprechpartner').value=c.ansp||'';
+  $('f_strasse').value=c.str||'';
+  $('f_ort').value=c.ort||'';
+  $('f_land').value=c.land||'';
+  update();showPanel('doc',$('nav-doc'));
   toast('Kunde übernommen ✓');
 }
-function loadCustomer(){const i=$('f_kunde_select').value;if(i!=='')useCustomer(parseInt(i));}
-
+function loadCustomer(){
+  const i=$('f_kunde_select').value;
+  if(i!=='')useCustomer(parseInt(i));
+}
 function renderCustomerList(){
   const sel=$('f_kunde_select');
-  sel.innerHTML='<option value="">— Kunde wählen —</option>';
+  sel.innerHTML='<option value="">— Kunde übernehmen —</option>';
   const el=$('customer-list');
-  if(!customers.length){el.innerHTML='<p style="color:#666;font-size:11px;margin-top:8px;">Noch keine Kunden.</p>';return;}
+  if(!customers.length){el.innerHTML='<p style="color:var(--text3);font-size:11px;">Noch keine Kunden.</p>';return;}
   el.innerHTML=customers.map((c,i)=>`
-    <div class="card"><button class="del-btn" onclick="deleteCustomer('${c.id}')">✕</button>
+    <div class="card">
+      <button class="btn-icon card-del" onclick="deleteCustomer('${c.id}')"><i data-lucide="x"></i></button>
       <div class="card-title">${c.firma}</div>
       <div class="card-sub">${[c.ansp,c.str,c.ort,c.land].filter(Boolean).join(' · ')}</div>
       ${c.email?`<div class="card-sub">${c.email}</div>`:''}
-      <div class="card-actions"><button class="btn btn-secondary btn-sm" onclick="useCustomer(${i})">Übernehmen</button></div>
+      <div class="card-actions">
+        <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="useCustomer(${i})">Übernehmen</button>
+      </div>
     </div>`).join('');
   customers.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.firma;sel.appendChild(o);});
+  lucide.createIcons();
 }
 
-// ── SUPABASE: BIBLIOTHEK ──────────────────────────────────
+// ── LIBRARY ────────────────────────────────────────────────
 async function saveLibItem(){
-  const desc=$('nl_desc').value.trim();if(!desc){toast('Bezeichnung fehlt!');return;}
+  const desc=$('nl_desc').value.trim();
+  if(!desc){toast('Bezeichnung fehlt!');return;}
   const item={desc,details:$('nl_details').value.trim(),menge:$('nl_menge').value||'1',einheit:$('nl_einheit').value||'pauschal',preis:$('nl_preis').value||''};
   try{
     const saved=await DB.saveLibItem(item);
     library.unshift(saved);
-    ['nl_desc','nl_details','nl_preis'].forEach(id=>$(id).value='');$('nl_menge').value='1';
+    ['nl_desc','nl_details','nl_preis'].forEach(id=>$(id).value='');
+    $('nl_menge').value='1';
     renderLibraryList();toast('Leistung gespeichert ✓');
   }catch(e){toast('Fehler: '+e.message);}
 }
-
 async function deleteLibItem(id){
   try{await DB.deleteLibItem(id);library=library.filter(l=>l.id!==id);renderLibraryList();toast('Gelöscht');}
   catch(e){toast('Fehler: '+e.message);}
 }
-
 function renderLibraryList(){
   const sel=$('f_lib_select');
-  sel.innerHTML='<option value="">+ Aus Bibliothek</option>';
+  sel.innerHTML='<option value="">+ Aus Bibliothek hinzufügen</option>';
   const el=$('lib-list');
-  if(!library.length){el.innerHTML='<p style="color:#666;font-size:11px;margin-top:8px;">Noch keine Leistungen.</p>';return;}
+  if(!library.length){el.innerHTML='<p style="color:var(--text3);font-size:11px;">Noch keine Leistungen.</p>';return;}
   el.innerHTML=library.map((l,i)=>`
-    <div class="card"><button class="del-btn" onclick="deleteLibItem('${l.id}')">✕</button>
+    <div class="card">
+      <button class="btn-icon card-del" onclick="deleteLibItem('${l.id}')"><i data-lucide="x"></i></button>
       <div class="card-title">${l.desc}</div>
-      <div class="card-sub">${l.menge} ${UNITS[l.einheit]?UNITS[l.einheit].de:l.einheit} · ${l.preis?fmt(parseFloat(l.preis)):'-'}</div>
+      <div class="card-sub">${l.menge} ${UNITS[l.einheit]?UNITS[l.einheit].de:l.einheit}${l.preis?' · '+fmt(parseFloat(l.preis)):''}</div>
     </div>`).join('');
   library.forEach((l,i)=>{const o=document.createElement('option');o.value=i;o.textContent=l.desc;sel.appendChild(o);});
+  lucide.createIcons();
 }
-
 function addFromLib(){
   const i=$('f_lib_select').value;if(i==='')return;
   const l=library[parseInt(i)];
   positionen.push({id:Date.now(),desc:l.desc,details:l.details||'',menge:l.menge,einheit:l.einheit,preis:l.preis});
-  renderSidebarPos();update();$('f_lib_select').value='';toast('Hinzugefügt ✓');
+  renderPositionen();update();$('f_lib_select').value='';toast('Hinzugefügt ✓');
 }
 
-// ── SUPABASE: DOKUMENTE ───────────────────────────────────
+// ── DOCUMENTS ─────────────────────────────────────────────
 async function saveDoc(){
   const doc={
-    typ:val('f_typ'),nr:val('f_nr'),datum:val('f_datum'),gueltig:val('f_gueltig'),
-    von:val('f_von'),bis:val('f_bis'),betreff:val('f_betreff'),zahlung:val('f_zahlung'),
+    typ,nr:val('f_nr'),datum:val('f_datum'),gueltig:val('f_gueltig'),
+    von:val('f_von'),bis:'',betreff:val('f_betreff'),zahlung:val('f_zahlung'),
     hinweise:val('f_hinweise'),firma:val('f_firma'),ansp:val('f_ansprechpartner'),
     str:val('f_strasse'),ort:val('f_ort'),land:val('f_land'),uid:val('f_uid'),
     lang,tax,positionen
   };
   try{
     const saved=await DB.saveDocument(doc);
-    const idx=history.findIndex(h=>h.nr===doc.nr);
+    const idx=history.findIndex(h=>h.nr===doc.nr&&h.typ===doc.typ);
     if(idx>-1)history[idx]=saved; else history.unshift(saved);
     renderHistory();toast('Gespeichert ✓');
   }catch(e){toast('Fehler: '+e.message);}
 }
-
 async function toggleStatus(id,key,e){
   e.stopPropagation();
   const doc=history.find(h=>h.id===id);if(!doc)return;
@@ -810,54 +1272,65 @@ async function toggleStatus(id,key,e){
   try{await DB.updateDocStatus(id,doc.status);renderHistory();}
   catch(err){toast('Fehler: '+err.message);}
 }
-
 async function deleteDoc(id){
   try{await DB.deleteDocument(id);history=history.filter(h=>h.id!==id);renderHistory();toast('Gelöscht');}
   catch(e){toast('Fehler: '+e.message);}
 }
-
 function loadDoc(i){
   const d=history[i];
-  $('f_typ').value=d.typ||'angebot';$('f_nr').value=d.nr||'';$('f_datum').value=d.datum||'';
-  $('f_gueltig').value=d.gueltig||'';$('f_von').value=d.von||'';
-  $('f_betreff').value=d.betreff||'';$('f_zahlung').value=d.zahlung||'voll';
-  $('f_hinweise').value=d.hinweise||'';$('f_firma').value=d.firma||'';
-  $('f_ansprechpartner').value=d.ansp||'';$('f_strasse').value=d.str||'';
-  $('f_ort').value=d.ort||'';$('f_land').value=d.land||'';$('f_uid').value=d.uid||'';
+  typ=d.typ||'angebot';
+  // Update topbar type buttons
+  document.querySelectorAll('.doc-type-btn').forEach(b=>b.classList.remove('active'));
+  $(typ==='rechnung'?'typ-rechnung':'typ-angebot').classList.add('active');
+  $('f_nr').value=d.nr||'';
+  $('f_datum').value=d.datum||'';
+  $('f_gueltig').value=d.gueltig||'';
+  $('f_von').value=d.von||'';
+  $('f_betreff').value=d.betreff||'';
+  $('f_zahlung').value=d.zahlung||'voll';
+  $('f_hinweise').value=d.hinweise||'';
+  $('f_firma').value=d.firma||'';
+  $('f_ansprechpartner').value=d.ansp||'';
+  $('f_strasse').value=d.str||'';
+  $('f_ort').value=d.ort||'';
+  $('f_land').value=d.land||'';
+  $('f_uid').value=d.uid||'';
   positionen=(d.positionen||[]).map(p=>({...p,id:p.id||Date.now()+Math.random()}));
   setLang(d.lang||'de');setTax(d.tax||'de');
-  renderSidebarPos();update();
-  showPanel('doc',document.querySelectorAll('.nav-btn')[0]);
+  renderPositionen();update();
+  showPanel('doc',$('nav-doc'));
   toast('Geladen ✓');
 }
-
 function renderHistory(){
   const el=$('history-list');
-  if(!history.length){el.innerHTML='<p style="color:#666;font-size:11px;">Keine Dokumente.</p>';return;}
+  if(!history.length){el.innerHTML='<p style="color:var(--text3);font-size:11px;">Keine Dokumente.</p>';return;}
   el.innerHTML=history.map((h,i)=>{
     const isRe=h.typ==='rechnung';
     const chips=(isRe?STATUS_RE:STATUS_ANG).map(s=>{
       const active=h.status&&h.status[s.key];
       const lbl=lang==='en'?s.label_en:s.label_de;
-      return`<button class="status-chip${active?' '+s.cls:''}" onclick="toggleStatus('${h.id}','${s.key}',event)">${active?'✓ ':''} ${lbl}</button>`;
+      return`<button class="chip${active?' '+s.cls:''}" onclick="toggleStatus('${h.id}','${s.key}',event)">${lbl}</button>`;
     }).join('');
     return`<div class="hist-item">
       <div onclick="loadDoc(${i})" style="cursor:pointer;">
-        <span class="hist-badge ${isRe?'badge-re':'badge-ang'}">${isRe?'RECHNUNG':'ANGEBOT'}</span>
-        ${h.lang==='en'?'<span class="hist-badge" style="background:#1e3a5f;color:#93c5fd;margin-left:4px;">EN</span>':''}
+        <span class="hist-badge ${isRe?'badge-re':'badge-ang'}">${isRe?'RE':'ANG'}</span>
+        ${h.lang==='en'?'<span class="hist-badge" style="background:#1a2a3f;color:var(--blue);margin-left:4px;">EN</span>':''}
         <div class="hist-nr">${h.nr||'–'}</div>
         <div class="hist-sub">${h.firma||'–'} · ${h.betreff||'–'}</div>
       </div>
       <div class="status-row">${chips}</div>
-      <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:10px;color:#555;">${new Date(h.updated_at||h.created_at).toLocaleDateString('de-DE')}</span>
-        <button class="btn-red" onclick="deleteDoc('${h.id}')">Löschen</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <span style="font-size:10px;color:var(--text3);">${new Date(h.updated_at||h.created_at).toLocaleDateString('de-DE')}</span>
+        <button class="btn btn-danger" style="font-size:11px;padding:4px 8px;" onclick="deleteDoc('${h.id}')">
+          <i data-lucide="trash-2"></i>
+        </button>
       </div>
     </div>`;
   }).join('');
+  lucide.createIcons();
 }
 
-// ── SUPABASE: E-MAIL ──────────────────────────────────────
+// ── EMAIL TEMPLATES ────────────────────────────────────────
 async function saveEmailTemplate(){
   const key=$('email_template').value;
   try{
@@ -867,14 +1340,13 @@ async function saveEmailTemplate(){
   }catch(e){toast('Fehler: '+e.message);}
 }
 
-// ── DATEN: EXPORT / IMPORT / RESET ───────────────────────
+// ── DATA ──────────────────────────────────────────────────
 function exportData(){
   const blob=new Blob([JSON.stringify({customers,library,history,customEmailTpl,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
   a.download=`viso-backup-${new Date().toISOString().slice(0,10)}.json`;
   a.click();toast('Export ✓');
 }
-
 async function importData(input){
   const file=input.files[0];if(!file)return;
   const reader=new FileReader();
@@ -886,51 +1358,115 @@ async function importData(input){
       if(data.library){for(const l of data.library){if(!library.find(x=>x.desc===l.desc)){try{const s=await DB.saveLibItem(l);library.unshift(s);imported++;}catch{}}}renderLibraryList();}
       if(data.history){for(const h of data.history){if(!history.find(x=>x.nr===h.nr)){try{const s=await DB.saveDocument(h);history.unshift(s);imported++;}catch{}}}renderHistory();}
       updateDataStats();toast(`Import: ${imported} Einträge ✓`);
-    }catch(err){toast('Fehler beim Import!');}
+    }catch{toast('Fehler beim Import!');}
   };
   reader.readAsText(file);input.value='';
 }
-
 function resetData(){
   if(!confirm('Wirklich alle lokalen Daten zurücksetzen?'))return;
   customers=[];library=[];history=[];customEmailTpl={};
   renderCustomerList();renderLibraryList();renderHistory();updateDataStats();
   toast('Zurückgesetzt');
 }
-
 function updateDataStats(){
-  $('data_stats').innerHTML=`👥 Kunden: <strong>${customers.length}</strong><br>📦 Leistungen: <strong>${library.length}</strong><br>🕓 Dokumente: <strong>${history.length}</strong>`;
+  $('data_stats').innerHTML=`Kunden: <strong>${customers.length}</strong><br>Leistungen: <strong>${library.length}</strong><br>Dokumente: <strong>${history.length}</strong>`;
 }
 
 // ── PDF ───────────────────────────────────────────────────
 async function printPDF(){
-  const isRe=val('f_typ')==='rechnung';
+  const isRe=typ==='rechnung';
   const nr=val('f_nr')||'–';
   const firma=val('f_firma')||val('f_ansprechpartner')||'';
   const filename=firma?`${nr} – ${firma}`:nr;
 
-  // Inline-CSS aus dem Stylesheet extrahieren
+  // Notes: wenn leer, verstecken; wenn gefüllt, als info-box rendern
+  const notes=val('f_hinweise').trim();
+  const l=T[lang];
+
+  // Klone die Seiten und bereite sie für den PDF-Export vor
+  const p1clone=$('page1').cloneNode(true);
+  const p2clone=$('page2').cloneNode(true);
+
+  // Alle .no-print Elemente entfernen
+  p1clone.querySelectorAll('.no-print').forEach(el=>el.remove());
+  p2clone.querySelectorAll('.no-print').forEach(el=>el.remove());
+
+  // ie-inputs durch ihre Werte ersetzen (Text-Nodes)
+  function replaceInputs(container){
+    // .ie inputs → span mit Wert
+    container.querySelectorAll('input.ie,input.ie-date').forEach(inp=>{
+      const span=document.createElement('span');
+      span.style.cssText=inp.style.cssText;
+      span.className=inp.className;
+      const raw=inp.value;
+      // Datums-Inputs formatieren
+      if(inp.type==='date'){span.textContent=fmtDate(raw);}
+      else{span.textContent=raw||'';}
+      inp.replaceWith(span);
+    });
+    // .ie-block inputs → div mit Wert
+    container.querySelectorAll('input.ie-block').forEach(inp=>{
+      const div=document.createElement('div');
+      div.textContent=inp.value||'';
+      div.style.cssText=inp.style.cssText;
+      inp.replaceWith(div);
+    });
+    // ie-select → span
+    container.querySelectorAll('select.ie-select').forEach(sel=>{
+      const span=document.createElement('span');
+      span.textContent=sel.options[sel.selectedIndex]?.text||'';
+      sel.replaceWith(span);
+    });
+    // textareas → div mit text
+    container.querySelectorAll('textarea.ie-block,textarea.pos-details-input').forEach(ta=>{
+      if(!ta.value.trim()){ta.remove();return;}
+      const div=document.createElement('div');
+      div.style.cssText=ta.style.cssText;
+      div.style.fontSize='11px';div.style.color='#666';div.style.lineHeight='1.6';
+      ta.value.trim().split('\n').filter(x=>x.trim()).forEach(line=>{
+        const d=document.createElement('div');
+        d.style.paddingLeft='10px';d.style.position='relative';
+        d.innerHTML=`<span style="position:absolute;left:0;">–</span>${line.trim()}`;
+        div.appendChild(d);
+      });
+      ta.replaceWith(div);
+    });
+    // Notes textarea
+    container.querySelectorAll('#f_hinweise').forEach(ta=>{
+      if(!ta.value.trim()){ta.remove();return;}
+      const box=document.createElement('div');
+      box.className='info-box';
+      box.innerHTML=`<strong>${l.notes}</strong><br>${ta.value.trim()}`;
+      ta.replaceWith(box);
+    });
+    // d_notes_rendered: zeigen falls Inhalt
+    const dnr=container.querySelector('#d_notes_rendered');
+    if(dnr)dnr.style.display=notes?'block':'none';
+  }
+
+  replaceInputs(p1clone);
+  if(!isRe)replaceInputs(p2clone);
+
+  // CSS extrahieren
   let css='';
   try{css=Array.from(document.styleSheets).reduce((a,ss)=>{try{return a+Array.from(ss.cssRules).map(r=>r.cssText).join('\n');}catch{return a;}},'')}catch{}
-
-  // Seiteninhalte (ohne die äußere .page-Hülle – Puppeteer baut seinen eigenen Container)
-  const p1=$('page1').innerHTML;
-  const p2=!isRe?$('page2').innerHTML:'';
 
   toast('PDF wird erstellt …');
   try{
     const resp=await fetch('/api/pdf',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({page1:p1,page2:p2,css,filename})
+      body:JSON.stringify({
+        page1:p1clone.innerHTML,
+        page2:isRe?'':p2clone.innerHTML,
+        css,filename
+      })
     });
     if(!resp.ok){const e=await resp.json();throw new Error(e.error||resp.statusText);}
     const blob=await resp.blob();
     const url=URL.createObjectURL(blob);
     const a=document.createElement('a');
-    a.href=url;
-    a.download=filename+'.pdf';
-    a.click();
+    a.href=url;a.download=filename+'.pdf';a.click();
     setTimeout(()=>URL.revokeObjectURL(url),10000);
     toast('PDF heruntergeladen ✓');
   }catch(e){
@@ -943,16 +1479,6 @@ async function printPDF(){
 async function init(){
   const user=await getUser();
   if(!user){window.location.href='index.html';return;}
-
-  // Logout-Button in Nav einfügen
-  const nav=document.getElementById('nav');
-  const logoutBtn=document.createElement('button');
-  logoutBtn.className='nav-btn';
-  logoutBtn.title='Abmelden';
-  logoutBtn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
-  logoutBtn.style.marginTop='auto';
-  logoutBtn.onclick=signOut;
-  nav.appendChild(logoutBtn);
 
   try{
     [customers,library,history,customEmailTpl]=await Promise.all([
@@ -967,7 +1493,6 @@ async function init(){
   $('f_datum').value=today.getFullYear()+'-'+pad(today.getMonth()+1)+'-'+pad(today.getDate());
   const inM=new Date(today);inM.setMonth(inM.getMonth()+1);
   $('f_gueltig').value=inM.getFullYear()+'-'+pad(inM.getMonth()+1)+'-'+pad(inM.getDate());
-  // Nächste Angebotsnummer automatisch setzen
   $('f_nr').value=nextDocNr('angebot');
 
   renderCustomerList();
@@ -976,6 +1501,7 @@ async function init(){
   updateDataStats();
   addPos();
   update();
+  lucide.createIcons();
 }
 
 init();
