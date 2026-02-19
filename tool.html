@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VISO Media – Tool</title>
+<title>Angebots- & Rechnungstool</title>
 <style>
 :root{--accent:#4a4a4a;--accent-light:#f5f5f5;--blue:#2563eb;--green:#16a34a;--red:#dc2626;--sidebar:#1e1e1e;--sidebar2:#2a2a2a;--input-bg:#333;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -328,7 +328,7 @@ tbody td:nth-child(n+3){text-align:right;white-space:nowrap;}
     <!-- AGB-Hinweis -->
     <div class="info-box" id="agb_hint" style="display:none;"></div>
     <div class="doc-footer">
-      <div><strong id="t_contact">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="117570677875516778627e3f7c74757870">[email&#160;protected]</a></div>
+      <div><strong id="t_contact">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="385c594e515c784e514b5716555d5c5159">[email&#160;protected]</a></div>
       <div><strong id="t_tax_f">Steuer</strong><span id="t_taxnr_label">Steuernummer:</span> 02087201058<br><span id="t_vatid_label">USt-IdNr.:</span> DE354878347</div>
       <div><strong id="t_bank">Bankverbindung</strong><span id="t_accholder_label">Kontoinhaber:</span> David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
     </div>
@@ -353,15 +353,14 @@ tbody td:nth-child(n+3){text-align:right;white-space:nowrap;}
       <div class="sig-field"><div class="sig-line"></div><span id="t_sig_date">Ort, Datum</span></div>
       <div class="sig-field"><div class="sig-line"></div><span id="t_sig_sign">Unterschrift Auftraggeber / Stempel</span></div>
     </div>
-    <div style="margin-top:10mm;font-size:10px;color:#999;text-align:center;" id="t_return">Bitte unterschriebene Seite per E-Mail zurücksenden an: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="ed898c9b8489ad9b849e82c3808889848c">[email&#160;protected]</a></div>
+    <div style="margin-top:10mm;font-size:10px;color:#999;text-align:center;" id="t_return">Bitte unterschriebene Seite per E-Mail zurücksenden an: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="781c190e111c380e110b1756151d1c1119">[email&#160;protected]</a></div>
     <div class="doc-footer" style="margin-top:8mm;">
-      <div><strong id="t_contact2">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="92f6f3e4fbf6d2e4fbe1fdbcfff7f6fbf3">[email&#160;protected]</a></div>
+      <div><strong id="t_contact2">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b7d3d6c1ded3f7c1dec4d899dad2d3ded6">[email&#160;protected]</a></div>
       <div><strong id="t_tax2">Steuer</strong><span id="t_taxnr_label2">Steuernummer:</span> 02087201058<br><span id="t_vatid_label2">USt-IdNr.:</span> DE354878347</div>
       <div><strong id="t_bank2">Bankverbindung</strong><span id="t_accholder_label2">Kontoinhaber:</span> David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
     </div>
   </div>
 </div>
-
 
 <!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -376,6 +375,7 @@ let library=[];
 let history=[];
 let customEmailTpl={};
 
+
 const UNITS={
   pauschal:{de:'pauschal',en:'flat rate'},
   stunde:{de:'Std.',en:'hr'},
@@ -386,6 +386,7 @@ const UNITS={
 };
 function unitLabel(key,l){return(UNITS[key]||{de:key,en:key})[l]||key;}
 
+// Status config
 const STATUS_ANG=[
   {key:'sent',   label_de:'Abgeschickt', label_en:'Sent',     cls:'active-sent'},
   {key:'accepted',label_de:'Angenommen', label_en:'Accepted', cls:'active-accepted'},
@@ -493,11 +494,6 @@ function showPanel(p,btn){
   document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));
   $('panel-'+p).classList.add('active');
   if(btn)btn.classList.add('active');
-function showPanel(p,btn){
-  document.querySelectorAll('.sidebar-panel').forEach(e=>e.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));
-  $('panel-'+p).classList.add('active');
-  if(btn)btn.classList.add('active');
   if(p==='email')refreshEmailPreview();
   if(p==='data')updateDataStats();
 }
@@ -510,69 +506,6 @@ function unitOptions(selected='pauschal'){
 }
 
 // ── CUSTOMERS ────────────────────────────────────────────
-function renderCustomerList(){
-  const sel=$('f_kunde_select');
-  sel.innerHTML='<option value="">— Kunde wählen / Select client —</option>';
-  const el=$('customer-list');
-  if(!customers.length){el.innerHTML='<p style="color:#666;font-size:11px;margin-top:8px;">Noch keine Kunden.</p>';return;}
-  el.innerHTML=customers.map((c,i)=>`
-    <div class="card">
-      <button class="del-btn" onclick="deleteCustomer(${i})">✕</button>
-      <div class="card-title">${c.firma}</div>
-      <div class="card-sub">${[c.ansp,c.str,c.ort,c.land].filter(Boolean).join(' · ')}</div>
-      ${c.email?`<div class="card-sub">${c.email}</div>`:''}
-      <div class="card-actions"><button class="btn btn-secondary btn-sm" onclick="useCustomer(${i})">Übernehmen</button></div>
-    </div>`).join('');
-  customers.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.firma;sel.appendChild(o);});
-}
-function saveCustomer(){
-  const firma=$('nc_firma').value.trim();if(!firma){toast('Name fehlt!');return;}
-  customers.push({firma,ansp:$('nc_ansp').value.trim(),str:$('nc_str').value.trim(),ort:$('nc_ort').value.trim(),land:$('nc_land').value.trim(),email:$('nc_email').value.trim()});
-  
-  ['nc_firma','nc_ansp','nc_str','nc_ort','nc_land','nc_email'].forEach(id=>$(id).value='');
-  renderCustomerList();toast('Kunde gespeichert ✓');
-}
-function deleteCustomer(i){customers.splice(i,1);renderCustomerList();toast('Gelöscht');}
-function useCustomer(i){
-  const c=customers[i];
-  $('f_firma').value=c.firma||'';$('f_ansprechpartner').value=c.ansp||'';
-  $('f_strasse').value=c.str||'';$('f_ort').value=c.ort||'';$('f_land').value=c.land||'';
-  update();showPanel('doc',document.querySelectorAll('.nav-btn')[0]);
-  document.querySelectorAll('.nav-btn')[0].classList.add('active');
-  toast('Kunde übernommen ✓');
-}
-function loadCustomer(){const i=$('f_kunde_select').value;if(i!=='')useCustomer(parseInt(i));}
-
-// ── LIBRARY ──────────────────────────────────────────────
-function renderLibraryList(){
-  const sel=$('f_lib_select');
-  sel.innerHTML='<option value="">+ Aus Bibliothek / From library</option>';
-  const el=$('lib-list');
-  if(!library.length){el.innerHTML='<p style="color:#666;font-size:11px;margin-top:8px;">Noch keine Leistungen.</p>';return;}
-  el.innerHTML=library.map((l,i)=>`
-    <div class="card">
-      <button class="del-btn" onclick="deleteLibItem(${i})">✕</button>
-      <div class="card-title">${l.desc}</div>
-      <div class="card-sub">${l.menge} ${UNITS[l.einheit]?UNITS[l.einheit].de:l.einheit} · ${l.preis?fmt(parseFloat(l.preis)):'-'}</div>
-    </div>`).join('');
-  library.forEach((l,i)=>{const o=document.createElement('option');o.value=i;o.textContent=l.desc;sel.appendChild(o);});
-}
-function saveLibItem(){
-  const desc=$('nl_desc').value.trim();if(!desc){toast('Bezeichnung fehlt!');return;}
-  library.push({desc,details:$('nl_details').value.trim(),menge:$('nl_menge').value||'1',einheit:$('nl_einheit').value||'pauschal',preis:$('nl_preis').value||''});
-  
-  ['nl_desc','nl_details','nl_preis'].forEach(id=>$(id).value='');$('nl_menge').value='1';
-  renderLibraryList();toast('Leistung gespeichert ✓');
-}
-function deleteLibItem(i){library.splice(i,1);renderLibraryList();toast('Gelöscht');}
-function addFromLib(){
-  const i=$('f_lib_select').value;if(i==='')return;
-  const l=library[parseInt(i)];
-  positionen.push({id:Date.now(),desc:l.desc,details:l.details||'',menge:l.menge,einheit:l.einheit,preis:l.preis});
-  renderSidebarPos();update();$('f_lib_select').value='';toast('Hinzugefügt ✓');
-}
-
-// ── POSITIONS ────────────────────────────────────────────
 function addPos(){positionen.push({id:Date.now(),desc:'',details:'',menge:'1',einheit:'pauschal',preis:''});renderSidebarPos();update();}
 function removePos(id){positionen=positionen.filter(p=>p.id!==id);renderSidebarPos();update();}
 function renderSidebarPos(){
@@ -598,73 +531,6 @@ function convertDoc(){
 }
 
 // ── HISTORY & STATUS ─────────────────────────────────────
-function saveDoc(){
-  const doc={
-    typ:val('f_typ'),nr:val('f_nr'),datum:val('f_datum'),gueltig:val('f_gueltig'),
-    von:val('f_von'),bis:val('f_bis'),betreff:val('f_betreff'),zahlung:val('f_zahlung'),
-    hinweise:val('f_hinweise'),firma:val('f_firma'),ansp:val('f_ansprechpartner'),
-    str:val('f_strasse'),ort:val('f_ort'),land:val('f_land'),uid:val('f_uid'),
-    lang,tax,positionen:[...positionen],status:{},savedAt:new Date().toISOString()
-  };
-  const idx=history.findIndex(h=>h.nr===doc.nr);
-  if(idx>-1){doc.status=history[idx].status||{};history[idx]=doc;}
-  else history.unshift(doc);
-  if(history.length>50)history=history.slice(0,50);
-  renderHistory();toast('Gespeichert ✓');
-}
-
-function toggleStatus(i,key,e){
-  e.stopPropagation();
-  if(!history[i].status)history[i].status={};
-  history[i].status[key]=!history[i].status[key];
-  renderHistory();
-}
-
-function loadDoc(i){
-  const d=history[i];
-  $('f_typ').value=d.typ||'angebot';$('f_nr').value=d.nr||'';$('f_datum').value=d.datum||'';
-  $('f_gueltig').value=d.gueltig||'';$('f_von').value=d.von||'';$('f_bis').value=d.bis||'';
-  $('f_betreff').value=d.betreff||'';$('f_zahlung').value=d.zahlung||'voll';
-  $('f_hinweise').value=d.hinweise||'';$('f_firma').value=d.firma||'';
-  $('f_ansprechpartner').value=d.ansp||'';$('f_strasse').value=d.str||'';
-  $('f_ort').value=d.ort||'';$('f_land').value=d.land||'';$('f_uid').value=d.uid||'';
-  positionen=d.positionen||[];
-  setLang(d.lang||'de');setTax(d.tax||'de');
-  renderSidebarPos();update();
-  showPanel('doc',document.querySelectorAll('.nav-btn')[0]);
-  document.querySelectorAll('.nav-btn')[0].classList.add('active');
-  toast('Geladen ✓');
-}
-
-function deleteDoc(i){history.splice(i,1);renderHistory();toast('Gelöscht');}
-
-function renderHistory(){
-  const el=$('history-list');
-  if(!history.length){el.innerHTML='<p style="color:#666;font-size:11px;">Keine Dokumente.</p>';return;}
-  el.innerHTML=history.map((h,i)=>{
-    const isRe=h.typ==='rechnung';
-    const chips=(isRe?STATUS_RE:STATUS_ANG).map(s=>{
-      const active=h.status&&h.status[s.key];
-      const lbl=lang==='en'?s.label_en:s.label_de;
-      return`<button class="status-chip${active?' '+s.cls:''}" onclick="toggleStatus(${i},'${s.key}',event)">${active?'✓ ':''} ${lbl}</button>`;
-    }).join('');
-    return`<div class="hist-item">
-      <div onclick="loadDoc(${i})" style="cursor:pointer;">
-        <span class="hist-badge ${isRe?'badge-re':'badge-ang'}">${isRe?'RECHNUNG':'ANGEBOT'}</span>
-        ${h.lang==='en'?'<span class="hist-badge" style="background:#1e3a5f;color:#93c5fd;margin-left:4px;">EN</span>':''}
-        <div class="hist-nr">${h.nr||'–'}</div>
-        <div class="hist-sub">${h.firma||'–'} · ${h.betreff||'–'}</div>
-      </div>
-      <div class="status-row">${chips}</div>
-      <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:10px;color:#555;">${new Date(h.savedAt).toLocaleDateString('de-DE')}</span>
-        <button class="btn-red" onclick="deleteDoc(${i})">Löschen</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ── EMAIL ────────────────────────────────────────────────
 function getDocVals(){
   const netto=positionen.reduce((s,p)=>s+(parseFloat(p.menge)||0)*(parseFloat(p.preis)||0),0);
   const brutto=tax==='de'?netto*1.19:netto;
@@ -681,11 +547,7 @@ function loadEmailTemplate(){
   if(c&&c.email)$('email_to').value=c.email;
 }
 function refreshEmailPreview(){loadEmailTemplate();}
-function saveEmailTemplate(){
-  const key=$('email_template').value;
-  customEmailTpl[key]={subject:val('email_subject'),body:val('email_body')};
-  toast('Vorlage gespeichert ✓');
-}
+function refreshEmailPreview(){loadEmailTemplate();}
 function openGmail(){
   const to=encodeURIComponent(val('email_to'));
   const su=encodeURIComponent(val('email_subject'));
@@ -698,41 +560,6 @@ function copyEmail(){
 }
 
 // ── DATA ─────────────────────────────────────────────────
-function exportData(){
-  const data={customers,library,history,customEmailTpl,exportedAt:new Date().toISOString(),version:3};
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;
-  a.download=`viso-media-backup-${new Date().toISOString().slice(0,10)}.json`;
-  a.click();URL.revokeObjectURL(url);toast('Export erfolgreich ✓');
-}
-function importData(input){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    try{
-      const data=JSON.parse(e.target.result);
-      if(data.customers){data.customers.forEach(c=>{if(!customers.find(x=>x.firma===c.firma))customers.push(c);});}
-      if(data.library){data.library.forEach(l=>{if(!library.find(x=>x.desc===l.desc))library.push(l);});}
-      if(data.history){data.history.forEach(h=>{if(!history.find(x=>x.nr===h.nr))history.unshift(h);});if(history.length>50)history=history.slice(0,50);}
-      if(data.customEmailTpl){Object.assign(customEmailTpl,data.customEmailTpl);}
-      renderCustomerList();renderLibraryList();renderHistory();updateDataStats();
-      toast(`Import erfolgreich ✓`);
-    }catch{toast('Fehler beim Import!');}
-  };
-  reader.readAsText(file);input.value='';
-}
-function resetData(){
-  if(!confirm('Wirklich alle Daten löschen?'))return;
-  customers=[];library=[];history=[];customEmailTpl={};
-  ['vm_customers','vm_library','vm_history','vm_email_tpl'].forEach(k=>localStorage.removeItem(k));
-  renderCustomerList();renderLibraryList();renderHistory();updateDataStats();toast('Alle Daten gelöscht');
-}
-function updateDataStats(){
-  $('data_stats').innerHTML=`👥 Kunden: <strong>${customers.length}</strong><br>📦 Leistungen: <strong>${library.length}</strong><br>🕓 Dokumente: <strong>${history.length}</strong>`;
-}
-
-// ── MAIN UPDATE ──────────────────────────────────────────
 function update(){
   const typ=val('f_typ'),isRe=typ==='rechnung',l=T[lang],nr=val('f_nr')||'–';
 
@@ -836,21 +663,6 @@ function update(){
   $('wrap_zeitraum').style.display=isRe?'block':'none';
 }
 
-
-// ── SUPABASE: KUNDEN ──────────────────────────────────────
-async function saveCustomer(){
-  const firma=$('nc_firma').value.trim();
-  if(!firma){toast('Name fehlt!');return;}
-  const c={firma,ansp:$('nc_ansp').value.trim(),str:$('nc_str').value.trim(),ort:$('nc_ort').value.trim(),land:$('nc_land').value.trim(),email:$('nc_email').value.trim()};
-  try{
-    const saved=await DB.saveCustomer(c);
-    customers.unshift(saved);
-    ['nc_firma','nc_ansp','nc_str','nc_ort','nc_land','nc_email'].forEach(id=>$(id).value='');
-    renderCustomerList();toast('Kunde gespeichert ✓');
-  }catch(e){toast('Fehler: '+e.message);}
-}
-
-async function deleteCustomer(id){
   try{await DB.deleteCustomer(id);customers=customers.filter(c=>c.id!==id);renderCustomerList();toast('Gelöscht');}
   catch(e){toast('Fehler: '+e.message);}
 }
@@ -860,7 +672,7 @@ function useCustomer(i){
   $('f_firma').value=c.firma||'';$('f_ansprechpartner').value=c.ansp||'';
   $('f_strasse').value=c.str||'';$('f_ort').value=c.ort||'';$('f_land').value=c.land||'';
   update();showPanel('doc',document.querySelectorAll('.nav-btn')[0]);
-  document.querySelectorAll('.nav-btn')[0].classList.add('active');toast('Kunde übernommen ✓');
+  toast('Kunde übernommen ✓');
 }
 function loadCustomer(){const i=$('f_kunde_select').value;if(i!=='')useCustomer(parseInt(i));}
 
@@ -923,7 +735,7 @@ async function saveDoc(){
     von:val('f_von'),bis:val('f_bis'),betreff:val('f_betreff'),zahlung:val('f_zahlung'),
     hinweise:val('f_hinweise'),firma:val('f_firma'),ansp:val('f_ansprechpartner'),
     str:val('f_strasse'),ort:val('f_ort'),land:val('f_land'),uid:val('f_uid'),
-    lang,tax,positionen:positionen
+    lang,tax,positionen
   };
   try{
     const saved=await DB.saveDocument(doc);
@@ -939,7 +751,7 @@ async function toggleStatus(id,key,e){
   if(!doc.status)doc.status={};
   doc.status[key]=!doc.status[key];
   try{await DB.updateDocStatus(id,doc.status);renderHistory();}
-  catch(e){toast('Fehler: '+e.message);}
+  catch(err){toast('Fehler: '+err.message);}
 }
 
 async function deleteDoc(id){
@@ -959,7 +771,7 @@ function loadDoc(i){
   setLang(d.lang||'de');setTax(d.tax||'de');
   renderSidebarPos();update();
   showPanel('doc',document.querySelectorAll('.nav-btn')[0]);
-  document.querySelectorAll('.nav-btn')[0].classList.add('active');toast('Geladen ✓');
+  toast('Geladen ✓');
 }
 
 function renderHistory(){
@@ -1000,10 +812,10 @@ async function saveEmailTemplate(){
 
 // ── DATEN: EXPORT / IMPORT / RESET ───────────────────────
 function exportData(){
-  const blob=new Blob([JSON.stringify({customers,library,history,customEmailTpl,exportedAt:new Date().toISOString(),version:4},null,2)],{type:'application/json'});
+  const blob=new Blob([JSON.stringify({customers,library,history,customEmailTpl,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download=`viso-media-backup-${new Date().toISOString().slice(0,10)}.json`;
-  a.click();toast('Export erfolgreich ✓');
+  a.download=`viso-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();toast('Export ✓');
 }
 
 async function importData(input){
@@ -1013,132 +825,84 @@ async function importData(input){
     try{
       const data=JSON.parse(e.target.result);
       let imported=0;
-      if(data.customers){
-        for(const c of data.customers){
-          if(!customers.find(x=>x.firma===c.firma)){
-            try{const s=await DB.saveCustomer(c);customers.unshift(s);imported++;}catch{}
-          }
-        }
-        renderCustomerList();
-      }
-      if(data.library){
-        for(const l of data.library){
-          if(!library.find(x=>x.desc===l.desc)){
-            try{const s=await DB.saveLibItem(l);library.unshift(s);imported++;}catch{}
-          }
-        }
-        renderLibraryList();
-      }
-      if(data.history){
-        for(const h of data.history){
-          if(!history.find(x=>x.nr===h.nr)){
-            try{const s=await DB.saveDocument(h);history.unshift(s);imported++;}catch{}
-          }
-        }
-        renderHistory();
-      }
-      updateDataStats();
-      toast(`Import: ${imported} Einträge ✓`);
+      if(data.customers){for(const c of data.customers){if(!customers.find(x=>x.firma===c.firma)){try{const s=await DB.saveCustomer(c);customers.unshift(s);imported++;}catch{}}}renderCustomerList();}
+      if(data.library){for(const l of data.library){if(!library.find(x=>x.desc===l.desc)){try{const s=await DB.saveLibItem(l);library.unshift(s);imported++;}catch{}}}renderLibraryList();}
+      if(data.history){for(const h of data.history){if(!history.find(x=>x.nr===h.nr)){try{const s=await DB.saveDocument(h);history.unshift(s);imported++;}catch{}}}renderHistory();}
+      updateDataStats();toast(`Import: ${imported} Einträge ✓`);
     }catch(err){toast('Fehler beim Import!');}
   };
   reader.readAsText(file);input.value='';
 }
 
-async function resetData(){
-  if(!confirm('Wirklich alle Daten löschen? Das löscht auch die Datenbank!'))return;
-  // Lokaler Reset – DB-Einträge müssten manuell im Supabase Dashboard gelöscht werden
+function resetData(){
+  if(!confirm('Wirklich alle lokalen Daten zurücksetzen?'))return;
   customers=[];library=[];history=[];customEmailTpl={};
   renderCustomerList();renderLibraryList();renderHistory();updateDataStats();
-  toast('Lokale Daten zurückgesetzt');
+  toast('Zurückgesetzt');
 }
 
 function updateDataStats(){
   $('data_stats').innerHTML=`👥 Kunden: <strong>${customers.length}</strong><br>📦 Leistungen: <strong>${library.length}</strong><br>🕓 Dokumente: <strong>${history.length}</strong>`;
 }
 
-// ── PDF via Vercel API ─────────────────────────────────────
-async function printPDF(){
-  const btn=document.querySelector('.btn-print');
-  btn.textContent='⏳ PDF wird erstellt…';
-  btn.disabled=true;
-
-  try{
-    // Dokumentinhalt aus dem aktuellen Vorschau-DOM extrahieren
-    const p1=document.getElementById('page1');
-    const p2=document.getElementById('page2');
-    const isRe=val('f_typ')==='rechnung';
-
-    // Alle relevanten CSS-Regeln sammeln
-    let css='';
-    try{css=Array.from(document.styleSheets).reduce((a,ss)=>{try{return a+Array.from(ss.cssRules).map(r=>r.cssText).join('\n');}catch{return a;}},'')}catch{}
-
-    const payload={
-      page1: p1 ? p1.innerHTML : '',
-      page2: (!isRe && p2) ? p2.innerHTML : '',
-      css,
-      filename: `${val('f_nr')||'Dokument'}${val('f_firma')?' – '+val('f_firma'):''}`,
-    };
-
-    const res=await fetch('/api/pdf',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    });
-
-    if(!res.ok) throw new Error('API-Fehler: '+res.status);
-
-    // PDF als Blob empfangen und herunterladen
-    const blob=await res.blob();
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;
-    a.download=payload.filename+'.pdf';
-    a.click();
-    URL.revokeObjectURL(url);
-    toast('PDF erstellt ✓');
-
-  }catch(err){
-    console.error(err);
-    // Fallback: Browser-Druck
-    toast('API nicht verfügbar – Browser-Druck wird verwendet');
-    window.print();
-  }finally{
-    btn.textContent='🖨️ Als PDF drucken / Print PDF';
-    btn.disabled=false;
-  }
+// ── PDF ───────────────────────────────────────────────────
+function printPDF(){
+  const isRe=val('f_typ')==='rechnung';
+  const l=T[lang];
+  const nr=val('f_nr')||'–';
+  const netto=positionen.reduce((s,p)=>s+(parseFloat(p.menge)||0)*(parseFloat(p.preis)||0),0);
+  const mwst=tax==='de'?netto*.19:0;
+  const brutto=netto+mwst;
+  const p1=$('page1').innerHTML;
+  const p2=!isRe?$('page2').innerHTML:'';
+  const firma=val('f_firma')||val('f_ansprechpartner')||'';
+  const title=firma?`${nr} – ${firma}`:nr;
+  let css='';
+  try{css=Array.from(document.styleSheets).reduce((a,ss)=>{try{return a+Array.from(ss.cssRules).map(r=>r.cssText).join('\n');}catch{return a;}},'')}catch{}
+  const win=window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head>
+<meta charset="UTF-8"><title>${title}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#1a1a1a;}
+:root{--accent:#4a4a4a;--accent-light:#f5f5f5;}
+${css}
+.print-page{padding:18mm 20mm 20mm 25mm;page-break-after:always;}
+.print-page:last-child{page-break-after:auto;}
+@page{size:A4;margin:0;}
+@media print{body{background:#fff;}.print-page{padding:18mm 20mm 20mm 25mm;}thead tr{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.totals tr.total-row{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.info-box{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+</style></head><body>
+<div class="print-page">${p1}</div>
+${p2?`<div class="print-page">${p2}</div>`:''}
+<script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}<\/script>
+</body></html>`);
+  win.document.close();
 }
 
 // ── INIT ──────────────────────────────────────────────────
 async function init(){
-  // Auth-Check: falls nicht eingeloggt → Login-Seite
   const user=await getUser();
-  if(!user){
-    window.location.href='index.html';
-    return;
-  }
+  if(!user){window.location.href='index.html';return;}
 
-  // Benutzername in Nav anzeigen
-  const navEl=document.getElementById('nav');
-  const userBtn=document.createElement('button');
-  userBtn.className='nav-btn';userBtn.title='Abmelden ('+user.email+')';
-  userBtn.textContent='👤';userBtn.style.marginTop='auto';
-  userBtn.onclick=signOut;
-  navEl.appendChild(userBtn);
+  // Logout-Button in Nav einfügen
+  const nav=document.getElementById('nav');
+  const logoutBtn=document.createElement('button');
+  logoutBtn.className='nav-btn';
+  logoutBtn.title='Abmelden';
+  logoutBtn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>';
+  logoutBtn.style.marginTop='auto';
+  logoutBtn.onclick=signOut;
+  nav.appendChild(logoutBtn);
 
-  // Alle Daten parallel laden
   try{
-    [customers, library, history, customEmailTpl] = await Promise.all([
-      DB.getCustomers(),
-      DB.getLibrary(),
-      DB.getDocuments(),
-      DB.getEmailTemplates(),
+    [customers,library,history,customEmailTpl]=await Promise.all([
+      DB.getCustomers(),DB.getLibrary(),DB.getDocuments(),DB.getEmailTemplates()
     ]);
   }catch(err){
     console.error('Ladefehler:',err);
     toast('Fehler beim Laden der Daten');
   }
 
-  // UI initialisieren
   const today=new Date();
   $('f_datum').value=today.getFullYear()+'-'+pad(today.getMonth()+1)+'-'+pad(today.getDate());
   const inM=new Date(today);inM.setMonth(inM.getMonth()+1);
