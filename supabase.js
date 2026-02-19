@@ -1,4 +1,4 @@
-const SUPABASE_URL  = 'https://yriexfiocbktdneranhmm.supabase.co';
+const SUPABASE_URL  = 'https://yriexfiocbktdneranhm.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlyaWV4ZmlvY2JrdGRuZXJhbmhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1MTQyNzIsImV4cCI6MjA4NzA5MDI3Mn0.Xnp_sunDFDWqKk_ES78hM7TXSHgqUXIse4iODZT43JI';
 
 const { createClient } = supabase;
