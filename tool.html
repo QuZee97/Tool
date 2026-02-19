@@ -857,37 +857,40 @@ function updateDataStats(){
 }
 
 // ── PDF ───────────────────────────────────────────────────
-function printPDF(){
+async function printPDF(){
   const isRe=val('f_typ')==='rechnung';
-  const l=T[lang];
   const nr=val('f_nr')||'–';
-  const netto=positionen.reduce((s,p)=>s+(parseFloat(p.menge)||0)*(parseFloat(p.preis)||0),0);
-  const mwst=tax==='de'?netto*.19:0;
-  const brutto=netto+mwst;
-  const p1=$('page1').innerHTML;
-  const p2=!isRe?$('page2').innerHTML:'';
   const firma=val('f_firma')||val('f_ansprechpartner')||'';
-  const title=firma?`${nr} – ${firma}`:nr;
+  const filename=firma?`${nr} – ${firma}`:nr;
+
+  // Inline-CSS aus dem Stylesheet extrahieren
   let css='';
   try{css=Array.from(document.styleSheets).reduce((a,ss)=>{try{return a+Array.from(ss.cssRules).map(r=>r.cssText).join('\n');}catch{return a;}},'')}catch{}
-  const win=window.open('','_blank');
-  win.document.write(`<!DOCTYPE html><html><head>
-<meta charset="UTF-8"><title>${title}</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:13px;color:#1a1a1a;}
-:root{--accent:#4a4a4a;--accent-light:#f5f5f5;}
-${css}
-.print-page{padding:18mm 20mm 20mm 25mm;page-break-after:always;}
-.print-page:last-child{page-break-after:auto;}
-@page{size:A4;margin:0;}
-@media print{body{background:#fff;}.print-page{padding:18mm 20mm 20mm 25mm;}thead tr{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.totals tr.total-row{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.info-box{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
-</style></head><body>
-<div class="print-page">${p1}</div>
-${p2?`<div class="print-page">${p2}</div>`:''}
-<script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}<\/script>
-</body></html>`);
-  win.document.close();
+
+  // Seiteninhalte (ohne die äußere .page-Hülle – Puppeteer baut seinen eigenen Container)
+  const p1=$('page1').innerHTML;
+  const p2=!isRe?$('page2').innerHTML:'';
+
+  toast('PDF wird erstellt …');
+  try{
+    const resp=await fetch('/api/pdf',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({page1:p1,page2:p2,css,filename})
+    });
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error||resp.statusText);}
+    const blob=await resp.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=filename+'.pdf';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),10000);
+    toast('PDF heruntergeladen ✓');
+  }catch(e){
+    console.error('PDF-Fehler:',e);
+    toast('PDF-Fehler: '+e.message);
+  }
 }
 
 // ── INIT ──────────────────────────────────────────────────
