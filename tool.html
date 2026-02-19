@@ -547,7 +547,6 @@ function loadEmailTemplate(){
   if(c&&c.email)$('email_to').value=c.email;
 }
 function refreshEmailPreview(){loadEmailTemplate();}
-function refreshEmailPreview(){loadEmailTemplate();}
 function openGmail(){
   const to=encodeURIComponent(val('email_to'));
   const su=encodeURIComponent(val('email_subject'));
@@ -663,8 +662,20 @@ function update(){
   $('wrap_zeitraum').style.display=isRe?'block':'none';
 }
 
+async function deleteCustomer(id){
   try{await DB.deleteCustomer(id);customers=customers.filter(c=>c.id!==id);renderCustomerList();toast('Gelöscht');}
   catch(e){toast('Fehler: '+e.message);}
+}
+
+async function saveCustomer(){
+  const firma=$('nc_firma').value.trim();if(!firma){toast('Firma fehlt!');return;}
+  const customer={firma,ansp:$('nc_ansp').value.trim(),str:$('nc_str').value.trim(),ort:$('nc_ort').value.trim(),land:$('nc_land').value.trim(),email:$('nc_email').value.trim()};
+  try{
+    const saved=await DB.saveCustomer(customer);
+    customers.unshift(saved);
+    ['nc_firma','nc_ansp','nc_str','nc_ort','nc_land','nc_email'].forEach(id=>$(id).value='');
+    renderCustomerList();toast('Kunde gespeichert ✓');
+  }catch(e){toast('Fehler: '+e.message);}
 }
 
 function useCustomer(i){
