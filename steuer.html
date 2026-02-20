@@ -477,6 +477,44 @@ table.entry-table tbody tr:hover{background:var(--surface2);}
       <button class="btn btn-ghost" style="margin-left:8px;" onclick="window.print()"><i data-lucide="printer"></i> Drucken</button>
     </div>
 
+    <div class="card" style="background:var(--blue-bg,#1a2a3f);border-color:var(--blue);">
+      <div class="card-title" style="color:var(--blue);">ELSTER XML erstellen</div>
+      <div class="card-sub">Generiert eine UStVA-XML-Datei im ELSTER-Format. Diese kannst du direkt in <strong>Mein ELSTER</strong> oder in deinem Steuerberater-Tool importieren.</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:180px;">
+          <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;">Steuernummer (für ELSTER)</label>
+          <input id="elster-steuernr" type="text" placeholder="02 087 20105 8" style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:6px 9px;outline:none;font-family:var(--font);width:100%;">
+        </div>
+        <div style="flex:1;min-width:140px;">
+          <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;">Bundesland</label>
+          <select id="elster-bundesland" style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:6px 9px;outline:none;font-family:var(--font);width:100%;-webkit-appearance:none;">
+            <option value="26">Hessen</option>
+            <option value="11">Berlin</option>
+            <option value="91">Bayern</option>
+            <option value="20">Hamburg</option>
+            <option value="24">Bremen</option>
+            <option value="21">Niedersachsen</option>
+            <option value="28">Nordrhein-Westfalen</option>
+            <option value="30">Rheinland-Pfalz</option>
+            <option value="10">Brandenburg</option>
+            <option value="40">Baden-Württemberg</option>
+            <option value="31">Saarland</option>
+            <option value="22">Sachsen-Anhalt</option>
+            <option value="32">Sachsen</option>
+            <option value="23">Schleswig-Holstein</option>
+            <option value="21">Thüringen</option>
+            <option value="13">Mecklenburg-Vorpommern</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn" style="margin-top:12px;background:var(--blue);color:#fff;border:none;" onclick="exportElsterXML()">
+        <i data-lucide="file-code-2"></i> ELSTER XML herunterladen
+      </button>
+      <p style="font-size:10px;color:var(--text3);margin-top:8px;line-height:1.5;">
+        Das XML enthält die UStVA-Kennzahlen (Zeile 81, 86, 66, 83). Du kannst es in <strong>Mein ELSTER → Formulare → UStVA → Import</strong> hochladen oder deinem Steuerberater weiterschicken.
+      </p>
+    </div>
+
     <div style="display:flex;gap:8px;">
       <button class="btn btn-ghost" onclick="goPage(3)"><i data-lucide="arrow-left"></i> Zurück zur Analyse</button>
     </div>
@@ -805,18 +843,23 @@ async function analyzeUploadedFiles(){
         const text=await q.file.text();
         const csvEntries=parseCSV(text);
         if(!csvEntries.length){q.status='err';q.error='Keine Einträge erkannt';continue;}
-        // In Batches von 25 senden um 504-Timeouts zu vermeiden
-        const CSV_BATCH=25;
+        // In Batches von 15 senden um 504-Timeouts zu vermeiden
+        const CSV_BATCH=15;
         const allResults=[];
         for(let bi=0;bi<csvEntries.length;bi+=CSV_BATCH){
           const batch=csvEntries.slice(bi,bi+CSV_BATCH);
           const pct=Math.round((bi/csvEntries.length)*100);
           $('upload-loading-text').textContent=`KI kategorisiert ${bi+1}–${Math.min(bi+CSV_BATCH,csvEntries.length)} / ${csvEntries.length} Einträge … ${pct}%`;
-          const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({entries:batch,mode:'categorize'})});
-          if(!res.ok){const e=await res.json();throw new Error(e.error||'API-Fehler');}
-          const data=await res.json();
-          allResults.push(...(data.results||[]));
+          const ctrl=new AbortController();
+          const timeout=setTimeout(()=>ctrl.abort(),25000);
+          try{
+            const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({entries:batch,mode:'categorize'}),signal:ctrl.signal});
+            clearTimeout(timeout);
+            if(!res.ok){const e=await res.json();throw new Error(e.error||'API-Fehler');}
+            const data=await res.json();
+            allResults.push(...(data.results||[]));
+          }catch(fe){clearTimeout(timeout);if(fe.name==='AbortError')throw new Error('Timeout – Batch zu groß, bitte kleinere CSV versuchen');throw fe;}
         }
         q.results=allResults;
         q.status='done';
@@ -894,8 +937,8 @@ async function startAIAnalysis(){
   $('btn-to-ustva').style.display='none';
   $('ai-progress-text').textContent=allEntries.length;
 
-  // In Batches von 30 senden
-  const batchSize=30;
+  // In Batches von 15 senden um Timeouts zu vermeiden
+  const batchSize=15;
   aiResults=[];
   for(let i=0;i<allEntries.length;i+=batchSize){
     const batch=allEntries.slice(i,i+batchSize);
@@ -1125,6 +1168,118 @@ function exportSummary(){
     `Hinweis: Unverbindliche Arbeitshilfe – bitte durch Steuerberater prüfen.`
   ];
   navigator.clipboard.writeText(lines.join('\n')).then(()=>toast('In Zwischenablage kopiert ✓'));
+}
+
+// ── ELSTER XML EXPORT ─────────────────────────────────────
+function exportElsterXML(){
+  // Werte aus der letzten buildUStVA()-Berechnung neu ermitteln
+  const cats=window._categories||{};
+  let ein19=0,ein7=0,ein0=0,aus19=0,aus7=0,ausMwst19=0,ausMwst7=0;
+  aiResults.forEach(r=>{
+    const info=r.kategorie_info||cats[r.kategorie]||cats.sonstiges;
+    const netto=r.betrag_netto||0;
+    const mwst=r.mwst_betrag||0;
+    if(info.type==='income'){
+      if(info.vat===0.19)ein19+=netto;
+      else if(info.vat===0.07)ein7+=netto;
+      else ein0+=netto;
+    }else if(info.type==='expense'){
+      const lf=info.limitFactor||1;
+      if(info.vat===0.19){aus19+=netto*lf;ausMwst19+=mwst*lf;}
+      else if(info.vat===0.07){aus7+=netto;ausMwst7+=mwst;}
+    }
+  });
+  const ustAuf=(ein19*0.19)+(ein7*0.07);
+  const vorsteuer=ausMwst19+ausMwst7;
+  const zahllast=ustAuf-vorsteuer;
+
+  // Zeitraum bestimmen
+  const year=selectedYear;
+  const q=selectedQuartal;
+  // ELSTER Anmeldezeitraum: 41=Q1, 42=Q2, 43=Q3, 44=Q4, 45=Jahreserklärung
+  const zeitraumMap={0:'45',1:'41',2:'42',3:'43',4:'44'};
+  const zeitraum=zeitraumMap[q]||'42';
+
+  const steuernr=($('elster-steuernr')?.value||'').replace(/[\s/]/g,'');
+  const bundesland=$('elster-bundesland')?.value||'26';
+
+  // Beträge auf Cent runden (ELSTER erwartet Eurocent als Integer oder Euro mit 2 Nachkomma)
+  const r2=n=>Math.round(n*100)/100;
+  const fmtE=n=>r2(n).toFixed(2);  // z.B. "1234.56"
+
+  // Standard UStVA XML (Elster-Datenschnittstelle, vereinfachtes Format)
+  const now=new Date();
+  const erstellDatum=now.toISOString().slice(0,10);
+  const erstellZeit=now.toTimeString().slice(0,8);
+
+  const xml=`<?xml version="1.0" encoding="UTF-8"?>
+<!-- ELSTER UStVA – erstellt von VISO Media Steuertool ${erstellDatum} -->
+<!-- Zeitraum: ${q===0?year+' (Jahreserklärung)':`Q${q} ${year}`} -->
+<!-- HINWEIS: Bitte vor der Einreichung durch einen Steuerberater prüfen! -->
+<Elster xmlns="http://www.elster.de/elsterxml/schema/v12">
+  <TransferHeader>
+    <Verfahren>ElsterAnmeldung</Verfahren>
+    <DatenArt>UStVA</DatenArt>
+    <Vorgang>send-Auth</Vorgang>
+    <ErstellungsDatum>${erstellDatum.replace(/-/g,'')}</ErstellungsDatum>
+    <ErstellungsZeit>${erstellZeit.replace(/:/g,'')}</ErstellungsZeit>
+    <Datei>
+      <Verschluesselung>PKCS#7v1.5</Verschluesselung>
+      <Kompression>GZIP</Kompression>
+      <TransportSchluessel></TransportSchluessel>
+    </Datei>
+    <VersionClient>VISO-Media-Steuertool-1.0</VersionClient>
+  </TransferHeader>
+  <DatenTeil>
+    <Nutzdatenblock>
+      <NutzdatenHeader>
+        <NutzdatenTicket>1</NutzdatenTicket>
+        <Empfaenger id="F">
+          <Bundesfinanzamtsnummer>${bundesland}</Bundesfinanzamtsnummer>
+        </Empfaenger>
+      </NutzdatenHeader>
+      <Nutzdaten>
+        <Anmeldungssteuern art="UStVA" version="202301">
+          <DatenLieferant>VISO Media – David Stiehler</DatenLieferant>
+          <Erstellungsdatum>${erstellDatum.replace(/-/g,'')}</Erstellungsdatum>
+          <Steuerfall>
+            <Steuernummer>${steuernr||'BITTE_EINTRAGEN'}</Steuernummer>
+          </Steuerfall>
+          <UStVA>
+            <Jahr>${year}</Jahr>
+            <Zeitraum>${zeitraum}</Zeitraum>
+            <!-- ── EINNAHMEN / STEUER AUF UMSÄTZE ── -->
+            <!-- Kz 81: Umsätze 19% -->
+            <Kz81>${fmtE(ein19)}</Kz81>
+            <!-- Kz 86: Umsätze 7% -->
+            <Kz86>${fmtE(ein7)}</Kz86>
+            <!-- Kz 35: Steuerfreie Umsätze §4 -->
+            <Kz35>${fmtE(ein0)}</Kz35>
+            <!-- Kz 36: Umsatzsteuer auf Kz81+86 -->
+            <Kz36>${fmtE(ustAuf)}</Kz36>
+            <!-- ── VORSTEUER ── -->
+            <!-- Kz 66: Abziehbare Vorsteuerbeträge -->
+            <Kz66>${fmtE(vorsteuer)}</Kz66>
+            <!-- ── ERGEBNIS ── -->
+            <!-- Kz 83: Verbleibende Umsatzsteuer-Vorauszahlung / Überschuss -->
+            <Kz83>${fmtE(zahllast)}</Kz83>
+          </UStVA>
+        </Anmeldungssteuern>
+      </Nutzdaten>
+    </Nutzdatenblock>
+  </DatenTeil>
+</Elster>`;
+
+  if(!steuernr){toast('Tipp: Steuernummer eintragen für vollständiges XML');}
+
+  // Download
+  const blob=new Blob([xml],{type:'application/xml'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const fname=`UStVA_${q===0?year:`Q${q}_${year}`}_ELSTER.xml`;
+  a.href=url;a.download=fname;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+  toast(`${fname} heruntergeladen ✓`);
 }
 
 // ── INIT ──────────────────────────────────────────────────
