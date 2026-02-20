@@ -280,10 +280,10 @@ table.entry-table tbody tr:hover{background:var(--surface2);}
 
   <div class="sb-section">Schritte</div>
   <button class="step-btn active" id="step-btn-1" onclick="goPage(1)">
-    <span class="step-num">1</span> Einnahmen
+    <span class="step-num">1</span> Rechnungen
   </button>
   <button class="step-btn" id="step-btn-2" onclick="goPage(2)">
-    <span class="step-num">2</span> Ausgaben
+    <span class="step-num">2</span> Import & Ausgaben
   </button>
   <button class="step-btn" id="step-btn-3" onclick="goPage(3)">
     <span class="step-num">3</span> KI-Analyse
@@ -357,16 +357,19 @@ table.entry-table tbody tr:hover{background:var(--surface2);}
       </div>
     </div>
 
-    <button class="btn btn-primary" onclick="goPage(2)"><i data-lucide="arrow-right"></i> Weiter: Ausgaben</button>
+    <div class="hinweis" style="background:var(--surface2);border-color:var(--border2);"><i data-lucide="upload"></i>
+      <div>CSV-Kontoauszug hochladen? Das geht auf <strong>Schritt 2 → Datei-Upload</strong>. Einnahmen und Ausgaben werden automatisch getrennt.</div>
+    </div>
+    <button class="btn btn-primary" onclick="goPage(2)"><i data-lucide="arrow-right"></i> Weiter: Import & Ausgaben</button>
   </div>
 
   <!-- ── SEITE 2: AUSGABEN ── -->
   <div class="page" id="page-2">
-    <div class="page-title">Ausgaben</div>
-    <div class="page-sub">Trage alle Betriebsausgaben ein. Die KI kategorisiert sie automatisch im nächsten Schritt.</div>
+    <div class="page-title">Import & Ausgaben</div>
+    <div class="page-sub">Lade CSV-Kontoauszüge hoch – Einnahmen und Ausgaben werden automatisch erkannt und getrennt. Oder erfasse Ausgaben manuell.</div>
 
-    <div class="hinweis warn"><i data-lucide="alert-triangle"></i>
-      <div><strong>Tipp:</strong> Lade CSV-Kontoauszüge direkt hoch, fotografiere Belege (JPG/PNG) oder exportiere PDFs – die KI liest alles automatisch aus.</div>
+    <div class="hinweis warn"><i data-lucide="info"></i>
+      <div><strong>CSV-Import:</strong> Einnahmen (positive Beträge) werden automatisch zu Einnahmen, Ausgaben (negative Beträge) zu Ausgaben. Nach dem Import siehst du alles in der KI-Analyse.</div>
     </div>
 
     <!-- Datei-Upload -->
@@ -541,7 +544,7 @@ table.entry-table tbody tr:hover{background:var(--surface2);}
     <div class="page-sub">Alle hochgeladenen Belege, Rechnungen und Kontoauszüge – dauerhaft gespeichert und abrufbar.</div>
 
     <div class="hinweis"><i data-lucide="info"></i>
-      <div>Belege werden in Supabase Storage gesichert. Einmalige Einrichtung nötig: <strong>Supabase Dashboard → Storage → New Bucket → Name: <code style="color:var(--accent);">receipts</code> → Private</strong>. Danach funktioniert der Upload automatisch.</div>
+      <div>Einmalige Einrichtung: <strong>1)</strong> Supabase Dashboard → Storage → New Bucket → <code style="color:var(--accent);">receipts</code> → Private. <strong>2)</strong> Storage → Policies → receipts → "New Policy" → "Full Access" für authenticated users. <strong>3)</strong> SQL: <code style="color:var(--accent);font-size:10px;">create table if not exists receipts(id uuid primary key default gen_random_uuid(),user_id uuid,filename text,storage_path text,signed_url text,size_bytes bigint,mime_type text,datum date,beschreibung text,kategorie text,betrag numeric,created_at timestamptz default now());</code> + RLS policy.</div>
     </div>
 
     <!-- Upload neuer Beleg -->
@@ -817,7 +820,7 @@ function parseCSV(text){
   // Spalten-Mapping: flexible Header-Erkennung
   const findCol=(names)=>{for(const n of names){const i=headers.indexOf(n);if(i>-1)return i;}return -1;};
   const dateCol=findCol(['datum','date','buchungstag','buchungsdatum','valuta','wertstellungsdatum','buchungsdat.']);
-  const descCol=findCol(['verwendungszweck','beschreibung','description','buchungstext','transaktionsbeschreibung','text','empfänger/zahlungspflichtiger','name']);
+  const descCol=findCol(['empfänger/zahlungspflichtiger','empfaenger','auftraggeber','beguenstigter','name','verwendungszweck','beschreibung','description','buchungstext','transaktionsbeschreibung','text']);
   const amtCol=findCol(['betrag','amount','umsatz','betrag eur','betrag (eur)','amount eur']);
 
   const results=[];
@@ -830,7 +833,8 @@ function parseCSV(text){
     // Betrag parsen – DE-Format "1.234,56" oder EN "1234.56", auch negative "-54,99"
     const amtNum=parseCSVAmount(amtRaw);
     if(amtNum===null)continue;
-    results.push({id:'csv'+i,beschreibung:desc,betrag:Math.abs(amtNum),datum:formatCSVDate(datum),quelle:'csv'});
+    // amtNum can be negative (Ausgabe) or positive (Einnahme)
+    results.push({id:'csv'+i, beschreibung:desc, betrag:Math.abs(amtNum), isEinnahme: amtNum > 0, datum:formatCSVDate(datum), quelle:'csv'});
   }
   return results;
 }
@@ -922,6 +926,11 @@ async function analyzeUploadedFiles(){
           const data=await res.json();
           allResults.push(...(data.results||[]));
         }
+        // Vorzeichen aus Original-CSV zurück auf KI-Ergebnisse übertragen
+        allResults.forEach(r=>{
+          const orig=csvEntries.find(e=>e.id===r.id);
+          if(orig) r._isEinnahme = orig.isEinnahme;
+        });
         q.results=allResults;
         q.status='done';
       }else{
@@ -935,31 +944,35 @@ async function analyzeUploadedFiles(){
         q.status='done';
       }
 
-      // Ergebnisse in Ausgaben-Liste einfügen (nur Ausgaben, keine Einnahmen)
-      let added=0;
+      // Ergebnisse nach Typ aufteilen: Einnahmen → manualIncomes, Ausgaben → expenses
+      let addedIn=0, addedOut=0;
       q.results.forEach(r=>{
-        if(r.kategorie_info?.type!=='income'){
+        // Vorzeichen aus CSV-Parsing respektieren falls vorhanden
+        const csvSign = r._isEinnahme;
+        const aiIsIncome = r.kategorie_info?.type==='income';
+        const isIncome = csvSign !== undefined ? csvSign : aiIsIncome;
+        if(isIncome){
+          manualIncomes.push({id:'up'+Date.now()+Math.random(),
+            desc:r.beschreibung||r.id||q.file.name,
+            datum:r.datum||'', brutto:r.betrag_brutto||0,
+            _aiResult:r
+          });
+          addedIn++;
+        } else {
           expenses.push({id:'up'+Date.now()+Math.random(),
             desc:r.beschreibung||r.id||q.file.name,
-            datum:r.datum||'',betrag:r.betrag_brutto||0,
-            _aiResult:r  // für direkten KI-Analyse-Import
+            datum:r.datum||'', betrag:r.betrag_brutto||0,
+            _aiResult:r
           });
-          added++;
+          addedOut++;
         }
       });
-      if(added)toast(`${q.file.name}: ${added} Ausgaben importiert ✓`);
-      else toast(`${q.file.name}: ${q.results.length} Einträge (nur Einnahmen?) – bitte prüfen`);
+      const parts=[];
+      if(addedOut)parts.push(`${addedOut} Ausgaben`);
+      if(addedIn)parts.push(`${addedIn} Einnahmen`);
+      if(parts.length)toast(`${q.file.name}: ${parts.join(', ')} importiert ✓`);
+      else toast(`${q.file.name}: ${q.results.length} Einträge – bitte prüfen`);
 
-      // Datei automatisch in Supabase Storage sichern
-      try{
-        const firstR=q.results[0]||{};
-        await DB.uploadReceipt(q.file,{
-          beschreibung:firstR.beschreibung||q.file.name,
-          datum:firstR.datum||null,
-          kategorie:firstR.kategorie||null,
-          betrag:firstR.betrag_brutto||null,
-        });
-      }catch(upE){console.warn('Beleg-Upload fehlgeschlagen:',upE.message);}
 
     }catch(e){
       q.status='err';q.error=e.message;
@@ -1036,13 +1049,28 @@ async function startAIAnalysis(){
 
 function buildAllEntries(){
   const entries=[];
-  // Einnahmen
+  // Rechnungen aus dem Tool (schon kategorisiert als Einnahmen)
   incomeItems.filter(x=>x.checked).forEach(x=>entries.push({
-    id:x.id,beschreibung:`Rechnung ${x.nr||''} – ${x.firma||''}: ${x.betreff||''}`,
-    betrag:x.brutto,datum:x.datum,quelle:'rechnung'
+    id:x.id,
+    beschreibung:`Rechnung ${x.nr||''} – ${x.firma||''}: ${x.betreff||''}`,
+    betrag:x.brutto,datum:x.datum,quelle:'rechnung',
+    vorKategorie:'einnahmen_19' // Hinweis für KI
   }));
-  manualIncomes.forEach(x=>entries.push({id:x.id,beschreibung:x.desc,betrag:x.brutto,datum:x.datum,quelle:'manuell_einnahme'}));
-  expenses.forEach(x=>entries.push({id:x.id,beschreibung:x.desc,betrag:x.betrag,datum:x.datum,quelle:'ausgabe'}));
+  // Manuelle Einnahmen (inkl. CSV-Import Einnahmen)
+  manualIncomes.forEach(x=>entries.push({
+    id:x.id,
+    beschreibung:x.desc,
+    betrag:x.brutto,datum:x.datum,
+    quelle: x._aiResult ? 'csv_einnahme' : 'manuell_einnahme',
+    vorKategorie:'einnahmen_19'
+  }));
+  // Ausgaben
+  expenses.forEach(x=>entries.push({
+    id:x.id,
+    beschreibung:x.desc,
+    betrag:x.betrag,datum:x.datum,
+    quelle: x._aiResult ? 'csv_ausgabe' : 'ausgabe'
+  }));
   return entries;
 }
 
