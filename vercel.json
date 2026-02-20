@@ -3,5 +3,12 @@
     "api/pdf.js": {
       "maxDuration": 30
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/tool", "destination": "/tool.html" }
+  ],
+  "redirects": [
+    { "source": "/tool.html", "permanent": true, "destination": "/tool" }
+  ]
 }
