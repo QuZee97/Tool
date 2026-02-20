@@ -164,6 +164,8 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
   font-size:10px;padding:3px 8px;border-radius:20px;cursor:pointer;
   border:1px solid var(--border2);color:var(--text3);background:none;
   font-family:var(--font);transition:.15s;user-select:none;
+  display:inline-flex;align-items:center;justify-content:center;
+  line-height:1;
 }
 .chip:hover{border-color:var(--text3);color:var(--text2);}
 .chip.sent{background:#1a2a3f;border-color:var(--blue);color:var(--blue);}
@@ -1071,11 +1073,20 @@ function removePos(id){
 }
 function posUpdate(id,field,v){
   const p=positionen.find(x=>x.id===id);
-  if(p){p[field]=v;update();}
+  if(!p)return;
+  p[field]=v;
+  // Gesamt-Zelle für diese Zeile sofort aktualisieren (ohne vollständiges Re-Render)
+  const m=parsePreis(p.menge)||0,pr=parsePreis(p.preis)||0,sum=m*pr;
+  const row=document.activeElement?.closest('tr');
+  if(row){
+    const gesamtCell=row.cells[row.cells.length-2]; // vorletzte Zelle (letzte ist del-btn)
+    if(gesamtCell)gesamtCell.textContent=sum?fmt(sum):(p.preis&&p.preis.trim()?fmt(0):'–');
+  }
+  update();
 }
 
 function unitOptions(selected='pauschal'){
-  return Object.keys(UNITS).map(k=>`<option value="${k}"${k===selected?' selected':''}>${UNITS[k].de} / ${UNITS[k].en}</option>`).join('');
+  return Object.keys(UNITS).map(k=>`<option value="${k}"${k===selected?' selected':''}>${UNITS[k][lang]||UNITS[k].de}</option>`).join('');
 }
 
 function renderPositionen(){
@@ -1107,7 +1118,7 @@ function renderPositionen(){
           oninput="posUpdate(${p.id},'preis',this.value)"><span style="color:#888;font-size:11px;"> €</span>
       </td>
       <td style="text-align:right;vertical-align:top;padding-top:10px;white-space:nowrap;font-weight:600;">
-        ${sum?fmt(sum):(p.preis?fmt(0):'–')}
+        ${(p.preis&&p.preis.trim())?fmt(sum):'–'}
       </td>
       <td style="vertical-align:top;padding-top:8px;" class="no-print">
         <button class="pos-del" onclick="removePos(${p.id})" title="Löschen">✕</button>
@@ -1167,6 +1178,12 @@ function update(){
 
   // Table headers
   document.querySelectorAll('.th').forEach((th,i)=>th.textContent=l.th[i]);
+
+  // Einheiten-Optionen: nur Texte in selects aktualisieren (kein vollständiges Re-Render, das würde Fokus zerstören)
+  document.querySelectorAll('#d_positionen select.ie-select').forEach(sel=>{
+    const cur=sel.value;
+    sel.innerHTML=Object.keys(UNITS).map(k=>`<option value="${k}"${k===cur?' selected':''}>${UNITS[k][lang]||UNITS[k].de}</option>`).join('');
+  });
 
   // Annex (page 2)
   ['d_nr','d_nr2'].forEach(id=>$(id)&&($(id).textContent=nr));
