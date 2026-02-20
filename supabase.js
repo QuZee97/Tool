@@ -107,17 +107,17 @@ const DB = {
   // erstellt werden (Name: "receipts", Private bucket aktivieren).
   async uploadReceipt(file, meta = {}) {
     const user = await getUser();
-    const ext = file.name.split('.').pop().toLowerCase();
     const ts  = Date.now();
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
-    const path = `${user.id}/${ts}_${safeName}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80);
+    // Pfad: user_id als Präfix mit Doppelstrich-Trenner (kein Unterordner-Problem)
+    const path = `${user.id}__${ts}_${safeName}`;
     // 1) Datei in Storage hochladen
     const { error: upErr } = await db.storage.from('receipts').upload(path, file, {
       cacheControl: '3600',
       upsert: true,
       contentType: file.type || 'application/octet-stream',
     });
-    if (upErr) throw new Error(`Storage-Fehler: ${upErr.message} (Pfad: ${path})`);
+    if (upErr) throw new Error(`Storage-Upload fehlgeschlagen: ${upErr.message}`);
     // 2) Signed URL für späteren Zugriff (1 Jahr gültig)
     const { data: urlData, error: urlErr } = await db.storage
       .from('receipts').createSignedUrl(path, 60 * 60 * 24 * 365);
