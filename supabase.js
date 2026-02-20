@@ -12,7 +12,7 @@ async function signIn(email, password) {
 
 async function signOut() {
   await db.auth.signOut();
-  window.location.href = 'index.html';
+  window.location.href = '/';
 }
 
 async function getUser() {
