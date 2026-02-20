@@ -820,21 +820,27 @@ function parseCSV(text){
   // Spalten-Mapping: flexible Header-Erkennung
   const findCol=(names)=>{for(const n of names){const i=headers.indexOf(n);if(i>-1)return i;}return -1;};
   const dateCol=findCol(['datum','date','buchungstag','buchungsdatum','valuta','wertstellungsdatum','buchungsdat.']);
-  const descCol=findCol(['empfänger/zahlungspflichtiger','empfaenger','auftraggeber','beguenstigter','name','verwendungszweck','beschreibung','description','buchungstext','transaktionsbeschreibung','text']);
+  // Empfänger/Name-Spalte (wer hat das Geld bekommen / von wem kam es)
+  const nameCol=findCol(['empfänger/zahlungspflichtiger','empfaenger/zahlungspflichtiger','empfänger','empfaenger','auftraggeber','beguenstigter','name','kontoinhaber']);
+  // Verwendungszweck-Spalte (Buchungstext / Beschreibung)
+  const zweckCol=findCol(['verwendungszweck','beschreibung','description','buchungstext','transaktionsbeschreibung','text','betreff','zahlungsreferenz']);
   const amtCol=findCol(['betrag','amount','umsatz','betrag eur','betrag (eur)','amount eur']);
 
   const results=[];
   for(let i=1;i<lines.length;i++){
     const parts=splitCSVLine(lines[i],sep);
     const datum=dateCol>-1?(parts[dateCol]||'').trim().replace(/^["']|["']$/g,''):'';
-    const desc=descCol>-1?(parts[descCol]||'').trim().replace(/^["']|["']$/g,''):'';
+    const nameRaw=nameCol>-1?(parts[nameCol]||'').trim().replace(/^["']|["']$/g,''):'';
+    const zweckRaw=zweckCol>-1?(parts[zweckCol]||'').trim().replace(/^["']|["']$/g,''):'';
+    // Beschreibung: "Empfänger – Verwendungszweck" wenn beides vorhanden, sonst was da ist
+    const desc=nameRaw&&zweckRaw ? `${nameRaw} – ${zweckRaw.slice(0,60)}` : (nameRaw||zweckRaw);
     const amtRaw=amtCol>-1?(parts[amtCol]||'').trim().replace(/^["']|["']$/g,''):'';
     if(!desc&&!amtRaw)continue;
     // Betrag parsen – DE-Format "1.234,56" oder EN "1234.56", auch negative "-54,99"
     const amtNum=parseCSVAmount(amtRaw);
     if(amtNum===null)continue;
-    // amtNum can be negative (Ausgabe) or positive (Einnahme)
-    results.push({id:'csv'+i, beschreibung:desc, betrag:Math.abs(amtNum), isEinnahme: amtNum > 0, datum:formatCSVDate(datum), quelle:'csv'});
+    // Vorzeichen behalten: positiv = Einnahme (Gutschrift), negativ = Ausgabe (Lastschrift)
+    results.push({id:'csv'+i, beschreibung:desc, empfaenger:nameRaw, verwendungszweck:zweckRaw, betrag:Math.abs(amtNum), isEinnahme: amtNum > 0, datum:formatCSVDate(datum), quelle:'csv'});
   }
   return results;
 }
@@ -906,35 +912,46 @@ async function analyzeUploadedFiles(){
 
     try{
       if(q.type==='csv'){
-        // CSV: direkt im Browser parsen, dann KI-Kategorisierung in Batches
+        // CSV: KEIN KI-Call – direkt parsen und nach Vorzeichen aufteilen
         const text=await q.file.text();
         const csvEntries=parseCSV(text);
         if(!csvEntries.length){q.status='err';q.error='Keine Einträge erkannt';continue;}
-        // In Batches von 10 senden – kompakte Einträge für schnelle KI-Antwort
-        const CSV_BATCH=10;
-        const allResults=[];
-        for(let bi=0;bi<csvEntries.length;bi+=CSV_BATCH){
-          // Nur relevante Felder senden (weniger Token = schneller)
-          const batch=csvEntries.slice(bi,bi+CSV_BATCH).map(e=>({
-            id:e.id, beschreibung:(e.beschreibung||e.text||'').slice(0,80), betrag:e.betrag, datum:e.datum||''
-          }));
-          const pct=Math.round((bi/csvEntries.length)*100);
-          $('upload-loading-text').textContent=`KI kategorisiert ${bi+1}–${Math.min(bi+CSV_BATCH,csvEntries.length)} / ${csvEntries.length} … ${pct}%`;
-          const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({entries:batch,mode:'categorize'})});
-          if(!res.ok){const e=await res.json();throw new Error(e.error||'API-Fehler '+res.status);}
-          const data=await res.json();
-          allResults.push(...(data.results||[]));
-        }
-        // Vorzeichen aus Original-CSV zurück auf KI-Ergebnisse übertragen
-        allResults.forEach(r=>{
-          const orig=csvEntries.find(e=>e.id===r.id);
-          if(orig) r._isEinnahme = orig.isEinnahme;
+        $('upload-loading-text').textContent=`${csvEntries.length} Einträge aus ${q.file.name} gelesen …`;
+
+        let addedIn=0, addedOut=0;
+        csvEntries.forEach(e=>{
+          if(e.isEinnahme){
+            manualIncomes.push({
+              id:'csv'+Date.now()+Math.random(),
+              desc: e.beschreibung || e.empfaenger || q.file.name,
+              datum: e.datum||'',
+              brutto: e.betrag,
+              _csv: e
+            });
+            addedIn++;
+          } else {
+            expenses.push({
+              id:'csv'+Date.now()+Math.random(),
+              desc: e.beschreibung || e.empfaenger || q.file.name,
+              datum: e.datum||'',
+              betrag: e.betrag,
+              _csv: e
+            });
+            addedOut++;
+          }
         });
-        q.results=allResults;
+
+        // Für Belege-Tab: Originaldatei merken (kein Upload, nur Referenz)
+        q.results=csvEntries.map(e=>({id:e.id, beschreibung:e.beschreibung, betrag_brutto:e.betrag, datum:e.datum}));
         q.status='done';
+
+        const parts=[];
+        if(addedOut)parts.push(`${addedOut} Ausgaben`);
+        if(addedIn)parts.push(`${addedIn} Einnahmen`);
+        toast(`${q.file.name}: ${parts.join(', ')} importiert ✓`);
+
       }else{
-        // Bild oder PDF: Vision API
+        // Bild oder PDF: Vision API (KI liest Beleg aus)
         const b64=await readFileAsBase64(q.file);
         const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({mode:'vision',imageData:b64,imageType:q.file.type,filename:q.file.name})});
@@ -942,36 +959,27 @@ async function analyzeUploadedFiles(){
         const data=await res.json();
         q.results=data.results||[];
         q.status='done';
-      }
 
-      // Ergebnisse nach Typ aufteilen: Einnahmen → manualIncomes, Ausgaben → expenses
-      let addedIn=0, addedOut=0;
-      q.results.forEach(r=>{
-        // Vorzeichen aus CSV-Parsing respektieren falls vorhanden
-        const csvSign = r._isEinnahme;
-        const aiIsIncome = r.kategorie_info?.type==='income';
-        const isIncome = csvSign !== undefined ? csvSign : aiIsIncome;
-        if(isIncome){
-          manualIncomes.push({id:'up'+Date.now()+Math.random(),
-            desc:r.beschreibung||r.id||q.file.name,
-            datum:r.datum||'', brutto:r.betrag_brutto||0,
-            _aiResult:r
-          });
-          addedIn++;
-        } else {
-          expenses.push({id:'up'+Date.now()+Math.random(),
-            desc:r.beschreibung||r.id||q.file.name,
-            datum:r.datum||'', betrag:r.betrag_brutto||0,
-            _aiResult:r
-          });
-          addedOut++;
-        }
-      });
-      const parts=[];
-      if(addedOut)parts.push(`${addedOut} Ausgaben`);
-      if(addedIn)parts.push(`${addedIn} Einnahmen`);
-      if(parts.length)toast(`${q.file.name}: ${parts.join(', ')} importiert ✓`);
-      else toast(`${q.file.name}: ${q.results.length} Einträge – bitte prüfen`);
+        // PDF/Bild-Ergebnisse: KI entscheidet Einnahme vs Ausgabe
+        let addedIn=0, addedOut=0;
+        q.results.forEach(r=>{
+          const isIncome=r.kategorie_info?.type==='income';
+          if(isIncome){
+            manualIncomes.push({id:'up'+Date.now()+Math.random(),
+              desc:r.beschreibung||q.file.name, datum:r.datum||'', brutto:r.betrag_brutto||0, _aiResult:r});
+            addedIn++;
+          } else {
+            expenses.push({id:'up'+Date.now()+Math.random(),
+              desc:r.beschreibung||q.file.name, datum:r.datum||'', betrag:r.betrag_brutto||0, _aiResult:r});
+            addedOut++;
+          }
+        });
+        const parts=[];
+        if(addedOut)parts.push(`${addedOut} Ausgaben`);
+        if(addedIn)parts.push(`${addedIn} Einnahmen`);
+        if(parts.length)toast(`${q.file.name}: ${parts.join(', ')} erkannt ✓`);
+        else toast(`${q.file.name}: Keine Einträge erkannt – bitte prüfen`);
+      }
 
 
     }catch(e){
@@ -980,6 +988,7 @@ async function analyzeUploadedFiles(){
     }
     renderFileQueue();
     renderExpenses();
+    renderManualIncomes();
     updateSidebar();
   }
 
