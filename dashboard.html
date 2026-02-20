@@ -19,36 +19,49 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);min-height:100vh;}
 
-/* ── TOPNAV ── */
-#topnav{
+/* ── SHARED TOPNAV (identisch mit tool.html) ── */
+#nav{
   height:52px;background:var(--surface);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;padding:0 24px;gap:16px;position:sticky;top:0;z-index:50;
+  display:flex;align-items:center;padding:0 16px;gap:4px;
+  position:sticky;top:0;z-index:50;flex-shrink:0;
 }
-.nav-logo{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.2px;}
+.nav-logo{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.2px;margin-right:8px;}
 .nav-logo span{color:var(--text2);font-weight:300;}
-.nav-sep{width:1px;height:20px;background:var(--border);margin:0 4px;}
-.nav-link{
-  display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:var(--radius-sm);
-  color:var(--text2);text-decoration:none;font-size:12px;font-weight:500;transition:.15s;cursor:pointer;border:none;background:none;
+.nav-sep{width:1px;height:20px;background:var(--border);margin:0 6px;}
+.nav-btn{
+  height:32px;padding:0 10px;border:none;background:none;
+  color:var(--text3);cursor:pointer;border-radius:var(--radius-sm);
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:500;font-family:var(--font);
+  transition:background .15s,color .15s;white-space:nowrap;text-decoration:none;
 }
-.nav-link:hover{background:var(--surface3);color:var(--text);}
-.nav-link.active{background:var(--accent-bg);color:var(--accent);}
-.nav-link svg{width:14px;height:14px;stroke-width:1.8;flex-shrink:0;}
+.nav-btn:hover{background:var(--surface3);color:var(--text);}
+.nav-btn.active{background:var(--accent-bg);color:var(--accent);}
+.nav-btn svg{width:14px;height:14px;stroke-width:1.8;flex-shrink:0;}
 .nav-spacer{flex:1;}
-.nav-user{font-size:11px;color:var(--text3);}
-.btn-nav{
-  display:inline-flex;align-items:center;gap:6px;padding:6px 12px;
-  border:none;border-radius:var(--radius-sm);font-size:12px;font-weight:500;
-  cursor:pointer;font-family:var(--font);transition:.15s;
+.nav-icon-btn{
+  width:32px;height:32px;padding:0;border:none;background:none;
+  color:var(--text3);cursor:pointer;border-radius:var(--radius-sm);
+  display:inline-flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s;text-decoration:none;
 }
-.btn-primary{background:var(--accent);color:#111;}
-.btn-primary:hover{opacity:.85;}
-.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2);}
-.btn-ghost:hover{background:var(--surface3);color:var(--text);}
-.btn-nav svg{width:13px;height:13px;stroke-width:2;}
+.nav-icon-btn:hover{background:var(--surface3);color:var(--text);}
+.nav-icon-btn svg{width:15px;height:15px;stroke-width:1.8;}
 
 /* ── LAYOUT ── */
 #content{max-width:1200px;margin:0 auto;padding:28px 24px;}
+
+/* ── UMSATZ-TOGGLE ── */
+.toggle-bar{
+  display:flex;gap:3px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:3px;
+}
+.toggle-bar button{
+  padding:4px 12px;border:none;border-radius:4px;background:transparent;
+  color:var(--text3);font-size:11px;font-weight:600;cursor:pointer;
+  font-family:var(--font);transition:.12s;
+}
+.toggle-bar button.active{background:var(--accent);color:#111;}
 
 /* ── KPI CARDS ── */
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;}
@@ -58,32 +71,41 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
   padding:16px 18px;
 }
 .kpi-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;}
-.kpi-value{font-size:24px;font-weight:700;color:var(--text);line-height:1;}
+.kpi-value{font-size:24px;font-weight:700;line-height:1;}
 .kpi-sub{font-size:11px;color:var(--text3);margin-top:6px;}
 .kpi-accent{color:var(--accent);}
 .kpi-green{color:var(--green);}
 .kpi-orange{color:var(--orange);}
 .kpi-blue{color:var(--blue);}
 
-/* ── SECTION HEADER ── */
+/* ── SECTION ── */
 .section-hd{
   font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;
   letter-spacing:.7px;margin-bottom:14px;display:flex;align-items:center;gap:8px;
 }
 .section-hd::after{content:'';flex:1;height:1px;background:var(--border);}
-.section-hd-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.section-hd-row .section-hd{margin-bottom:0;}
-.section-hd-row .section-hd::after{display:none;}
+.section-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.section-row .section-hd{margin-bottom:0;}
+.section-row .section-hd::after{display:none;}
 
-/* ── CHART GRID ── */
+/* ── CHARTS ── */
 .chart-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:28px;}
 @media(max-width:800px){.chart-grid{grid-template-columns:1fr;}}
 .chart-card{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
   padding:18px;
 }
-.chart-card h3{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:16px;}
+.chart-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.chart-title{font-size:12px;font-weight:600;color:var(--text2);}
 .chart-wrap{position:relative;height:180px;}
+
+/* ── TOP KUNDEN ── */
+.top-list{display:flex;flex-direction:column;gap:9px;margin-top:4px;}
+.top-item{display:flex;align-items:center;gap:10px;}
+.top-bar-wrap{flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;}
+.top-bar{height:100%;background:var(--accent);border-radius:3px;transition:width .4s;}
+.top-name{font-size:11px;color:var(--text2);min-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.top-val{font-size:11px;color:var(--text);min-width:80px;text-align:right;white-space:nowrap;}
 
 /* ── TABELLE ── */
 .doc-table-wrap{
@@ -97,6 +119,7 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 .filter-bar input,.filter-bar select{
   background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);
   color:var(--text);font-size:11px;padding:5px 9px;outline:none;font-family:var(--font);
+  transition:border-color .12s;
 }
 .filter-bar select{cursor:pointer;appearance:none;-webkit-appearance:none;padding-right:24px;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%235c5f6b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
@@ -112,31 +135,12 @@ table.dash-table thead th{
   padding:9px 14px;text-align:left;font-size:10px;font-weight:600;
   color:var(--text3);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;
 }
-table.dash-table thead th:nth-child(n+4){text-align:right;}
+table.dash-table thead th.r{text-align:right;}
 table.dash-table tbody tr{border-top:1px solid var(--border);transition:background .1s;}
 table.dash-table tbody tr:hover{background:var(--surface2);}
 table.dash-table tbody td{padding:10px 14px;font-size:12px;}
-table.dash-table tbody td:nth-child(n+4){text-align:right;}
+table.dash-table tbody td.r{text-align:right;}
 .table-empty{padding:32px;text-align:center;color:var(--text3);font-size:12px;}
-
-/* Badges */
-.badge{display:inline-flex;align-items:center;font-size:9px;padding:2px 7px;border-radius:3px;font-weight:700;letter-spacing:.3px;}
-.badge-ang{background:#3a2a0a;color:#fbbf24;}
-.badge-re{background:#0a2a1a;color:var(--green);}
-
-/* Status chips inline */
-.chip-sm{
-  display:inline-flex;align-items:center;justify-content:center;
-  font-size:9px;padding:2px 6px;border-radius:10px;border:1px solid;
-  font-family:var(--font);line-height:1;
-}
-.chip-sm.sent{background:#1a2a3f;border-color:var(--blue);color:var(--blue);}
-.chip-sm.accepted{background:#0f2a1a;border-color:var(--green);color:var(--green);}
-.chip-sm.declined{background:#2a1515;border-color:var(--red);color:var(--red);}
-.chip-sm.paid{background:#0f2a1a;border-color:var(--green);color:var(--green);}
-.chip-sm.open{background:var(--surface3);border-color:var(--border2);color:var(--text3);}
-
-/* Summen-Zeile */
 .table-footer{
   display:flex;align-items:center;justify-content:space-between;
   padding:10px 14px;border-top:1px solid var(--border2);background:var(--surface2);
@@ -144,25 +148,32 @@ table.dash-table tbody td:nth-child(n+4){text-align:right;}
 }
 .table-footer strong{color:var(--text);}
 
-/* Row actions */
+/* Badges */
+.badge{display:inline-flex;align-items:center;font-size:9px;padding:2px 7px;border-radius:3px;font-weight:700;letter-spacing:.3px;}
+.badge-ang{background:#3a2a0a;color:#fbbf24;}
+.badge-re{background:#0a2a1a;color:var(--green);}
+
+.chip-sm{
+  display:inline-flex;align-items:center;justify-content:center;
+  font-size:9px;padding:2px 7px;border-radius:10px;border:1px solid;
+  font-family:var(--font);line-height:1;white-space:nowrap;
+}
+.chip-sm.sent{background:#1a2a3f;border-color:var(--blue);color:var(--blue);}
+.chip-sm.accepted{background:#0f2a1a;border-color:var(--green);color:var(--green);}
+.chip-sm.declined{background:#2a1515;border-color:var(--red);color:var(--red);}
+.chip-sm.paid{background:#0f2a1a;border-color:var(--green);color:var(--green);}
+.chip-sm.open{background:var(--surface3);border-color:var(--border2);color:var(--text3);}
+
 .row-actions{display:flex;gap:4px;justify-content:flex-end;}
 .btn-row{
   width:26px;height:26px;border:none;background:transparent;color:var(--text3);
   cursor:pointer;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;
-  transition:.12s;font-family:var(--font);
+  transition:.12s;
 }
 .btn-row:hover{background:var(--surface3);color:var(--text);}
 .btn-row svg{width:13px;height:13px;stroke-width:1.8;}
 
-/* ── TOP KUNDEN ── */
-.top-list{display:flex;flex-direction:column;gap:8px;}
-.top-item{display:flex;align-items:center;gap:10px;}
-.top-bar-wrap{flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;}
-.top-bar{height:100%;background:var(--accent);border-radius:3px;transition:width .4s;}
-.top-name{font-size:11px;color:var(--text2);min-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.top-val{font-size:11px;color:var(--text);min-width:80px;text-align:right;white-space:nowrap;}
-
-/* ── TOAST ── */
+/* ── TOAST / LOADING ── */
 #toast{
   position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
   background:var(--surface3);color:var(--text);border:1px solid var(--border2);
@@ -171,8 +182,6 @@ table.dash-table tbody td:nth-child(n+4){text-align:right;}
   box-shadow:0 4px 20px rgba(0,0,0,.4);
 }
 #toast.show{opacity:1;}
-
-/* ── LOADING ── */
 #loading{
   position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;
   justify-content:center;flex-direction:column;gap:12px;z-index:100;
@@ -191,24 +200,23 @@ table.dash-table tbody td:nth-child(n+4){text-align:right;}
   <span style="font-size:12px;color:var(--text3);">Lade Dashboard …</span>
 </div>
 
-<!-- ── TOPNAV ── -->
-<nav id="topnav">
-  <div class="nav-logo">VISO <span>Media</span></div>
+<!-- ── TOPNAV (identisch mit tool.html) ── -->
+<nav id="nav">
+  <span class="nav-logo">VISO <span>Media</span></span>
   <div class="nav-sep"></div>
-  <a class="nav-link active" href="/dashboard">
+  <a class="nav-btn active" href="/dashboard">
     <i data-lucide="layout-dashboard"></i> Dashboard
   </a>
-  <a class="nav-link" href="/tool">
-    <i data-lucide="file-text"></i> Angebote & Rechnungen
+  <a class="nav-btn" href="/tool">
+    <i data-lucide="file-text"></i> Dokumente
   </a>
-  <!-- Platzhalter für spätere Tools -->
-  <!-- <a class="nav-link" href="/time"><i data-lucide="clock"></i> Zeiterfassung</a> -->
   <div class="nav-spacer"></div>
-  <span class="nav-user" id="nav-user-email"></span>
-  <button class="btn-nav btn-primary" onclick="goNew()">
+  <button class="nav-btn" style="background:var(--accent);color:#111;" onclick="goNew()">
     <i data-lucide="plus"></i> Neues Dokument
   </button>
-  <button class="btn-nav btn-ghost" onclick="doSignOut()" title="Abmelden">
+  <div class="nav-sep"></div>
+  <span style="font-size:11px;color:var(--text3);padding:0 6px;" id="nav-user-email"></span>
+  <button class="nav-icon-btn" onclick="doSignOut()" title="Abmelden">
     <i data-lucide="log-out"></i>
   </button>
 </nav>
@@ -216,15 +224,24 @@ table.dash-table tbody td:nth-child(n+4){text-align:right;}
 <!-- ── CONTENT ── -->
 <div id="content">
 
+  <!-- KPI Header Row -->
+  <div class="section-row" style="margin-bottom:14px;">
+    <div class="section-hd">Übersicht</div>
+    <div class="toggle-bar" id="kpi-toggle">
+      <button class="active" onclick="setMode('netto',this)">Netto</button>
+      <button onclick="setMode('brutto',this)">Brutto</button>
+    </div>
+  </div>
+
   <!-- KPI Cards -->
   <div class="kpi-grid">
     <div class="kpi-card">
-      <div class="kpi-label">Umsatz dieses Jahr</div>
+      <div class="kpi-label" id="lbl-year">Umsatz dieses Jahr (Netto)</div>
       <div class="kpi-value kpi-accent" id="kpi-year">–</div>
       <div class="kpi-sub" id="kpi-year-sub">–</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Umsatz diesen Monat</div>
+      <div class="kpi-label" id="lbl-month">Umsatz diesen Monat (Netto)</div>
       <div class="kpi-value kpi-green" id="kpi-month">–</div>
       <div class="kpi-sub" id="kpi-month-sub">–</div>
     </div>
@@ -243,21 +260,25 @@ table.dash-table tbody td:nth-child(n+4){text-align:right;}
   <!-- Charts -->
   <div class="chart-grid">
     <div class="chart-card">
-      <h3>Umsatz pro Monat (Netto, aktuelles Jahr)</h3>
+      <div class="chart-title-row">
+        <span class="chart-title" id="chart-title">Umsatz pro Monat – Netto (aktuelles Jahr)</span>
+      </div>
       <div class="chart-wrap">
         <canvas id="chart-monthly"></canvas>
       </div>
     </div>
     <div class="chart-card">
-      <h3>Top Kunden (Nettoumsatz gesamt)</h3>
-      <div class="top-list" id="top-customers" style="margin-top:4px;">
+      <div class="chart-title-row">
+        <span class="chart-title" id="top-title">Top Kunden – Netto gesamt</span>
+      </div>
+      <div class="top-list" id="top-customers">
         <div style="color:var(--text3);font-size:11px;">Lade …</div>
       </div>
     </div>
   </div>
 
   <!-- Dokumentenübersicht -->
-  <div class="section-hd-row">
+  <div class="section-row">
     <div class="section-hd">Alle Dokumente</div>
   </div>
 
@@ -291,8 +312,8 @@ table.dash-table tbody td:nth-child(n+4){text-align:right;}
           <th>Nummer</th>
           <th>Kunde</th>
           <th>Betreff</th>
-          <th style="text-align:right;">Netto</th>
-          <th style="text-align:right;">Brutto</th>
+          <th class="r">Netto</th>
+          <th class="r">Brutto</th>
           <th>Datum</th>
           <th>Status</th>
           <th></th>
@@ -305,12 +326,11 @@ table.dash-table tbody td:nth-child(n+4){text-align:right;}
 
     <div class="table-footer">
       <span id="table-footer-left">–</span>
-      <span id="table-footer-right">Gefiltert: <strong id="footer-netto">–</strong> Netto · <strong id="footer-brutto">–</strong> Brutto</span>
+      <span>Summe: <strong id="footer-netto">–</strong> Netto &nbsp;·&nbsp; <strong id="footer-brutto">–</strong> Brutto</span>
     </div>
   </div>
 
 </div><!-- /content -->
-
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -321,28 +341,45 @@ lucide.createIcons();
 // ── STATE ─────────────────────────────────────────────────
 let allDocs = [];
 let filteredDocs = [];
+let viewMode = 'netto'; // 'netto' | 'brutto'
+let monthChart = null;
 
-const fmt = n => n.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2}) + '\u00a0€';
-const fmtDate = v => { if(!v)return'–'; const[y,m,d]=v.split('-'); return`${d}.${m}.${y}`; };
-const toast = msg => { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2400); };
+const fmt = n => n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+'\u00a0€';
+const fmtDate = v => {if(!v)return'–';const[y,m,d]=v.split('-');return`${d}.${m}.${y}`;};
+const toast = msg => {const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);};
+const $ = id => document.getElementById(id);
 
 function parsePreis(s){
-  if(!s)return 0;
-  s=String(s).trim();
+  if(!s)return 0;s=String(s).trim();
   if(/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(s)){return parseFloat(s.replace(/\./g,'').replace(',','.'));}
   return parseFloat(s.replace(',','.').replace(/[^\d.]/g,''))||0;
 }
-
 function docNetto(doc){
-  if(!doc.positionen||!doc.positionen.length)return 0;
+  if(!doc.positionen?.length)return 0;
   return doc.positionen.reduce((s,p)=>s+parsePreis(p.menge)*parsePreis(p.preis),0);
 }
-function docBrutto(doc){
-  const n=docNetto(doc);
-  return doc.tax==='de'?n*1.19:n;
+function docBrutto(doc){const n=docNetto(doc);return doc.tax==='de'?n*1.19:n;}
+function docVal(doc){return viewMode==='brutto'?docBrutto(doc):docNetto(doc);}
+
+// ── MODUS-TOGGLE ──────────────────────────────────────────
+function setMode(mode, btn){
+  viewMode = mode;
+  // Toggle-Buttons
+  document.querySelectorAll('#kpi-toggle button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  // Labels updaten
+  const label = mode==='brutto' ? 'Brutto' : 'Netto';
+  $('lbl-year').textContent  = `Umsatz dieses Jahr (${label})`;
+  $('lbl-month').textContent = `Umsatz diesen Monat (${label})`;
+  $('chart-title').textContent = `Umsatz pro Monat – ${label} (aktuelles Jahr)`;
+  $('top-title').textContent   = `Top Kunden – ${label} gesamt`;
+  // Alles neu rendern
+  buildKPIs();
+  updateMonthChart();
+  buildTopCustomers();
 }
 
-// ── STATUS HELPERS ─────────────────────────────────────────
+// ── STATUS ─────────────────────────────────────────────────
 function getActiveStatus(doc){
   if(!doc.status)return null;
   const keys=Object.keys(doc.status).filter(k=>doc.status[k]);
@@ -350,204 +387,156 @@ function getActiveStatus(doc){
 }
 function statusChip(doc){
   const s=getActiveStatus(doc);
-  const map={
-    sent:{cls:'sent',label:'Abgeschickt'},
-    accepted:{cls:'accepted',label:'Angenommen'},
-    declined:{cls:'declined',label:'Abgelehnt'},
-    paid:{cls:'paid',label:'Bezahlt'},
-  };
+  const map={sent:{cls:'sent',label:'Abgeschickt'},accepted:{cls:'accepted',label:'Angenommen'},declined:{cls:'declined',label:'Abgelehnt'},paid:{cls:'paid',label:'Bezahlt'}};
   if(!s)return`<span class="chip-sm open">Offen</span>`;
   const m=map[s]||{cls:'open',label:s};
   return`<span class="chip-sm ${m.cls}">${m.label}</span>`;
 }
 
-// ── FILTER & RENDER TABLE ──────────────────────────────────
+// ── FILTER & TABLE ─────────────────────────────────────────
 function applyFilter(){
-  const search=(document.getElementById('f-search').value||'').toLowerCase();
-  const typ=document.getElementById('f-typ').value;
-  const status=document.getElementById('f-status').value;
-  const year=document.getElementById('f-year').value;
-
+  const search=($('f-search').value||'').toLowerCase();
+  const typ=$('f-typ').value;
+  const status=$('f-status').value;
+  const year=$('f-year').value;
   filteredDocs=allDocs.filter(d=>{
     if(typ&&d.typ!==typ)return false;
     if(year&&(!d.datum||!d.datum.startsWith(year)))return false;
-    if(status){
-      const active=getActiveStatus(d)||'open';
-      if(active!==status)return false;
-    }
-    if(search){
-      const haystack=`${d.nr||''} ${d.firma||''} ${d.betreff||''}`.toLowerCase();
-      if(!haystack.includes(search))return false;
-    }
+    if(status){const active=getActiveStatus(d)||'open';if(active!==status)return false;}
+    if(search){const h=`${d.nr||''} ${d.firma||''} ${d.betreff||''}`.toLowerCase();if(!h.includes(search))return false;}
     return true;
   });
-
   renderTable();
 }
 
 function renderTable(){
-  const tbody=document.getElementById('doc-tbody');
-  document.getElementById('filter-count').textContent=`${filteredDocs.length} Dokument${filteredDocs.length!==1?'e':''}`;
-
+  const tbody=$('doc-tbody');
+  $('filter-count').textContent=`${filteredDocs.length} Dokument${filteredDocs.length!==1?'e':''}`;
   if(!filteredDocs.length){
     tbody.innerHTML=`<tr><td colspan="9" class="table-empty">Keine Dokumente gefunden.</td></tr>`;
-    document.getElementById('table-footer-left').textContent='–';
-    document.getElementById('footer-netto').textContent='–';
-    document.getElementById('footer-brutto').textContent='–';
+    $('table-footer-left').textContent='–';$('footer-netto').textContent='–';$('footer-brutto').textContent='–';
     return;
   }
-
-  let sumNetto=0, sumBrutto=0;
+  let sumN=0,sumB=0;
   tbody.innerHTML=filteredDocs.map((d,i)=>{
-    const netto=docNetto(d), brutto=docBrutto(d);
-    sumNetto+=netto; sumBrutto+=brutto;
+    const n=docNetto(d),b=docBrutto(d);sumN+=n;sumB+=b;
     return`<tr>
       <td><span class="badge ${d.typ==='rechnung'?'badge-re':'badge-ang'}">${d.typ==='rechnung'?'RE':'ANG'}</span></td>
-      <td style="font-weight:600;font-size:12px;">${d.nr||'–'}</td>
+      <td style="font-weight:600;">${d.nr||'–'}</td>
       <td style="color:var(--text2);">${d.firma||'–'}</td>
-      <td style="color:var(--text3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.betreff||'–'}</td>
-      <td style="text-align:right;font-variant-numeric:tabular-nums;">${netto?fmt(netto):'–'}</td>
-      <td style="text-align:right;font-variant-numeric:tabular-nums;font-weight:600;">${brutto?fmt(brutto):'–'}</td>
-      <td style="color:var(--text3);">${fmtDate(d.datum)}</td>
+      <td style="color:var(--text3);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.betreff||'–'}</td>
+      <td class="r" style="font-variant-numeric:tabular-nums;">${n?fmt(n):'–'}</td>
+      <td class="r" style="font-variant-numeric:tabular-nums;font-weight:600;">${b?fmt(b):'–'}</td>
+      <td style="color:var(--text3);white-space:nowrap;">${fmtDate(d.datum)}</td>
       <td>${statusChip(d)}</td>
-      <td>
-        <div class="row-actions">
-          <button class="btn-row" onclick="openDoc(${i})" title="Öffnen"><i data-lucide="external-link"></i></button>
-        </div>
-      </td>
+      <td><div class="row-actions"><button class="btn-row" onclick="openDoc(${i})" title="Öffnen"><i data-lucide="external-link"></i></button></div></td>
     </tr>`;
   }).join('');
-
-  document.getElementById('table-footer-left').textContent=`${filteredDocs.length} Dokumente`;
-  document.getElementById('footer-netto').textContent=fmt(sumNetto);
-  document.getElementById('footer-brutto').textContent=fmt(sumBrutto);
+  $('table-footer-left').textContent=`${filteredDocs.length} Dokumente`;
+  $('footer-netto').textContent=fmt(sumN);
+  $('footer-brutto').textContent=fmt(sumB);
   lucide.createIcons();
 }
 
-function openDoc(filteredIdx){
-  const doc=filteredDocs[filteredIdx];
-  // ID in SessionStorage legen, Tool lädt es
-  sessionStorage.setItem('loadDocId', doc.id);
+function openDoc(i){
+  sessionStorage.setItem('loadDocId',filteredDocs[i].id);
   window.location.href='/tool';
 }
+function goNew(){sessionStorage.removeItem('loadDocId');window.location.href='/tool';}
+async function doSignOut(){await signOut();}
 
-function goNew(){
-  sessionStorage.removeItem('loadDocId');
-  window.location.href='/tool';
-}
-
-async function doSignOut(){
-  await signOut();
-}
-
-// ── JAHRES-FILTER BEFÜLLEN ─────────────────────────────────
+// ── JAHRES-FILTER ──────────────────────────────────────────
 function buildYearFilter(){
   const years=[...new Set(allDocs.map(d=>d.datum?d.datum.slice(0,4):null).filter(Boolean))].sort().reverse();
-  const sel=document.getElementById('f-year');
+  const sel=$('f-year');
   years.forEach(y=>{const o=document.createElement('option');o.value=y;o.textContent=y;sel.appendChild(o);});
-  // Aktuelles Jahr vorselektieren
   const cur=String(new Date().getFullYear());
   if(years.includes(cur))sel.value=cur;
 }
 
-// ── KPI BERECHNEN ─────────────────────────────────────────
+// ── KPIs ──────────────────────────────────────────────────
 function buildKPIs(){
-  const now=new Date();
-  const year=now.getFullYear();
-  const month=now.getMonth();
+  const now=new Date(),year=now.getFullYear(),month=now.getMonth();
+  const re=allDocs.filter(d=>d.typ==='rechnung');
+  const ang=allDocs.filter(d=>d.typ==='angebot');
 
-  const rechnungen=allDocs.filter(d=>d.typ==='rechnung');
-  const angebote=allDocs.filter(d=>d.typ==='angebot');
+  // Jahr
+  const reYear=re.filter(d=>d.datum&&d.datum.startsWith(String(year)));
+  const valYear=reYear.reduce((s,d)=>s+docVal(d),0);
+  $('kpi-year').textContent=fmt(valYear);
+  $('kpi-year-sub').textContent=`${reYear.length} Rechnung${reYear.length!==1?'en':''}`;
 
-  // Jahresumsatz (Rechnungen)
-  const reYear=rechnungen.filter(d=>d.datum&&d.datum.startsWith(String(year)));
-  const umsatzYear=reYear.reduce((s,d)=>s+docNetto(d),0);
-  document.getElementById('kpi-year').textContent=fmt(umsatzYear);
-  document.getElementById('kpi-year-sub').textContent=`${reYear.length} Rechnung${reYear.length!==1?'en':''}`;
-
-  // Monatsumsatz
+  // Monat
   const mStr=`${year}-${String(month+1).padStart(2,'0')}`;
-  const reMonth=rechnungen.filter(d=>d.datum&&d.datum.startsWith(mStr));
-  const umsatzMonth=reMonth.reduce((s,d)=>s+docNetto(d),0);
-  document.getElementById('kpi-month').textContent=fmt(umsatzMonth);
-  const monthNames=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-  document.getElementById('kpi-month-sub').textContent=`${reMonth.length} RE in ${monthNames[month]}`;
+  const reMonth=re.filter(d=>d.datum&&d.datum.startsWith(mStr));
+  const valMonth=reMonth.reduce((s,d)=>s+docVal(d),0);
+  $('kpi-month').textContent=fmt(valMonth);
+  const mn=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  $('kpi-month-sub').textContent=`${reMonth.length} RE in ${mn[month]}`;
 
-  // Offene Angebote
-  const openAng=angebote.filter(d=>{
-    const s=getActiveStatus(d);
-    return !s||s==='sent';
-  });
+  // Offene Angebote (immer Brutto als Volumen)
+  const openAng=ang.filter(d=>{const s=getActiveStatus(d);return!s||s==='sent';});
   const openVol=openAng.reduce((s,d)=>s+docBrutto(d),0);
-  document.getElementById('kpi-open').textContent=String(openAng.length);
-  document.getElementById('kpi-open-sub').textContent=openVol?`Volumen: ${fmt(openVol)}`:'Kein Volumen';
+  $('kpi-open').textContent=String(openAng.length);
+  $('kpi-open-sub').textContent=openVol?`Volumen: ${fmt(openVol)}`:'Kein Volumen';
 
-  // Conversion Rate
-  const angTotal=angebote.length;
-  const converted=angebote.filter(d=>getActiveStatus(d)==='accepted').length;
-  const rate=angTotal?Math.round(converted/angTotal*100):0;
-  document.getElementById('kpi-conv').textContent=`${rate}\u202f%`;
+  // Conversion
+  const rate=ang.length?Math.round(ang.filter(d=>getActiveStatus(d)==='accepted').length/ang.length*100):0;
+  $('kpi-conv').textContent=`${rate}\u202f%`;
 }
 
 // ── MONATS-CHART ──────────────────────────────────────────
 function buildMonthChart(){
-  const year=new Date().getFullYear();
   const months=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-  const values=months.map((_,m)=>{
-    const mStr=`${year}-${String(m+1).padStart(2,'0')}`;
-    return allDocs
-      .filter(d=>d.typ==='rechnung'&&d.datum&&d.datum.startsWith(mStr))
-      .reduce((s,d)=>s+docNetto(d),0);
-  });
-
-  const ctx=document.getElementById('chart-monthly').getContext('2d');
-  new Chart(ctx,{
+  const values=getChartValues();
+  const ctx=$('chart-monthly').getContext('2d');
+  monthChart=new Chart(ctx,{
     type:'bar',
-    data:{
-      labels:months,
-      datasets:[{
-        label:'Netto-Umsatz',
-        data:values,
-        backgroundColor:'rgba(212,204,46,0.5)',
-        borderColor:'rgba(212,204,46,0.9)',
-        borderWidth:1.5,
-        borderRadius:4,
-        borderSkipped:false,
-      }]
-    },
+    data:{labels:months,datasets:[{
+      label:'Umsatz',data:values,
+      backgroundColor:'rgba(212,204,46,0.5)',borderColor:'rgba(212,204,46,0.9)',
+      borderWidth:1.5,borderRadius:4,borderSkipped:false,
+    }]},
     options:{
       responsive:true,maintainAspectRatio:false,
       plugins:{
         legend:{display:false},
-        tooltip:{
-          callbacks:{
-            label:ctx=>`${ctx.parsed.y.toLocaleString('de-DE',{minimumFractionDigits:2})} €`
-          },
-          backgroundColor:'#27282c',
-          borderColor:'#3d3f45',
-          borderWidth:1,
-          titleColor:'#9a9ca5',
-          bodyColor:'#e2e3e8',
-        }
+        tooltip:{callbacks:{label:c=>`${c.parsed.y.toLocaleString('de-DE',{minimumFractionDigits:2})} €`},
+          backgroundColor:'#27282c',borderColor:'#3d3f45',borderWidth:1,titleColor:'#9a9ca5',bodyColor:'#e2e3e8'}
       },
       scales:{
         x:{grid:{color:'rgba(61,63,69,.5)'},ticks:{color:'#5c5f6b',font:{size:10}}},
         y:{grid:{color:'rgba(61,63,69,.5)'},ticks:{color:'#5c5f6b',font:{size:10},
-          callback:v=>v>=1000?`${(v/1000).toFixed(0)}k`:v}}
+          callback:v=>v>=1000?`${(v/1000).toFixed(0)}k €`:v+' €'}}
       }
     }
   });
 }
 
-// ── TOP KUNDEN ────────────────────────────────────────────
+function getChartValues(){
+  const year=new Date().getFullYear();
+  return Array.from({length:12},(_,m)=>{
+    const mStr=`${year}-${String(m+1).padStart(2,'0')}`;
+    return allDocs.filter(d=>d.typ==='rechnung'&&d.datum&&d.datum.startsWith(mStr))
+      .reduce((s,d)=>s+docVal(d),0);
+  });
+}
+
+function updateMonthChart(){
+  if(!monthChart)return;
+  monthChart.data.datasets[0].data=getChartValues();
+  monthChart.update('active');
+}
+
+// ── TOP KUNDEN ─────────────────────────────────────────────
 function buildTopCustomers(){
   const map={};
   allDocs.filter(d=>d.typ==='rechnung'&&d.firma).forEach(d=>{
-    map[d.firma]=(map[d.firma]||0)+docNetto(d);
+    map[d.firma]=(map[d.firma]||0)+docVal(d);
   });
   const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,6);
   const max=sorted[0]?.[1]||1;
-  const el=document.getElementById('top-customers');
+  const el=$('top-customers');
   if(!sorted.length){el.innerHTML='<div style="color:var(--text3);font-size:11px;">Noch keine Rechnungen.</div>';return;}
   el.innerHTML=sorted.map(([name,val])=>`
     <div class="top-item">
@@ -561,26 +550,16 @@ function buildTopCustomers(){
 async function init(){
   const user=await getUser();
   if(!user){window.location.href='/';return;}
-
-  document.getElementById('nav-user-email').textContent=user.email||'';
-
-  try{
-    allDocs=await DB.getDocuments();
-  }catch(e){
-    console.error(e);
-    toast('Fehler beim Laden');
-  }
-
+  $('nav-user-email').textContent=user.email||'';
+  try{allDocs=await DB.getDocuments();}catch(e){console.error(e);toast('Fehler beim Laden');}
   buildYearFilter();
   applyFilter();
   buildKPIs();
   buildMonthChart();
   buildTopCustomers();
-
-  document.getElementById('loading').style.display='none';
+  $('loading').style.display='none';
   lucide.createIcons();
 }
-
 init();
 </script>
 </body>
