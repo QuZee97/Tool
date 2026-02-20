@@ -29,32 +29,44 @@
   --radius:8px;
   --radius-sm:5px;
   --sidebar-w:300px;
-  --nav-w:52px;
   --font:'Helvetica Neue',Arial,sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);display:flex;height:100vh;overflow:hidden;}
+body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);display:flex;flex-direction:column;height:100vh;overflow:hidden;}
 
-/* ── NAV ────────────────────────────────────────────── */
+/* ── SHARED TOPNAV ──────────────────────────────────── */
 #nav{
-  width:var(--nav-w);flex-shrink:0;
-  background:var(--surface);
-  border-right:1px solid var(--border);
-  display:flex;flex-direction:column;align-items:center;
-  padding:10px 0;gap:2px;
-  z-index:20;
+  height:52px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:4px;
+  position:sticky;top:0;z-index:50;flex-shrink:0;
 }
+.nav-logo{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.2px;margin-right:8px;}
+.nav-logo span{color:var(--text2);font-weight:300;}
+.nav-sep{width:1px;height:20px;background:var(--border);margin:0 6px;}
 .nav-btn{
-  width:36px;height:36px;border:none;background:none;
+  height:32px;padding:0 10px;border:none;background:none;
   color:var(--text3);cursor:pointer;border-radius:var(--radius-sm);
-  display:flex;align-items:center;justify-content:center;
-  transition:background .15s,color .15s;position:relative;
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:500;font-family:var(--font);
+  transition:background .15s,color .15s;white-space:nowrap;text-decoration:none;
 }
 .nav-btn:hover{background:var(--surface3);color:var(--text);}
-.nav-btn.active{background:var(--surface3);color:var(--accent);}
-.nav-btn svg{width:16px;height:16px;stroke-width:1.8;}
-.nav-sep{width:24px;height:1px;background:var(--border);margin:4px 0;}
-.nav-logo{font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border);width:100%;text-align:center;}
+.nav-btn.active{background:var(--accent-bg);color:var(--accent);}
+.nav-btn svg{width:14px;height:14px;stroke-width:1.8;flex-shrink:0;}
+.nav-spacer{flex:1;}
+/* Schmale Icon-only Buttons (Speichern, PDF, Logout) */
+.nav-icon-btn{
+  width:32px;height:32px;padding:0;border:none;background:none;
+  color:var(--text3);cursor:pointer;border-radius:var(--radius-sm);
+  display:inline-flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s;text-decoration:none;
+}
+.nav-icon-btn:hover{background:var(--surface3);color:var(--text);}
+.nav-icon-btn svg{width:15px;height:15px;stroke-width:1.8;}
+/* Tool-Sidebar-Trennlinie entfällt, vertikale Sep bleibt */
+
+/* ── CONTENT WRAPPER (unter Nav) ───────────────────── */
+#content-wrap{flex:1;display:flex;overflow:hidden;}
 
 /* ── SIDEBAR ────────────────────────────────────────── */
 #sidebar{
@@ -231,14 +243,13 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 #main::-webkit-scrollbar-track{background:transparent;}
 #main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 
-/* Top action bar */
+/* Doc-type toggle bar */
 #topbar{
   width:210mm;max-width:100%;
   display:flex;align-items:center;gap:8px;
   margin-bottom:16px;
   flex-shrink:0;
 }
-#topbar .spacer{flex:1;}
 #topbar .doc-type-toggle{display:flex;gap:4px;}
 #topbar .doc-type-btn{
   padding:6px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);
@@ -438,7 +449,7 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 /* ── PRINT / PDF OVERRIDES ──────────────────────────── */
 @media print{
   body{background:#fff;display:block;}
-  #nav,#sidebar,#topbar{display:none!important;}
+  #nav,#sidebar,#topbar,#content-wrap>#sidebar{display:none!important;}
   #main{padding:0;overflow:visible;}
   .doc-page{box-shadow:none;margin:0;width:100%;padding:0;}
   #page1{page-break-after:always;}
@@ -454,41 +465,50 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 </head>
 <body>
 
-<!-- ── LEFT NAV ──────────────────────────────────────────── -->
-<div id="nav">
-  <div class="nav-logo">VM</div>
-  <button class="nav-btn active" onclick="showPanel('doc',this)" title="Dokument" id="nav-doc">
-    <i data-lucide="file-text"></i>
+<!-- ── TOPNAV ─────────────────────────────────────────────── -->
+<nav id="nav">
+  <a class="nav-btn" href="/dashboard" title="Dashboard">
+    <i data-lucide="layout-dashboard"></i> Dashboard
+  </a>
+  <div class="nav-sep"></div>
+  <a class="nav-btn active" href="/tool" title="Angebote & Rechnungen">
+    <i data-lucide="file-text"></i> Dokumente
+  </a>
+  <div class="nav-sep"></div>
+  <!-- Sidebar-Panel-Shortcuts -->
+  <button class="nav-btn" onclick="showPanel('doc',this)" title="Einstellungen" id="nav-doc">
+    <i data-lucide="sliders-horizontal"></i> Einstellungen
   </button>
   <button class="nav-btn" onclick="newDoc(this)" title="Neues Dokument" id="nav-new">
-    <i data-lucide="plus"></i>
+    <i data-lucide="plus"></i> Neu
   </button>
-  <div class="nav-sep"></div>
   <button class="nav-btn" onclick="showPanel('customers',this)" title="Kunden" id="nav-customers">
-    <i data-lucide="users"></i>
+    <i data-lucide="users"></i> Kunden
   </button>
   <button class="nav-btn" onclick="showPanel('library',this)" title="Leistungen" id="nav-library">
-    <i data-lucide="package"></i>
+    <i data-lucide="package"></i> Bibliothek
   </button>
-  <div class="nav-sep"></div>
   <button class="nav-btn" onclick="showPanel('history',this)" title="Verlauf" id="nav-history">
-    <i data-lucide="clock"></i>
+    <i data-lucide="clock"></i> Verlauf
   </button>
   <button class="nav-btn" onclick="showPanel('email',this)" title="E-Mail" id="nav-email">
-    <i data-lucide="mail"></i>
+    <i data-lucide="mail"></i> E-Mail
+  </button>
+  <div class="nav-spacer"></div>
+  <button class="nav-icon-btn" onclick="saveDoc()" title="Speichern">
+    <i data-lucide="save"></i>
+  </button>
+  <button class="nav-icon-btn" onclick="printPDF()" title="PDF Download" style="color:var(--accent);">
+    <i data-lucide="download"></i>
   </button>
   <div class="nav-sep"></div>
-  <button class="nav-btn" onclick="showPanel('data',this)" title="Daten" id="nav-data">
-    <i data-lucide="database"></i>
-  </button>
-  <div style="flex:1"></div>
-  <a href="/dashboard" class="nav-btn" title="Dashboard" style="text-decoration:none;">
-    <i data-lucide="layout-dashboard"></i>
-  </a>
-  <button class="nav-btn" id="nav-logout" onclick="signOut()" title="Abmelden">
+  <button class="nav-icon-btn" onclick="signOut()" title="Abmelden">
     <i data-lucide="log-out"></i>
   </button>
-</div>
+</nav>
+
+<!-- ── CONTENT WRAP ──────────────────────────────────────── -->
+<div id="content-wrap">
 
 <!-- ── SIDEBAR ───────────────────────────────────────────── -->
 <div id="sidebar">
@@ -651,19 +671,12 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 <!-- ── MAIN ──────────────────────────────────────────────── -->
 <div id="main">
 
-  <!-- Top bar -->
+  <!-- Doc-type toggle bar (schmal, nur Angebot/Rechnung) -->
   <div id="topbar">
     <div class="doc-type-toggle">
       <button class="doc-type-btn active" id="typ-angebot" onclick="setTyp('angebot',this)">Angebot</button>
       <button class="doc-type-btn" id="typ-rechnung" onclick="setTyp('rechnung',this)">Rechnung</button>
     </div>
-    <div class="spacer"></div>
-    <button class="btn btn-ghost" onclick="saveDoc()">
-      <i data-lucide="save"></i> Speichern
-    </button>
-    <button class="btn btn-primary" onclick="printPDF()">
-      <i data-lucide="download"></i> PDF
-    </button>
   </div>
 
   <!-- PAGE 1 -->
@@ -821,6 +834,8 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
   </div><!-- /page2 -->
 
 </div><!-- /main -->
+
+</div><!-- /content-wrap -->
 
 <!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
