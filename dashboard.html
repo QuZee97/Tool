@@ -289,6 +289,7 @@ table.dash-table tbody td.r{text-align:right;}
   <a class="nav-btn" href="/steuer">
     <i data-lucide="calculator"></i> Steuer
   </a>
+
   <div class="nav-spacer"></div>
   <button class="nav-btn" style="background:var(--accent);color:#111;" onclick="goNew()">
     <i data-lucide="plus"></i> Neues Dokument
@@ -583,8 +584,43 @@ function openPreview(doc){
   const titleStr = `${isRe ? 'Rechnung' : 'Angebot'} ${doc.nr || ''}${firma ? ' – ' + firma : ''}`;
   $('preview-modal-title').textContent = titleStr;
 
-  // Render the document HTML
-  $('preview-body').innerHTML = buildDocHTML(doc, lang, tax, isRe);
+  // Prefer stored HTML snapshot (pixel-perfect match to actual export)
+  const body = $('preview-body');
+  if(doc.pdf_html){
+    try{
+      const snap = JSON.parse(doc.pdf_html);
+      // Render in a self-contained shadow via srcdoc iframe for style isolation
+      const iframeHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#f5f5f5;padding:24px;font-family:'Helvetica Neue',Arial,sans-serif;}
+.doc-page{background:#fff;max-width:700px;margin:0 auto;padding:28mm 20mm;box-shadow:0 2px 20px rgba(0,0,0,.15);font-size:12px;color:#222;}
+${snap.css||''}
+/* override screen-only styles for preview */
+#page1,#page2{display:block!important;page-break-after:unset!important;}
+.no-print{display:none!important;}
+input,select,textarea{border:none!background:transparent;font-family:inherit;}
+</style></head><body>
+<div class="doc-page" id="page1">${snap.p1||''}</div>
+${snap.p2?`<div class="doc-page" id="page2" style="margin-top:24px;">${snap.p2}</div>`:''}
+</body></html>`;
+      body.innerHTML='';
+      const iframe=document.createElement('iframe');
+      iframe.style.cssText='width:100%;min-height:900px;border:none;border-radius:0 0 8px 8px;display:block;';
+      iframe.srcdoc=iframeHTML;
+      body.appendChild(iframe);
+      // Adjust iframe height after load
+      iframe.addEventListener('load',()=>{
+        try{iframe.style.height=(iframe.contentDocument.body.scrollHeight+48)+'px';}catch{}
+      });
+    }catch{
+      // fallback to re-render
+      body.innerHTML = buildDocHTML(doc, lang, tax, isRe);
+    }
+  } else {
+    // No snapshot yet – show re-rendered preview with a hint
+    body.innerHTML = `<div style="padding:10px 24px 0;font-size:11px;color:#888;text-align:center;">Vorschau basiert auf gespeicherten Feldern. Für eine exakte Vorschau das Dokument erneut speichern.</div>` + buildDocHTML(doc, lang, tax, isRe);
+  }
 
   // Open overlay
   $('preview-overlay').classList.add('open');
@@ -630,26 +666,31 @@ async function downloadDocPDF(doc){
   const firma = doc.firma || doc.ansprechpartner || '';
   const filename = firma ? `${doc.nr || 'Dokument'} – ${firma}` : (doc.nr || 'Dokument');
 
-  // Build temp div with page1 content, extract HTML + CSS
-  const tmpDiv = document.createElement('div');
-  tmpDiv.style.cssText = 'position:absolute;left:-9999px;top:0;width:794px;';
-  tmpDiv.innerHTML = buildDocHTMLForPDF(doc, lang, tax, isRe);
-  document.body.appendChild(tmpDiv);
+  let p1html='', p2html='', css='';
 
-  const page1el = tmpDiv.querySelector('#pdf-page1');
-  const page2el = tmpDiv.querySelector('#pdf-page2');
-  const p1html = page1el ? page1el.innerHTML : '';
-  const p2html = (!isRe && page2el) ? page2el.innerHTML : '';
+  // Prefer stored HTML snapshot (exact match to saved export)
+  if(doc.pdf_html){
+    try{
+      const snap=JSON.parse(doc.pdf_html);
+      p1html=snap.p1||'';
+      p2html=snap.p2||'';
+      css=snap.css||'';
+    }catch{}
+  }
 
-  document.body.removeChild(tmpDiv);
-
-  // Grab existing CSS from the page
-  let css = '';
-  try {
-    css = Array.from(document.styleSheets).reduce((a,ss)=>{
-      try{return a+Array.from(ss.cssRules).map(r=>r.cssText).join('\n');}catch{return a;}
-    },'');
-  } catch{}
+  // Fallback: re-render from data (legacy docs without snapshot)
+  if(!p1html){
+    const tmpDiv = document.createElement('div');
+    tmpDiv.style.cssText = 'position:absolute;left:-9999px;top:0;width:794px;';
+    tmpDiv.innerHTML = buildDocHTMLForPDF(doc, lang, tax, isRe);
+    document.body.appendChild(tmpDiv);
+    const page1el = tmpDiv.querySelector('#pdf-page1');
+    const page2el = tmpDiv.querySelector('#pdf-page2');
+    p1html = page1el ? page1el.innerHTML : '';
+    p2html = (!isRe && page2el) ? page2el.innerHTML : '';
+    document.body.removeChild(tmpDiv);
+    try{css=Array.from(document.styleSheets).reduce((a,ss)=>{try{return a+Array.from(ss.cssRules).map(r=>r.cssText).join('\n');}catch{return a;}},'')}catch{}
+  }
 
   toast('PDF wird erstellt …');
   try {
@@ -723,9 +764,9 @@ function buildDocHTML(doc, lang, tax, isRe){
   // Intro text
   let intro = '';
   if(isRe){
-    intro = l ? `Dear ${doc.ansprechpartner||'Sir or Madam'},<br>we hereby invoice the following services:` : `Sehr geehrte Damen und Herren,<br>hiermit stellen wir Ihnen folgende Leistungen in Rechnung:`;
+    intro = l ? `Thank you for your order. Please find below our invoice for services rendered:` : `Vielen Dank für Ihren Auftrag. Für die erbrachten Leistungen stelle ich Ihnen folgendes in Rechnung:`;
   } else {
-    intro = l ? `Dear ${doc.ansprechpartner||'Sir or Madam'},<br>we are pleased to submit the following offer:` : `Sehr geehrte Damen und Herren,<br>wir unterbreiten Ihnen gerne folgendes Angebot:`;
+    intro = l ? `Thank you for your interest. Please find our quote for the described services below:` : `vielen Dank für Ihr Interesse. Gerne unterbreite ich Ihnen folgendes Angebot für die beschriebenen Leistungen:`;
   }
 
   // Positions rows
