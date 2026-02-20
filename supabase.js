@@ -102,6 +102,40 @@ const DB = {
     if (error) throw error;
   },
 
+  // ── TRANSAKTIONEN (CSV-Import) ─────────────────────────────
+  // Tabelle: transactions (id, user_id, datum, empfaenger, verwendungszweck,
+  //          beschreibung, betrag, is_einnahme, quelle_datei, created_at)
+  async saveTransactions(rows) {
+    const user = await getUser();
+    if (!rows.length) return [];
+    const payload = rows.map(r => ({
+      user_id:          user.id,
+      datum:            r.datum || null,
+      empfaenger:       r.empfaenger || null,
+      verwendungszweck: r.verwendungszweck || null,
+      beschreibung:     r.beschreibung || null,
+      betrag:           r.betrag || 0,
+      is_einnahme:      r.isEinnahme || false,
+      quelle_datei:     r.quellDatei || null,
+    }));
+    const { data, error } = await db.from('transactions').insert(payload).select();
+    if (error) throw error;
+    return data || [];
+  },
+  async getTransactions(year) {
+    let q = db.from('transactions').select('*').order('datum', { ascending: false });
+    if (year) {
+      q = q.gte('datum', `${year}-01-01`).lte('datum', `${year}-12-31`);
+    }
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  },
+  async deleteTransaction(id) {
+    const { error } = await db.from('transactions').delete().eq('id', id);
+    if (error) throw error;
+  },
+
   // ── BELEGE / RECEIPTS (Supabase Storage) ──────────────────
   // Bucket: "receipts" – muss einmalig in Supabase Dashboard → Storage → New Bucket
   // erstellt werden (Name: "receipts", Private bucket aktivieren).
