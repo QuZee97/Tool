@@ -37,6 +37,7 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 #app{display:flex;flex:1;overflow:hidden;}
 #sidebar{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;padding:20px 16px;}
 #main{flex:1;overflow-y:auto;padding:28px 32px;}
+#main>*{max-width:760px;}
 #main::-webkit-scrollbar{width:5px;}
 #main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 
@@ -103,18 +104,29 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 
 /* Upload-Typ-Chips */
 .upload-type-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
-.upload-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;border:1px solid;font-size:10px;font-weight:600;}
-.upload-chip.csv{background:#1a2a3f;border-color:var(--blue);color:var(--blue);}
-.upload-chip.img{background:var(--green-bg);border-color:var(--green);color:var(--green);}
-.upload-chip.pdf{background:var(--red-bg);border-color:var(--red);color:var(--red);}
+.upload-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;border:1px solid var(--border2);font-size:10px;font-weight:600;background:var(--surface2);color:var(--text3);}
+.upload-chip.csv,.upload-chip.img,.upload-chip.pdf{background:var(--surface2);border-color:var(--border2);color:var(--text3);}
 
 /* Datei-Queue */
 .file-queue{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+
+/* Belege-Liste */
+.beleg-row{display:grid;grid-template-columns:32px 1fr auto auto auto;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;}
+.beleg-row:last-child{border-bottom:none;}
+.beleg-row:hover{background:var(--surface2);}
+.beleg-icon{width:30px;height:30px;border-radius:var(--radius-sm);background:var(--surface3);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.beleg-icon svg{width:14px;height:14px;stroke-width:1.8;color:var(--text3);}
+.beleg-name{font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.beleg-sub{font-size:10px;color:var(--text3);margin-top:1px;}
+.beleg-date{font-size:11px;color:var(--text3);white-space:nowrap;}
+.beleg-size{font-size:10px;color:var(--text3);white-space:nowrap;}
+.beleg-actions{display:flex;gap:4px;}
+.beleg-btn{width:26px;height:26px;border:none;background:transparent;color:var(--text3);cursor:pointer;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;transition:.12s;}
+.beleg-btn:hover{background:var(--surface3);color:var(--text);}
+.beleg-btn svg{width:13px;height:13px;stroke-width:1.8;}
 .file-item{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;}
-.file-item-icon{width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
-.file-item-icon.csv{background:#1a2a3f;color:var(--blue);}
-.file-item-icon.img{background:var(--green-bg);color:var(--green);}
-.file-item-icon.pdf{background:var(--red-bg);color:var(--red);}
+.file-item-icon{width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;background:var(--surface3);color:var(--text3);}
+.file-item-icon.csv,.file-item-icon.img,.file-item-icon.pdf{background:var(--surface3);color:var(--text3);}
 .file-item-name{flex:1;font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .file-item-size{font-size:10px;color:var(--text3);white-space:nowrap;}
 .file-item-status{font-size:10px;white-space:nowrap;}
@@ -278,6 +290,9 @@ table.entry-table tbody tr:hover{background:var(--surface2);}
   </button>
   <button class="step-btn" id="step-btn-4" onclick="goPage(4)">
     <span class="step-num">4</span> UStVA-Ergebnis
+  </button>
+  <button class="step-btn" id="step-btn-5" onclick="goPage(5)">
+    <span class="step-num">5</span> Belege
   </button>
 
   <div class="sb-section">Zusammenfassung</div>
@@ -520,6 +535,53 @@ table.entry-table tbody tr:hover{background:var(--surface2);}
     </div>
   </div>
 
+  <!-- ── SEITE 5: BELEGE ── -->
+  <div class="page" id="page-5">
+    <div class="page-title">Belege</div>
+    <div class="page-sub">Alle hochgeladenen Belege, Rechnungen und Kontoauszüge – dauerhaft gespeichert und abrufbar.</div>
+
+    <div class="hinweis"><i data-lucide="info"></i>
+      <div>Belege werden in Supabase Storage gesichert. Einmalige Einrichtung nötig: <strong>Supabase Dashboard → Storage → New Bucket → Name: <code style="color:var(--accent);">receipts</code> → Private</strong>. Danach funktioniert der Upload automatisch.</div>
+    </div>
+
+    <!-- Upload neuer Beleg -->
+    <div class="card">
+      <div class="card-title">Beleg hochladen</div>
+      <div class="card-sub">PDF, Foto, Screenshot oder CSV – wird dauerhaft gespeichert</div>
+      <div class="import-zone" id="beleg-zone" ondragover="onBelegDragOver(event)" ondragleave="onBelegDragLeave(event)" ondrop="onBelegDrop(event)">
+        <input type="file" id="beleg-input" multiple accept=".csv,.jpg,.jpeg,.png,.heic,.heif,.webp,.pdf" onchange="onBelegSelect(this.files)">
+        <i data-lucide="upload-cloud" class="upload-icon"></i>
+        <p><strong>Datei ablegen</strong> oder klicken · PDF, Foto, CSV</p>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+        <input id="beleg-desc" type="text" placeholder="Beschreibung (optional)" style="flex:2;min-width:160px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:6px 9px;outline:none;font-family:var(--font);">
+        <input id="beleg-datum" type="date" style="flex:1;min-width:120px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:6px 9px;outline:none;font-family:var(--font);">
+        <input id="beleg-betrag" type="text" placeholder="Betrag €" style="flex:1;min-width:80px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:6px 9px;outline:none;font-family:var(--font);">
+      </div>
+      <div id="beleg-pending-list" style="display:none;margin-top:8px;"></div>
+      <button class="btn btn-primary" id="btn-beleg-upload" style="margin-top:10px;display:none;" onclick="uploadPendingBelege()">
+        <i data-lucide="upload"></i> <span id="btn-beleg-txt">Hochladen</span>
+      </button>
+    </div>
+
+    <!-- Beleg-Liste -->
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+        <span style="font-size:12px;font-weight:600;">Gespeicherte Belege</span>
+        <span style="flex:1;"></span>
+        <input id="beleg-search" type="text" placeholder="Suche …" oninput="renderBelege()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:4px 9px;outline:none;font-family:var(--font);width:160px;">
+        <button class="btn btn-ghost btn-sm" onclick="loadBelege()"><i data-lucide="refresh-cw"></i></button>
+      </div>
+      <div id="beleg-list-wrap">
+        <div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">Lade Belege …</div>
+      </div>
+    </div>
+
+    <div style="margin-top:4px;">
+      <button class="btn btn-ghost" onclick="goPage(4)"><i data-lucide="arrow-left"></i> Zurück zum Ergebnis</button>
+    </div>
+  </div>
+
 </div><!-- /main -->
 </div><!-- /app -->
 
@@ -583,6 +645,7 @@ function goPage(n){
   currentPage=n;
   if(n===1)refreshIncomeList();
   if(n===2)renderExpenses();
+  if(n===5)loadBelege();
   updateSidebar();
 }
 
@@ -843,23 +906,21 @@ async function analyzeUploadedFiles(){
         const text=await q.file.text();
         const csvEntries=parseCSV(text);
         if(!csvEntries.length){q.status='err';q.error='Keine Einträge erkannt';continue;}
-        // In Batches von 15 senden um 504-Timeouts zu vermeiden
-        const CSV_BATCH=15;
+        // In Batches von 10 senden – kompakte Einträge für schnelle KI-Antwort
+        const CSV_BATCH=10;
         const allResults=[];
         for(let bi=0;bi<csvEntries.length;bi+=CSV_BATCH){
-          const batch=csvEntries.slice(bi,bi+CSV_BATCH);
+          // Nur relevante Felder senden (weniger Token = schneller)
+          const batch=csvEntries.slice(bi,bi+CSV_BATCH).map(e=>({
+            id:e.id, beschreibung:(e.beschreibung||e.text||'').slice(0,80), betrag:e.betrag, datum:e.datum||''
+          }));
           const pct=Math.round((bi/csvEntries.length)*100);
-          $('upload-loading-text').textContent=`KI kategorisiert ${bi+1}–${Math.min(bi+CSV_BATCH,csvEntries.length)} / ${csvEntries.length} Einträge … ${pct}%`;
-          const ctrl=new AbortController();
-          const timeout=setTimeout(()=>ctrl.abort(),25000);
-          try{
-            const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
-              body:JSON.stringify({entries:batch,mode:'categorize'}),signal:ctrl.signal});
-            clearTimeout(timeout);
-            if(!res.ok){const e=await res.json();throw new Error(e.error||'API-Fehler');}
-            const data=await res.json();
-            allResults.push(...(data.results||[]));
-          }catch(fe){clearTimeout(timeout);if(fe.name==='AbortError')throw new Error('Timeout – Batch zu groß, bitte kleinere CSV versuchen');throw fe;}
+          $('upload-loading-text').textContent=`KI kategorisiert ${bi+1}–${Math.min(bi+CSV_BATCH,csvEntries.length)} / ${csvEntries.length} … ${pct}%`;
+          const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({entries:batch,mode:'categorize'})});
+          if(!res.ok){const e=await res.json();throw new Error(e.error||'API-Fehler '+res.status);}
+          const data=await res.json();
+          allResults.push(...(data.results||[]));
         }
         q.results=allResults;
         q.status='done';
@@ -888,6 +949,17 @@ async function analyzeUploadedFiles(){
       });
       if(added)toast(`${q.file.name}: ${added} Ausgaben importiert ✓`);
       else toast(`${q.file.name}: ${q.results.length} Einträge (nur Einnahmen?) – bitte prüfen`);
+
+      // Datei automatisch in Supabase Storage sichern
+      try{
+        const firstR=q.results[0]||{};
+        await DB.uploadReceipt(q.file,{
+          beschreibung:firstR.beschreibung||q.file.name,
+          datum:firstR.datum||null,
+          kategorie:firstR.kategorie||null,
+          betrag:firstR.betrag_brutto||null,
+        });
+      }catch(upE){console.warn('Beleg-Upload fehlgeschlagen:',upE.message);}
 
     }catch(e){
       q.status='err';q.error=e.message;
@@ -937,11 +1009,13 @@ async function startAIAnalysis(){
   $('btn-to-ustva').style.display='none';
   $('ai-progress-text').textContent=allEntries.length;
 
-  // In Batches von 15 senden um Timeouts zu vermeiden
-  const batchSize=15;
+  // In Batches von 10 senden – kompakt für schnelle Antwort
+  const batchSize=10;
   aiResults=[];
   for(let i=0;i<allEntries.length;i+=batchSize){
-    const batch=allEntries.slice(i,i+batchSize);
+    const batch=allEntries.slice(i,i+batchSize).map(e=>({
+      id:e.id, beschreibung:(e.beschreibung||e.text||'').slice(0,80), betrag:e.betrag, datum:e.datum||''
+    }));
     const pct=Math.round((i/allEntries.length)*100);
     $('ai-progress-bar').style.width=pct+'%';
     try{
@@ -1333,6 +1407,118 @@ async function init(){
   updateSidebar();
   $('loading-screen').style.display='none';
   lucide.createIcons();
+}
+
+// ── BELEGE ────────────────────────────────────────────────
+let belegPending = []; // { file, name, size }
+let allBelege = [];
+
+function onBelegDragOver(e){
+  e.preventDefault();
+  $('beleg-zone').classList.add('drag');
+}
+function onBelegDragLeave(){
+  $('beleg-zone').classList.remove('drag');
+}
+function onBelegDrop(e){
+  e.preventDefault();
+  $('beleg-zone').classList.remove('drag');
+  onBelegSelect(e.dataTransfer.files);
+}
+function onBelegSelect(files){
+  if(!files||!files.length)return;
+  Array.from(files).forEach(f=>{
+    if(!belegPending.find(p=>p.file.name===f.name&&p.file.size===f.size)){
+      belegPending.push({file:f});
+    }
+  });
+  renderPendingBelege();
+  $('beleg-pending-list').style.display=belegPending.length?'block':'none';
+  $('btn-beleg-upload').style.display=belegPending.length?'inline-flex':'none';
+  $('btn-beleg-txt').textContent=`${belegPending.length} Datei${belegPending.length>1?'en':''} hochladen`;
+}
+function renderPendingBelege(){
+  const wrap=$('beleg-pending-list');
+  if(!belegPending.length){wrap.innerHTML='';return;}
+  const fmtSize=b=>b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';
+  wrap.innerHTML=belegPending.map((p,i)=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);">
+      <i data-lucide="file" style="width:13px;height:13px;color:var(--text3);flex-shrink:0;"></i>
+      <span style="flex:1;font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${p.file.name}</span>
+      <span style="font-size:10px;color:var(--text3);flex-shrink:0;">${fmtSize(p.file.size)}</span>
+      <button onclick="belegPending.splice(${i},1);renderPendingBelege();if(!belegPending.length){$('beleg-pending-list').style.display='none';$('btn-beleg-upload').style.display='none';}" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:2px;display:flex;align-items:center;"><i data-lucide="x" style="width:12px;height:12px;"></i></button>
+    </div>`).join('');
+  lucide.createIcons();
+}
+async function uploadPendingBelege(){
+  if(!belegPending.length)return;
+  const desc=$('beleg-desc').value.trim();
+  const datum=$('beleg-datum').value||null;
+  const betrag=parseAmt($('beleg-betrag').value)||null;
+  const btn=$('btn-beleg-upload');
+  btn.disabled=true;
+  const origTxt=$('btn-beleg-txt').textContent;
+  let ok=0,fail=0;
+  for(let i=0;i<belegPending.length;i++){
+    const p=belegPending[i];
+    $('btn-beleg-txt').textContent=`Upload ${i+1}/${belegPending.length} …`;
+    try{
+      await DB.uploadReceipt(p.file,{beschreibung:desc||p.file.name,datum,betrag});
+      ok++;
+    }catch(e){fail++;toast(`Fehler: ${e.message}`);}
+  }
+  btn.disabled=false;
+  belegPending=[];
+  renderPendingBelege();
+  $('beleg-pending-list').style.display='none';
+  $('btn-beleg-upload').style.display='none';
+  $('beleg-desc').value='';$('beleg-datum').value='';$('beleg-betrag').value='';
+  if(ok)toast(`${ok} Beleg${ok>1?'e':''} hochgeladen ✓`);
+  await loadBelege();
+}
+async function loadBelege(){
+  $('beleg-list-wrap').innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">Lade Belege …</div>';
+  try{
+    allBelege=await DB.getReceipts();
+    renderBelege();
+  }catch(e){
+    $('beleg-list-wrap').innerHTML=`<div style="padding:24px;text-align:center;color:var(--red);font-size:12px;">Fehler: ${e.message}</div>`;
+  }
+}
+function renderBelege(){
+  const q=($('beleg-search')||{}).value?.toLowerCase().trim()||'';
+  const list=q?allBelege.filter(b=>(b.beschreibung||'').toLowerCase().includes(q)||(b.filename||'').toLowerCase().includes(q)):allBelege;
+  if(!list.length){
+    $('beleg-list-wrap').innerHTML=`<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">${q?'Keine Treffer.':'Noch keine Belege gespeichert.'}</div>`;
+    return;
+  }
+  const fmtSize=b=>!b?'':b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB';
+  const ext=n=>n?n.split('.').pop().toLowerCase():'';
+  const extIcon=e=>{if(['jpg','jpeg','png','heic','heif','webp'].includes(e))return'image';if(e==='pdf')return'file-text';if(e==='csv')return'table';return'file';}
+  $('beleg-list-wrap').innerHTML=list.map(b=>`
+    <div class="beleg-row">
+      <div class="beleg-icon"><i data-lucide="${extIcon(ext(b.filename))}" style="width:14px;height:14px;"></i></div>
+      <div style="flex:1;min-width:0;">
+        <div class="beleg-name">${b.beschreibung||b.filename}</div>
+        <div class="beleg-sub">${b.filename}${b.kategorie?' · '+b.kategorie:''}${b.betrag?' · '+fmt(b.betrag):''}</div>
+      </div>
+      <div class="beleg-date">${b.datum?fmtDate(b.datum):''}</div>
+      <div style="font-size:10px;color:var(--text3);min-width:48px;text-align:right;">${fmtSize(b.size_bytes)}</div>
+      <div class="beleg-actions">
+        ${b.signed_url?`<a href="${b.signed_url}" target="_blank" class="beleg-btn" title="Öffnen"><i data-lucide="external-link" style="width:12px;height:12px;"></i></a>`:''}
+        ${b.signed_url?`<a href="${b.signed_url}" download="${b.filename}" class="beleg-btn" title="Download"><i data-lucide="download" style="width:12px;height:12px;"></i></a>`:''}
+        <button class="beleg-btn" style="color:var(--red);" title="Löschen" onclick="deleteBelegConfirm('${b.id}','${b.storage_path}')"><i data-lucide="trash-2" style="width:12px;height:12px;"></i></button>
+      </div>
+    </div>`).join('');
+  lucide.createIcons();
+}
+async function deleteBelegConfirm(id,path){
+  if(!confirm('Beleg dauerhaft löschen?'))return;
+  try{
+    await DB.deleteReceipt(id,path);
+    toast('Beleg gelöscht');
+    await loadBelege();
+  }catch(e){toast('Fehler: '+e.message);}
 }
 
 async function doSignOut(){await signOut();}
