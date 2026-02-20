@@ -64,6 +64,28 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 }
 .toggle-bar button.active{background:var(--accent);color:#111;}
 
+/* ── DATE RANGE BAR ── */
+.date-range-bar{
+  display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;
+}
+.date-range-bar label{font-size:11px;color:var(--text3);white-space:nowrap;}
+.date-range-bar input[type=date]{
+  background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);
+  color:var(--text);font-size:11px;padding:5px 9px;outline:none;font-family:var(--font);
+  cursor:pointer;
+}
+.date-range-bar input[type=date]:focus{border-color:var(--accent);}
+.range-sep{font-size:11px;color:var(--text3);}
+.quick-range-btns{display:flex;gap:3px;flex-wrap:wrap;}
+.qr-btn{
+  padding:4px 9px;border:1px solid var(--border2);border-radius:var(--radius-sm);
+  background:transparent;color:var(--text3);font-size:10px;font-weight:600;
+  cursor:pointer;font-family:var(--font);transition:.12s;white-space:nowrap;
+}
+.qr-btn:hover{background:var(--surface3);color:var(--text);}
+.qr-btn.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);}
+.date-range-bar .range-label{font-size:11px;color:var(--text2);font-weight:600;white-space:nowrap;}
+
 /* ── KPI CARDS ── */
 .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;}
 @media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
@@ -307,12 +329,31 @@ table.dash-table tbody td.r{text-align:right;}
 <div id="content">
 
   <!-- KPI Header Row -->
-  <div class="section-row" style="margin-bottom:14px;">
+  <div class="section-row" style="margin-bottom:10px;">
     <div class="section-hd">Übersicht</div>
     <div class="toggle-bar" id="kpi-toggle">
       <button class="active" onclick="setMode('netto',this)">Netto</button>
       <button onclick="setMode('brutto',this)">Brutto</button>
     </div>
+  </div>
+
+  <!-- Date Range Bar -->
+  <div class="date-range-bar">
+    <div class="quick-range-btns">
+      <button class="qr-btn active" id="qr-year" onclick="setQuickRange('year',this)">Dieses Jahr</button>
+      <button class="qr-btn" id="qr-lastyear" onclick="setQuickRange('lastyear',this)">Letztes Jahr</button>
+      <button class="qr-btn" id="qr-q1" onclick="setQuickRange('q1',this)">Q1</button>
+      <button class="qr-btn" id="qr-q2" onclick="setQuickRange('q2',this)">Q2</button>
+      <button class="qr-btn" id="qr-q3" onclick="setQuickRange('q3',this)">Q3</button>
+      <button class="qr-btn" id="qr-q4" onclick="setQuickRange('q4',this)">Q4</button>
+      <button class="qr-btn" id="qr-all" onclick="setQuickRange('all',this)">Gesamt</button>
+    </div>
+    <div style="flex:1;"></div>
+    <label>Von</label>
+    <input type="date" id="range-from" onchange="onRangeChange()">
+    <span class="range-sep">–</span>
+    <label>Bis</label>
+    <input type="date" id="range-to" onchange="onRangeChange()">
   </div>
 
   <!-- KPI Cards -->
@@ -448,6 +489,9 @@ let allDocs = [];
 let filteredDocs = [];
 let viewMode = 'netto'; // 'netto' | 'brutto'
 let monthChart = null;
+let rangeFrom = null; // 'YYYY-MM-DD' or null = unbounded
+let rangeTo   = null;
+let rangeYear = new Date().getFullYear(); // which year to show in the bar chart
 
 const fmt = n => n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+'\u00a0€';
 const fmtDate = v => {if(!v)return'–';const[y,m,d]=v.split('-');return`${d}.${m}.${y}`;};
@@ -469,19 +513,74 @@ function docVal(doc){return viewMode==='brutto'?docBrutto(doc):docNetto(doc);}
 // ── MODUS-TOGGLE ──────────────────────────────────────────
 function setMode(mode, btn){
   viewMode = mode;
-  // Toggle-Buttons
   document.querySelectorAll('#kpi-toggle button').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  // Labels updaten
-  const label = mode==='brutto' ? 'Brutto' : 'Netto';
-  $('lbl-year').textContent  = `Umsatz dieses Jahr (${label})`;
-  $('lbl-month').textContent = `Umsatz diesen Monat (${label})`;
-  $('chart-title').textContent = `Umsatz pro Monat – ${label} (aktuelles Jahr)`;
-  $('top-title').textContent   = `Top Kunden – ${label} gesamt`;
-  // Alles neu rendern
-  buildKPIs();
-  updateMonthChart();
-  buildTopCustomers();
+  refreshKPILabels();
+  buildKPIs(); updateMonthChart(); buildTopCustomers();
+}
+
+// ── DATE RANGE ─────────────────────────────────────────────
+function setQuickRange(key, btn){
+  document.querySelectorAll('.qr-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth()+1;
+  // Determine quarter for current month
+  const curQ = Math.ceil(m/3);
+  let from, to;
+  if(key==='year'){
+    from=`${y}-01-01`; to=`${y}-12-31`; rangeYear=y;
+  } else if(key==='lastyear'){
+    from=`${y-1}-01-01`; to=`${y-1}-12-31`; rangeYear=y-1;
+  } else if(key==='q1'){
+    from=`${y}-01-01`; to=`${y}-03-31`; rangeYear=y;
+  } else if(key==='q2'){
+    from=`${y}-04-01`; to=`${y}-06-30`; rangeYear=y;
+  } else if(key==='q3'){
+    from=`${y}-07-01`; to=`${y}-09-30`; rangeYear=y;
+  } else if(key==='q4'){
+    from=`${y}-10-01`; to=`${y}-12-31`; rangeYear=y;
+  } else { // all
+    from=null; to=null; rangeYear=y;
+  }
+  rangeFrom=from; rangeTo=to;
+  $('range-from').value=from||'';
+  $('range-to').value=to||'';
+  refreshKPILabels();
+  buildKPIs(); updateMonthChart(); buildTopCustomers();
+}
+function onRangeChange(){
+  // Custom date range – deactivate quick buttons
+  document.querySelectorAll('.qr-btn').forEach(b=>b.classList.remove('active'));
+  rangeFrom=$('range-from').value||null;
+  rangeTo=$('range-to').value||null;
+  // Determine chart year from rangeFrom
+  if(rangeFrom) rangeYear=parseInt(rangeFrom.slice(0,4));
+  refreshKPILabels();
+  buildKPIs(); updateMonthChart(); buildTopCustomers();
+}
+function inRange(datum){
+  if(!datum) return false;
+  if(rangeFrom && datum < rangeFrom) return false;
+  if(rangeTo   && datum > rangeTo)   return false;
+  return true;
+}
+function rangeLabel(){
+  if(!rangeFrom && !rangeTo) return 'Gesamt';
+  const fd=rangeFrom?fmtDate(rangeFrom):'';
+  const td=rangeTo?fmtDate(rangeTo):'';
+  if(fd&&td) return `${fd} – ${td}`;
+  if(fd) return `ab ${fd}`;
+  return `bis ${td}`;
+}
+function refreshKPILabels(){
+  const label=viewMode==='brutto'?'Brutto':'Netto';
+  const rl=rangeLabel();
+  $('lbl-year').textContent=`Umsatz (${rl}, ${label})`;
+  $('lbl-month').textContent=`Ø pro Monat (${label})`;
+  $('chart-title').textContent=`Umsatz pro Monat – ${label} (${rangeYear})`;
+  $('top-title').textContent=`Top Kunden – ${label} (${rl})`;
 }
 
 // ── STATUS ─────────────────────────────────────────────────
@@ -888,25 +987,22 @@ function buildYearFilter(){
 
 // ── KPIs ──────────────────────────────────────────────────
 function buildKPIs(){
-  const now=new Date(),year=now.getFullYear(),month=now.getMonth();
   const re=allDocs.filter(d=>d.typ==='rechnung');
   const ang=allDocs.filter(d=>d.typ==='angebot');
 
-  // Jahr
-  const reYear=re.filter(d=>d.datum&&d.datum.startsWith(String(year)));
-  const valYear=reYear.reduce((s,d)=>s+docVal(d),0);
-  $('kpi-year').textContent=fmt(valYear);
-  $('kpi-year-sub').textContent=`${reYear.length} Rechnung${reYear.length!==1?'en':''}`;
+  // Umsatz im gewählten Zeitraum
+  const reRange=re.filter(d=>!rangeFrom&&!rangeTo ? d.datum?.startsWith(String(rangeYear)) : inRange(d.datum));
+  const valRange=reRange.reduce((s,d)=>s+docVal(d),0);
+  $('kpi-year').textContent=fmt(valRange);
+  $('kpi-year-sub').textContent=`${reRange.length} Rechnung${reRange.length!==1?'en':''}`;
 
-  // Monat
-  const mStr=`${year}-${String(month+1).padStart(2,'0')}`;
-  const reMonth=re.filter(d=>d.datum&&d.datum.startsWith(mStr));
-  const valMonth=reMonth.reduce((s,d)=>s+docVal(d),0);
-  $('kpi-month').textContent=fmt(valMonth);
-  const mn=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-  $('kpi-month-sub').textContent=`${reMonth.length} RE in ${mn[month]}`;
+  // Ø pro Monat im Zeitraum
+  const months=new Set(reRange.map(d=>d.datum?.slice(0,7)).filter(Boolean));
+  const avgMonth=months.size?valRange/months.size:0;
+  $('kpi-month').textContent=fmt(avgMonth);
+  $('kpi-month-sub').textContent=`Ø über ${months.size} Monat${months.size!==1?'e':''}`;
 
-  // Offene Angebote (immer Brutto als Volumen)
+  // Offene Angebote (zeitraumunabhängig – immer aktuell)
   const openAng=ang.filter(d=>{const s=getActiveStatus(d);return!s||s==='sent';});
   const openVol=openAng.reduce((s,d)=>s+docBrutto(d),0);
   $('kpi-open').textContent=String(openAng.length);
@@ -946,10 +1042,9 @@ function buildMonthChart(){
 }
 
 function getChartValues(){
-  const year=new Date().getFullYear();
   return Array.from({length:12},(_,m)=>{
-    const mStr=`${year}-${String(m+1).padStart(2,'0')}`;
-    return allDocs.filter(d=>d.typ==='rechnung'&&d.datum&&d.datum.startsWith(mStr))
+    const mStr=`${rangeYear}-${String(m+1).padStart(2,'0')}`;
+    return allDocs.filter(d=>d.typ==='rechnung'&&d.datum&&d.datum.startsWith(mStr)&&inRange(d.datum))
       .reduce((s,d)=>s+docVal(d),0);
   });
 }
@@ -963,7 +1058,7 @@ function updateMonthChart(){
 // ── TOP KUNDEN ─────────────────────────────────────────────
 function buildTopCustomers(){
   const map={};
-  allDocs.filter(d=>d.typ==='rechnung'&&d.firma).forEach(d=>{
+  allDocs.filter(d=>d.typ==='rechnung'&&d.firma&&((!rangeFrom&&!rangeTo)?d.datum?.startsWith(String(rangeYear)):inRange(d.datum))).forEach(d=>{
     map[d.firma]=(map[d.firma]||0)+docVal(d);
   });
   const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,6);
@@ -986,6 +1081,11 @@ async function init(){
   try{allDocs=await DB.getDocuments();}catch(e){console.error(e);toast('Fehler beim Laden');}
   buildYearFilter();
   applyFilter();
+  // Init date range to current year
+  const y=new Date().getFullYear();
+  rangeFrom=`${y}-01-01`; rangeTo=`${y}-12-31`; rangeYear=y;
+  $('range-from').value=rangeFrom; $('range-to').value=rangeTo;
+  refreshKPILabels();
   buildKPIs();
   buildMonthChart();
   buildTopCustomers();
