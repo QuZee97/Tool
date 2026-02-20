@@ -482,6 +482,9 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
     <i data-lucide="database"></i>
   </button>
   <div style="flex:1"></div>
+  <a href="/dashboard" class="nav-btn" title="Dashboard" style="text-decoration:none;">
+    <i data-lucide="layout-dashboard"></i>
+  </a>
   <button class="nav-btn" id="nav-logout" onclick="signOut()" title="Abmelden">
     <i data-lucide="log-out"></i>
   </button>
@@ -1624,7 +1627,7 @@ async function printPDF(){
 // ── INIT ──────────────────────────────────────────────────
 async function init(){
   const user=await getUser();
-  if(!user){window.location.href='index.html';return;}
+  if(!user){window.location.href='/';return;}
 
   try{
     [customers,library,history,customEmailTpl]=await Promise.all([
@@ -1645,8 +1648,17 @@ async function init(){
   renderLibraryList();
   renderHistory();
   updateDataStats();
-  addPos();
-  update();
+
+  // Aus Dashboard aufgerufen? Dann Dokument direkt laden
+  const loadId=sessionStorage.getItem('loadDocId');
+  if(loadId){
+    sessionStorage.removeItem('loadDocId');
+    const idx=history.findIndex(h=>h.id===loadId);
+    if(idx>-1){loadDoc(idx);}
+    else{addPos();update();}
+  }else{
+    addPos();update();
+  }
   lucide.createIcons();
 }
 
