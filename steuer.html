@@ -90,13 +90,39 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 
 /* ── IMPORT-BEREICH ── */
 .import-zone{
-  border:2px dashed var(--border2);border-radius:var(--radius);padding:32px;
+  border:2px dashed var(--border2);border-radius:var(--radius);padding:28px 20px;
   text-align:center;cursor:pointer;transition:.15s;margin-bottom:12px;
+  position:relative;
 }
 .import-zone:hover,.import-zone.drag{border-color:var(--accent);background:var(--accent-bg);}
-.import-zone svg{width:32px;height:32px;stroke-width:1.2;color:var(--text3);margin-bottom:10px;}
+.import-zone svg.upload-icon{width:28px;height:28px;stroke-width:1.2;color:var(--text3);margin-bottom:8px;}
 .import-zone p{font-size:12px;color:var(--text3);line-height:1.7;}
 .import-zone strong{color:var(--text2);}
+.import-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+
+/* Upload-Typ-Chips */
+.upload-type-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.upload-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:10px;border:1px solid;font-size:10px;font-weight:600;}
+.upload-chip.csv{background:#1a2a3f;border-color:var(--blue);color:var(--blue);}
+.upload-chip.img{background:var(--green-bg);border-color:var(--green);color:var(--green);}
+.upload-chip.pdf{background:var(--red-bg);border-color:var(--red);color:var(--red);}
+
+/* Datei-Queue */
+.file-queue{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.file-item{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;}
+.file-item-icon{width:22px;height:22px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
+.file-item-icon.csv{background:#1a2a3f;color:var(--blue);}
+.file-item-icon.img{background:var(--green-bg);color:var(--green);}
+.file-item-icon.pdf{background:var(--red-bg);color:var(--red);}
+.file-item-name{flex:1;font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.file-item-size{font-size:10px;color:var(--text3);white-space:nowrap;}
+.file-item-status{font-size:10px;white-space:nowrap;}
+.file-item-status.ok{color:var(--green);}
+.file-item-status.err{color:var(--red);}
+.file-item-status.loading{color:var(--orange);}
+.file-item-del{width:20px;height:20px;border:none;background:none;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:3px;flex-shrink:0;}
+.file-item-del:hover{color:var(--red);background:var(--red-bg);}
+.file-item-del svg{width:11px;height:11px;}
 
 .freitext-area{width:100%;min-height:120px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:10px 12px;outline:none;font-family:var(--font);resize:vertical;line-height:1.6;}
 .freitext-area:focus{border-color:var(--accent);}
@@ -324,12 +350,39 @@ table.entry-table tbody tr:hover{background:var(--surface2);}
     <div class="page-sub">Trage alle Betriebsausgaben ein. Die KI kategorisiert sie automatisch im nächsten Schritt.</div>
 
     <div class="hinweis warn"><i data-lucide="alert-triangle"></i>
-      <div><strong>Tipp für den Import:</strong> Exportiere deinen Kontoauszug aus Kontist als CSV, oder fotografiere Belege und füge den Text unten ein. Die KI erkennt Beträge, Händler und Datum automatisch.</div>
+      <div><strong>Tipp:</strong> Lade CSV-Kontoauszüge direkt hoch, fotografiere Belege (JPG/PNG) oder exportiere PDFs – die KI liest alles automatisch aus.</div>
+    </div>
+
+    <!-- Datei-Upload -->
+    <div class="card">
+      <div class="card-title">Datei-Upload</div>
+      <div class="card-sub">Kontoauszug als CSV · Rechnung/Beleg als PDF oder Foto (JPG, PNG, HEIC) · KI erkennt Beträge automatisch</div>
+
+      <div class="upload-type-chips">
+        <span class="upload-chip csv"><i data-lucide="table-2"></i> CSV</span>
+        <span class="upload-chip img"><i data-lucide="image"></i> JPG / PNG / HEIC</span>
+        <span class="upload-chip pdf"><i data-lucide="file-text"></i> PDF</span>
+      </div>
+
+      <div class="import-zone" id="upload-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+        <input type="file" id="file-input" multiple accept=".csv,.jpg,.jpeg,.png,.heic,.heif,.webp,.pdf" onchange="onFileSelect(this.files)">
+        <i data-lucide="upload-cloud" class="upload-icon"></i>
+        <p><strong>Dateien hier ablegen</strong> oder klicken zum Auswählen<br>
+        CSV, JPG, PNG, HEIC, WEBP, PDF – mehrere Dateien gleichzeitig möglich</p>
+      </div>
+
+      <div class="file-queue" id="file-queue" style="display:none;"></div>
+
+      <div class="loading-overlay" id="upload-loading"><div class="spinner"></div> <span id="upload-loading-text">KI analysiert Dateien …</span></div>
+
+      <button class="btn btn-primary" id="btn-upload-analyze" style="display:none;margin-top:4px;" onclick="analyzeUploadedFiles()">
+        <i data-lucide="sparkles"></i> Alle Dateien analysieren
+      </button>
     </div>
 
     <div class="card">
       <div class="card-title">Freitext-Import (KI)</div>
-      <div class="card-sub">Füge rohen Text aus Kontoauszügen, E-Mail-Bestätigungen oder abgetippten Belegen ein. Die KI extrahiert alle Transaktionen.</div>
+      <div class="card-sub">Alternativ: Text aus Kontoauszügen oder E-Mail-Bestätigungen direkt einfügen</div>
       <textarea class="freitext-area" id="freitext-input" placeholder="Beispiel:&#10;15.01.2026 Adobe Creative Cloud 54,99 EUR&#10;22.01.2026 Zoom Pro Abo 15,99 USD&#10;03.02.2026 Bewirtung Kundenessen Restaurant Moritz 87,50 EUR&#10;..."></textarea>
       <div class="loading-overlay" id="freitext-loading"><div class="spinner"></div> KI analysiert Text …</div>
       <button class="btn btn-primary" style="margin-top:10px;" onclick="analyzeFreitext()"><i data-lucide="sparkles"></i> Aus Text extrahieren</button>
@@ -583,6 +636,219 @@ function renderExpenses(){
     <td class="entry-betrag">${fmt(x.betrag)}</td>
     <td><button class="entry-del" onclick="removeExpense('${x.id}')"><i data-lucide="x"></i></button></td></tr>`).join('');
   lucide.createIcons();
+}
+
+// ── DATEI-UPLOAD ──────────────────────────────────────────
+let uploadQueue = []; // { file, type, status, results }
+
+function getFileType(file){
+  const name = file.name.toLowerCase();
+  const mime = file.type;
+  if(name.endsWith('.csv')) return 'csv';
+  if(mime.startsWith('image/') || name.match(/\.(jpg|jpeg|png|heic|heif|webp)$/)) return 'img';
+  if(mime === 'application/pdf' || name.endsWith('.pdf')) return 'pdf';
+  return 'unknown';
+}
+
+function formatBytes(b){
+  if(b<1024)return b+'B';
+  if(b<1024*1024)return (b/1024).toFixed(0)+'KB';
+  return (b/1024/1024).toFixed(1)+'MB';
+}
+
+function onDragOver(e){e.preventDefault();$('upload-zone').classList.add('drag');}
+function onDragLeave(e){$('upload-zone').classList.remove('drag');}
+function onDrop(e){
+  e.preventDefault();$('upload-zone').classList.remove('drag');
+  onFileSelect(e.dataTransfer.files);
+}
+
+function onFileSelect(files){
+  if(!files||!files.length)return;
+  Array.from(files).forEach(f=>{
+    const type=getFileType(f);
+    if(type==='unknown'){toast(`${f.name}: Format nicht unterstützt`);return;}
+    // Prüfen ob schon in Queue
+    if(uploadQueue.find(q=>q.file.name===f.name&&q.file.size===f.size))return;
+    uploadQueue.push({file:f,type,status:'pending',results:[]});
+  });
+  renderFileQueue();
+}
+
+function renderFileQueue(){
+  const wrap=$('file-queue');
+  if(!uploadQueue.length){wrap.style.display='none';$('btn-upload-analyze').style.display='none';return;}
+  wrap.style.display='flex';
+  const pendingCount=uploadQueue.filter(q=>q.status==='pending').length;
+  $('btn-upload-analyze').style.display=pendingCount?'inline-flex':'none';
+  wrap.innerHTML=uploadQueue.map((q,i)=>{
+    const typeCls=q.type;
+    const typeLabel=q.type.toUpperCase();
+    const statusHtml=q.status==='pending'?'<span class="file-item-status">Bereit</span>':
+      q.status==='loading'?'<span class="file-item-status loading">⟳ Analyse …</span>':
+      q.status==='done'?`<span class="file-item-status ok">✓ ${q.results.length} Einträge</span>`:
+      `<span class="file-item-status err">✗ Fehler</span>`;
+    return`<div class="file-item" id="fitem-${i}">
+      <div class="file-item-icon ${typeCls}">${typeLabel}</div>
+      <span class="file-item-name" title="${q.file.name}">${q.file.name}</span>
+      <span class="file-item-size">${formatBytes(q.file.size)}</span>
+      ${statusHtml}
+      <button class="file-item-del" onclick="removeFromQueue(${i})" title="Entfernen"><i data-lucide="x"></i></button>
+    </div>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+function removeFromQueue(i){
+  uploadQueue.splice(i,1);
+  renderFileQueue();
+}
+
+// CSV parsen: erste Zeile = Header, dann Daten
+function parseCSV(text){
+  const lines=text.trim().split('\n').filter(l=>l.trim());
+  if(lines.length<2)return[];
+  // Trennzeichen erkennen: ; oder ,
+  const sep=lines[0].includes(';')?';':',';
+  const headers=lines[0].split(sep).map(h=>h.trim().replace(/^["']|["']$/g,'').toLowerCase());
+
+  // Spalten-Mapping: flexible Header-Erkennung
+  const findCol=(names)=>{for(const n of names){const i=headers.indexOf(n);if(i>-1)return i;}return -1;};
+  const dateCol=findCol(['datum','date','buchungstag','buchungsdatum','valuta','wertstellungsdatum','buchungsdat.']);
+  const descCol=findCol(['verwendungszweck','beschreibung','description','buchungstext','transaktionsbeschreibung','text','empfänger/zahlungspflichtiger','name']);
+  const amtCol=findCol(['betrag','amount','umsatz','betrag eur','betrag (eur)','amount eur']);
+
+  const results=[];
+  for(let i=1;i<lines.length;i++){
+    const parts=splitCSVLine(lines[i],sep);
+    const datum=dateCol>-1?(parts[dateCol]||'').trim().replace(/^["']|["']$/g,''):'';
+    const desc=descCol>-1?(parts[descCol]||'').trim().replace(/^["']|["']$/g,''):'';
+    const amtRaw=amtCol>-1?(parts[amtCol]||'').trim().replace(/^["']|["']$/g,''):'';
+    if(!desc&&!amtRaw)continue;
+    // Betrag parsen – DE-Format "1.234,56" oder EN "1234.56", auch negative "-54,99"
+    const amtNum=parseCSVAmount(amtRaw);
+    if(amtNum===null)continue;
+    results.push({id:'csv'+i,beschreibung:desc,betrag:Math.abs(amtNum),datum:formatCSVDate(datum),quelle:'csv'});
+  }
+  return results;
+}
+
+function splitCSVLine(line,sep){
+  const result=[];let cur='';let inQuote=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){inQuote=!inQuote;}
+    else if(c===sep&&!inQuote){result.push(cur);cur='';}
+    else{cur+=c;}
+  }
+  result.push(cur);
+  return result;
+}
+
+function parseCSVAmount(s){
+  if(!s)return null;
+  s=s.replace(/\s/g,'').replace(/€/g,'').replace(/EUR/gi,'');
+  // DE-Format: "1.234,56" → "1234.56"
+  if(/^\-?\d{1,3}(\.\d{3})*(,\d+)?$/.test(s)){return parseFloat(s.replace(/\./g,'').replace(',','.'));}
+  // EN-Format: "-1,234.56" oder plain "54.99"
+  const cleaned=s.replace(/,(?=\d{3})/g,'');
+  const n=parseFloat(cleaned.replace(',','.'));
+  return isNaN(n)?null:n;
+}
+
+function formatCSVDate(s){
+  if(!s)return'';
+  // DD.MM.YYYY → YYYY-MM-DD
+  const m1=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if(m1)return`${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
+  // DD.MM.YY
+  const m2=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2})$/);
+  if(m2)return`20${m2[3]}-${m2[2].padStart(2,'0')}-${m2[1].padStart(2,'0')}`;
+  // Already ISO
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+  return s;
+}
+
+// Datei als base64 lesen
+function readFileAsBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      // e.target.result ist "data:image/jpeg;base64,XXXX" → wir wollen nur den base64-Teil
+      const b64=e.target.result.split(',')[1];
+      resolve(b64);
+    };
+    reader.onerror=reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Alle pending Dateien analysieren
+async function analyzeUploadedFiles(){
+  const pending=uploadQueue.filter(q=>q.status==='pending');
+  if(!pending.length){toast('Keine neuen Dateien.');return;}
+
+  $('upload-loading').classList.add('show');
+  $('btn-upload-analyze').style.display='none';
+
+  for(let i=0;i<uploadQueue.length;i++){
+    const q=uploadQueue[i];
+    if(q.status!=='pending')continue;
+    q.status='loading';
+    $('upload-loading-text').textContent=`Analysiere ${q.file.name} …`;
+    renderFileQueue();
+
+    try{
+      if(q.type==='csv'){
+        // CSV: direkt im Browser parsen, dann KI-Kategorisierung
+        const text=await q.file.text();
+        const csvEntries=parseCSV(text);
+        if(!csvEntries.length){q.status='err';q.error='Keine Einträge erkannt';continue;}
+        // KI kategorisiert die extrahierten Einträge
+        $('upload-loading-text').textContent=`KI kategorisiert ${csvEntries.length} CSV-Einträge …`;
+        const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({entries:csvEntries,mode:'categorize'})});
+        if(!res.ok){const e=await res.json();throw new Error(e.error||'API-Fehler');}
+        const data=await res.json();
+        q.results=data.results||[];
+        q.status='done';
+      }else{
+        // Bild oder PDF: Vision API
+        const b64=await readFileAsBase64(q.file);
+        const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({mode:'vision',imageData:b64,imageType:q.file.type,filename:q.file.name})});
+        if(!res.ok){const e=await res.json();throw new Error(e.error||'Vision-Fehler');}
+        const data=await res.json();
+        q.results=data.results||[];
+        q.status='done';
+      }
+
+      // Ergebnisse in Ausgaben-Liste einfügen (nur Ausgaben, keine Einnahmen)
+      let added=0;
+      q.results.forEach(r=>{
+        if(r.kategorie_info?.type!=='income'){
+          expenses.push({id:'up'+Date.now()+Math.random(),
+            desc:r.beschreibung||r.id||q.file.name,
+            datum:r.datum||'',betrag:r.betrag_brutto||0,
+            _aiResult:r  // für direkten KI-Analyse-Import
+          });
+          added++;
+        }
+      });
+      if(added)toast(`${q.file.name}: ${added} Ausgaben importiert ✓`);
+      else toast(`${q.file.name}: ${q.results.length} Einträge (nur Einnahmen?) – bitte prüfen`);
+
+    }catch(e){
+      q.status='err';q.error=e.message;
+      toast(`Fehler bei ${q.file.name}: ${e.message}`);
+    }
+    renderFileQueue();
+    renderExpenses();
+    updateSidebar();
+  }
+
+  $('upload-loading').classList.remove('show');
+  renderFileQueue();
 }
 
 // ── FREITEXT ANALYSE ──────────────────────────────────────
