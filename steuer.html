@@ -941,7 +941,6 @@ async function analyzeUploadedFiles(){
           }
         });
 
-        // Für Belege-Tab: Originaldatei merken (kein Upload, nur Referenz)
         q.results=csvEntries.map(e=>({id:e.id, beschreibung:e.beschreibung, betrag_brutto:e.betrag, datum:e.datum}));
         q.status='done';
 
@@ -949,6 +948,15 @@ async function analyzeUploadedFiles(){
         if(addedOut)parts.push(`${addedOut} Ausgaben`);
         if(addedIn)parts.push(`${addedIn} Einnahmen`);
         toast(`${q.file.name}: ${parts.join(', ')} importiert ✓`);
+
+        // Transaktionen dauerhaft in Supabase speichern
+        try{
+          const toSave=csvEntries.map(e=>({...e, quellDatei:q.file.name}));
+          await DB.saveTransactions(toSave);
+        }catch(dbErr){
+          console.warn('Transaktionen konnten nicht gespeichert werden:',dbErr.message);
+          toast('Hinweis: Transaktionen nicht in DB gespeichert – Tabelle noch nicht angelegt?');
+        }
 
       }else{
         // Bild oder PDF: Vision API (KI liest Beleg aus)
@@ -1029,28 +1037,59 @@ async function startAIAnalysis(){
   $('ai-loading').classList.add('show');
   $('ai-results-wrap').style.display='none';
   $('btn-to-ustva').style.display='none';
-  $('ai-progress-text').textContent=allEntries.length;
 
-  // In Batches von 10 senden – kompakt für schnelle Antwort
-  const batchSize=10;
+  // CSV-Einträge brauchen KEINE KI – die werden regelbasiert vorkategorisiert
+  // KI nur für: Rechnungen (Bestätigung), manuelle Einträge, PDF/Bild-Ergebnisse
+  const needsAI   = allEntries.filter(e=>!e._skipAI);
+  const skipAI    = allEntries.filter(e=> e._skipAI);
+
   aiResults=[];
-  for(let i=0;i<allEntries.length;i+=batchSize){
-    const batch=allEntries.slice(i,i+batchSize).map(e=>({
-      id:e.id, beschreibung:(e.beschreibung||e.text||'').slice(0,80), betrag:e.betrag, datum:e.datum||''
-    }));
-    const pct=Math.round((i/allEntries.length)*100);
-    $('ai-progress-bar').style.width=pct+'%';
-    try{
-      const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({entries:batch,mode:'categorize'})});
-      if(!res.ok){const e=await res.json();throw new Error(e.error||'API-Fehler');}
-      const data=await res.json();
-      aiResults.push(...(data.results||[]));
-    }catch(e){
-      toast('KI-Fehler: '+e.message);
-      $('ai-loading').classList.remove('show');return;
+
+  // Vorkategorisierte Einträge (CSV) direkt übernehmen
+  skipAI.forEach(e=>{
+    aiResults.push({
+      id:e.id,
+      beschreibung:e.beschreibung,
+      kategorie: e.vorKategorie||'sonstiges',
+      kategorie_info: window._categories?.[e.vorKategorie||'sonstiges']||{label:'Sonstiges',type:'expense',vat:0.19},
+      betrag_brutto: e.betrag,
+      betrag_netto:  e.mwst?Math.round(e.betrag/1.19*100)/100:e.betrag,
+      mwst_satz: e.mwst||0,
+      mwst_betrag: e.mwst?Math.round((e.betrag-e.betrag/1.19)*100)/100:0,
+      datum:e.datum||'',
+      begruendung:'Aus CSV – automatisch',
+      konfidenz:'mittel',
+      unklar:false,
+      _fromCSV:true
+    });
+  });
+
+  if(needsAI.length){
+    $('ai-progress-text').textContent=needsAI.length;
+    const batchSize=8;
+    for(let i=0;i<needsAI.length;i+=batchSize){
+      const batch=needsAI.slice(i,i+batchSize).map(e=>({
+        id:e.id, beschreibung:(e.beschreibung||'').slice(0,80), betrag:e.betrag,
+        datum:e.datum||'', quelle:e.quelle||''
+      }));
+      const pct=Math.round((i/needsAI.length)*100);
+      $('ai-progress-bar').style.width=pct+'%';
+      try{
+        const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({entries:batch,mode:'categorize'})});
+        if(!res.ok){const e=await res.json();throw new Error(e.error||'API-Fehler');}
+        const data=await res.json();
+        if(data.categories) window._categories=data.categories;
+        aiResults.push(...(data.results||[]));
+      }catch(e){
+        toast('KI-Fehler: '+e.message);
+        $('ai-loading').classList.remove('show');return;
+      }
     }
+  } else {
+    $('ai-progress-text').textContent='0 (alle aus CSV)';
   }
+
   $('ai-progress-bar').style.width='100%';
   $('ai-loading').classList.remove('show');
   renderAIResults();
@@ -1058,28 +1097,33 @@ async function startAIAnalysis(){
 
 function buildAllEntries(){
   const entries=[];
-  // Rechnungen aus dem Tool (schon kategorisiert als Einnahmen)
+  // 1) Rechnungen aus dem Tool → KI bestätigt/kategorisiert
   incomeItems.filter(x=>x.checked).forEach(x=>entries.push({
     id:x.id,
     beschreibung:`Rechnung ${x.nr||''} – ${x.firma||''}: ${x.betreff||''}`,
-    betrag:x.brutto,datum:x.datum,quelle:'rechnung',
-    vorKategorie:'einnahmen_19' // Hinweis für KI
+    betrag:x.brutto, datum:x.datum, quelle:'rechnung',
+    _skipAI:false  // KI soll MwSt-Satz bestätigen
   }));
-  // Manuelle Einnahmen (inkl. CSV-Import Einnahmen)
-  manualIncomes.forEach(x=>entries.push({
-    id:x.id,
-    beschreibung:x.desc,
-    betrag:x.brutto,datum:x.datum,
-    quelle: x._aiResult ? 'csv_einnahme' : 'manuell_einnahme',
-    vorKategorie:'einnahmen_19'
-  }));
-  // Ausgaben
-  expenses.forEach(x=>entries.push({
-    id:x.id,
-    beschreibung:x.desc,
-    betrag:x.betrag,datum:x.datum,
-    quelle: x._aiResult ? 'csv_ausgabe' : 'ausgabe'
-  }));
+  // 2) Einnahmen aus CSV → kein KI-Call nötig (Vorzeichen ist eindeutig)
+  manualIncomes.forEach(x=>{
+    const fromCSV=!!x._csv;
+    entries.push({
+      id:x.id, beschreibung:x.desc, betrag:x.brutto, datum:x.datum,
+      quelle: fromCSV?'csv_einnahme':'manuell_einnahme',
+      vorKategorie:'einnahmen_19', mwst:0.19,
+      _skipAI: fromCSV  // CSV-Einnahmen regelbasiert, manuelle zur KI
+    });
+  });
+  // 3) Ausgaben: CSV regelbasiert, manuelle/PDF zur KI
+  expenses.forEach(x=>{
+    const fromCSV=!!x._csv;
+    entries.push({
+      id:x.id, beschreibung:x.desc, betrag:x.betrag, datum:x.datum,
+      quelle: fromCSV?'csv_ausgabe':'ausgabe',
+      vorKategorie:'sonstiges', mwst:0.19,
+      _skipAI: fromCSV
+    });
+  });
   return entries;
 }
 
@@ -1440,7 +1484,34 @@ async function init(){
   try{allDocs=await DB.getDocuments();}
   catch(e){console.error(e);toast('Fehler beim Laden der Rechnungen');}
 
+  // Gespeicherte Transaktionen (CSV-Imports) laden und wiederherstellen
+  try{
+    const txs=await DB.getTransactions(curYear);
+    txs.forEach(t=>{
+      const entry={
+        id:'tx'+t.id,
+        desc: t.beschreibung||(t.empfaenger||'')+(t.verwendungszweck?' – '+t.verwendungszweck:''),
+        datum: t.datum||'',
+        _csv: t, // Referenz auf DB-Eintrag
+        _fromDB: true
+      };
+      if(t.is_einnahme){
+        entry.brutto=t.betrag||0;
+        if(!manualIncomes.find(x=>x._csv?.id===t.id)) manualIncomes.push(entry);
+      } else {
+        entry.betrag=t.betrag||0;
+        if(!expenses.find(x=>x._csv?.id===t.id)) expenses.push(entry);
+      }
+    });
+    if(txs.length) toast(`${txs.length} Transaktionen geladen ✓`);
+  }catch(e){
+    // Tabelle noch nicht angelegt – kein Fehler zeigen, nur leise loggen
+    console.info('Transaktionen nicht geladen (Tabelle fehlt?):', e.message);
+  }
+
   refreshIncomeList();
+  renderExpenses();
+  renderManualIncomes();
   updateSidebar();
   $('loading-screen').style.display='none';
   lucide.createIcons();
