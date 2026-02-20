@@ -801,17 +801,24 @@ async function analyzeUploadedFiles(){
 
     try{
       if(q.type==='csv'){
-        // CSV: direkt im Browser parsen, dann KI-Kategorisierung
+        // CSV: direkt im Browser parsen, dann KI-Kategorisierung in Batches
         const text=await q.file.text();
         const csvEntries=parseCSV(text);
         if(!csvEntries.length){q.status='err';q.error='Keine Einträge erkannt';continue;}
-        // KI kategorisiert die extrahierten Einträge
-        $('upload-loading-text').textContent=`KI kategorisiert ${csvEntries.length} CSV-Einträge …`;
-        const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({entries:csvEntries,mode:'categorize'})});
-        if(!res.ok){const e=await res.json();throw new Error(e.error||'API-Fehler');}
-        const data=await res.json();
-        q.results=data.results||[];
+        // In Batches von 25 senden um 504-Timeouts zu vermeiden
+        const CSV_BATCH=25;
+        const allResults=[];
+        for(let bi=0;bi<csvEntries.length;bi+=CSV_BATCH){
+          const batch=csvEntries.slice(bi,bi+CSV_BATCH);
+          const pct=Math.round((bi/csvEntries.length)*100);
+          $('upload-loading-text').textContent=`KI kategorisiert ${bi+1}–${Math.min(bi+CSV_BATCH,csvEntries.length)} / ${csvEntries.length} Einträge … ${pct}%`;
+          const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({entries:batch,mode:'categorize'})});
+          if(!res.ok){const e=await res.json();throw new Error(e.error||'API-Fehler');}
+          const data=await res.json();
+          allResults.push(...(data.results||[]));
+        }
+        q.results=allResults;
         q.status='done';
       }else{
         // Bild oder PDF: Vision API
