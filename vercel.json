@@ -6,9 +6,11 @@
   },
   "rewrites": [
     { "source": "/", "destination": "/index.html" },
-    { "source": "/tool", "destination": "/tool.html" }
+    { "source": "/tool", "destination": "/tool.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" }
   ],
   "redirects": [
-    { "source": "/tool.html", "permanent": true, "destination": "/tool" }
+    { "source": "/tool.html", "permanent": true, "destination": "/tool" },
+    { "source": "/dashboard.html", "permanent": true, "destination": "/dashboard" }
   ]
 }
