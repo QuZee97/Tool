@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VISO Media – Steuer</title>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+:root{
+  --bg:#1e1f22;--surface:#27282c;--surface2:#2f3035;--surface3:#383a40;
+  --border:#3d3f45;--border2:#4a4c54;
+  --text:#e2e3e8;--text2:#9a9ca5;--text3:#5c5f6b;
+  --accent:#d4cc2e;--accent-bg:rgba(212,204,46,0.08);
+  --red:#e05555;--red-bg:#2a1515;--green:#4ade80;--green-bg:#0f2a1a;
+  --blue:#60a5fa;--blue-bg:#1a2a3f;--orange:#fb923c;--orange-bg:#2a1a0a;
+  --radius:8px;--radius-sm:5px;--font:'Helvetica Neue',Arial,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);min-height:100vh;display:flex;flex-direction:column;}
+
+/* ── NAV ── */
+#nav{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:4px;position:sticky;top:0;z-index:50;flex-shrink:0;}
+.nav-logo{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.2px;margin-right:8px;}
+.nav-logo span{color:var(--text2);font-weight:300;}
+.nav-sep{width:1px;height:20px;background:var(--border);margin:0 6px;}
+.nav-btn{height:32px;padding:0 10px;border:none;background:none;color:var(--text3);cursor:pointer;border-radius:var(--radius-sm);display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;font-family:var(--font);transition:background .15s,color .15s;white-space:nowrap;text-decoration:none;}
+.nav-btn:hover{background:var(--surface3);color:var(--text);}
+.nav-btn.active{background:var(--accent-bg);color:var(--accent);}
+.nav-btn svg{width:14px;height:14px;stroke-width:1.8;flex-shrink:0;}
+.nav-spacer{flex:1;}
+.nav-icon-btn{width:32px;height:32px;padding:0;border:none;background:none;color:var(--text3);cursor:pointer;border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;transition:background .15s,color .15s;text-decoration:none;}
+.nav-icon-btn:hover{background:var(--surface3);color:var(--text);}
+.nav-icon-btn svg{width:15px;height:15px;stroke-width:1.8;}
+
+/* ── LAYOUT ── */
+#app{display:flex;flex:1;overflow:hidden;}
+#sidebar{width:260px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;padding:20px 16px;}
+#main{flex:1;overflow-y:auto;padding:28px 32px;}
+#main::-webkit-scrollbar{width:5px;}
+#main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* ── SIDEBAR ── */
+.sb-section{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin:18px 0 8px;display:flex;align-items:center;gap:6px;}
+.sb-section::after{content:'';flex:1;height:1px;background:var(--border);}
+.sb-section:first-child{margin-top:0;}
+.step-btn{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.12s;margin-bottom:4px;}
+.step-btn:hover{background:var(--surface2);border-color:var(--border2);}
+.step-btn.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);}
+.step-btn.done{color:var(--green);border-color:var(--green-bg);}
+.step-num{width:18px;height:18px;border-radius:50%;background:var(--surface2);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.step-btn.active .step-num{background:var(--accent);color:#111;}
+.step-btn.done .step-num{background:var(--green-bg);color:var(--green);}
+
+.quartal-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px;}
+.q-btn{padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer;text-align:center;transition:.12s;}
+.q-btn:hover{border-color:var(--border2);color:var(--text2);}
+.q-btn.active{background:var(--accent);color:#111;border-color:var(--accent);}
+.year-select{width:100%;margin-bottom:8px;}
+#sidebar select,#sidebar input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:6px 9px;outline:none;font-family:var(--font);}
+#sidebar select{cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%235c5f6b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:26px;}
+#sidebar select:focus,#sidebar input:focus{border-color:var(--accent);}
+.sb-stat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:6px;}
+.sb-stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.sb-stat-val{font-size:16px;font-weight:700;}
+.sb-stat-val.green{color:var(--green);}
+.sb-stat-val.red{color:var(--red);}
+.sb-stat-val.accent{color:var(--accent);}
+.sb-stat-val.blue{color:var(--blue);}
+
+/* ── MAIN CONTENT ── */
+.page{display:none;}
+.page.active{display:block;}
+.page-title{font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px;}
+.page-sub{font-size:12px;color:var(--text3);margin-bottom:24px;}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;}
+.card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.card-sub{font-size:11px;color:var(--text3);margin-bottom:16px;line-height:1.6;}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:none;border-radius:var(--radius-sm);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);transition:.15s;white-space:nowrap;}
+.btn svg{width:13px;height:13px;stroke-width:2;}
+.btn:hover{opacity:.85;}
+.btn-primary{background:var(--accent);color:#111;}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2);}
+.btn-ghost:hover{background:var(--surface2);opacity:1;}
+.btn-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green);}
+.btn-sm{padding:5px 10px;font-size:11px;}
+
+/* ── IMPORT-BEREICH ── */
+.import-zone{
+  border:2px dashed var(--border2);border-radius:var(--radius);padding:32px;
+  text-align:center;cursor:pointer;transition:.15s;margin-bottom:12px;
+}
+.import-zone:hover,.import-zone.drag{border-color:var(--accent);background:var(--accent-bg);}
+.import-zone svg{width:32px;height:32px;stroke-width:1.2;color:var(--text3);margin-bottom:10px;}
+.import-zone p{font-size:12px;color:var(--text3);line-height:1.7;}
+.import-zone strong{color:var(--text2);}
+
+.freitext-area{width:100%;min-height:120px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:10px 12px;outline:none;font-family:var(--font);resize:vertical;line-height:1.6;}
+.freitext-area:focus{border-color:var(--accent);}
+
+/* ── EINNAHMEN-LISTE (aus Tool) ── */
+.income-list{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;margin-bottom:12px;}
+.income-list::-webkit-scrollbar{width:4px;}
+.income-list::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.income-row{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;}
+.income-check{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
+.income-nr{font-size:10px;color:var(--text3);min-width:90px;font-weight:600;}
+.income-firma{font-size:12px;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.income-betrag{font-size:12px;font-weight:600;color:var(--green);white-space:nowrap;}
+.income-date{font-size:10px;color:var(--text3);white-space:nowrap;}
+
+/* ── ENTRY TABELLE (vor KI-Analyse) ── */
+.entry-table-wrap{overflow-x:auto;margin-bottom:12px;}
+table.entry-table{width:100%;border-collapse:collapse;font-size:12px;}
+table.entry-table thead tr{background:var(--surface2);}
+table.entry-table th{padding:7px 10px;text-align:left;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+table.entry-table td{padding:7px 10px;border-top:1px solid var(--border);}
+table.entry-table tbody tr:hover{background:var(--surface2);}
+.entry-betrag{text-align:right;font-weight:600;}
+.entry-del{width:26px;height:26px;border:none;background:none;color:var(--text3);cursor:pointer;border-radius:3px;display:inline-flex;align-items:center;justify-content:center;}
+.entry-del:hover{color:var(--red);background:var(--red-bg);}
+.entry-del svg{width:12px;height:12px;}
+.add-entry-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;}
+.add-entry-row input,.add-entry-row select{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:6px 9px;outline:none;font-family:var(--font);}
+.add-entry-row input:focus,.add-entry-row select:focus{border-color:var(--accent);}
+.add-entry-row .inp-desc{flex:2;min-width:160px;}
+.add-entry-row .inp-amt{width:100px;}
+.add-entry-row .inp-date{width:130px;}
+
+/* ── KI ANALYSE ── */
+.ai-result-row{
+  display:grid;grid-template-columns:1fr 100px 100px 110px auto 28px;
+  align-items:start;gap:8px;
+  padding:10px 12px;border-top:1px solid var(--border);
+  transition:background .1s;
+}
+.ai-result-row:hover{background:var(--surface2);}
+.ai-result-row:first-child{border-top:none;}
+.ai-desc{font-size:12px;color:var(--text);}
+.ai-sub{font-size:10px;color:var(--text3);margin-top:2px;line-height:1.5;}
+.ai-amt{font-size:12px;font-weight:600;text-align:right;}
+.ai-amt.income{color:var(--green);}
+.ai-amt.expense{color:var(--red);}
+.ai-netto{font-size:11px;color:var(--text3);text-align:right;}
+.ai-kat-select{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:4px 6px;outline:none;font-family:var(--font);cursor:pointer;appearance:none;-webkit-appearance:none;}
+.ai-kat-select:focus{border-color:var(--accent);}
+.konfidenz{display:inline-flex;align-items:center;gap:4px;font-size:9px;padding:2px 6px;border-radius:10px;border:1px solid;white-space:nowrap;}
+.konfidenz.hoch{background:var(--green-bg);border-color:var(--green);color:var(--green);}
+.konfidenz.mittel{background:var(--orange-bg);border-color:var(--orange);color:var(--orange);}
+.konfidenz.niedrig,.konfidenz.unklar{background:var(--red-bg);border-color:var(--red);color:var(--red);}
+.review-flag{background:var(--orange-bg);border:1px solid var(--orange);color:var(--orange);font-size:10px;padding:2px 7px;border-radius:10px;display:inline-flex;align-items:center;gap:4px;}
+.review-flag svg{width:11px;height:11px;}
+
+/* ── USTVA ERGEBNIS ── */
+.ustv-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+@media(max-width:700px){.ustv-grid{grid-template-columns:1fr;}}
+.ustv-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.ustv-card.highlight{border-color:var(--accent);background:var(--accent-bg);}
+.ustv-card.danger{border-color:var(--red);background:var(--red-bg);}
+.ustv-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
+.ustv-zeile{font-size:9px;color:var(--text3);margin-bottom:2px;}
+.ustv-val{font-size:20px;font-weight:700;}
+.ustv-val.accent{color:var(--accent);}
+.ustv-val.green{color:var(--green);}
+.ustv-val.red{color:var(--red);}
+.ustv-val.blue{color:var(--blue);}
+.ustv-sub{font-size:11px;color:var(--text3);margin-top:4px;}
+
+.detail-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:12px;}
+.detail-table th{padding:6px 10px;text-align:left;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);}
+.detail-table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text2);}
+.detail-table td.r{text-align:right;}
+.detail-table tr.group-hd td{background:var(--surface2);color:var(--text);font-weight:600;font-size:11px;padding:8px 10px;}
+.detail-table tr.total td{font-weight:700;color:var(--text);border-top:2px solid var(--border2);}
+
+/* ── HINWEIS-BOX ── */
+.hinweis{background:var(--blue-bg);border:1px solid var(--blue);border-radius:var(--radius-sm);padding:12px 14px;font-size:11px;color:var(--blue);line-height:1.7;margin-bottom:16px;display:flex;gap:10px;}
+.hinweis svg{width:16px;height:16px;flex-shrink:0;margin-top:1px;}
+.hinweis.warn{background:var(--orange-bg);border-color:var(--orange);color:var(--orange);}
+.hinweis.ok{background:var(--green-bg);border-color:var(--green);color:var(--green);}
+
+/* ── PROGRESS ── */
+.progress-wrap{background:var(--surface2);border-radius:4px;height:6px;margin:8px 0;}
+.progress-bar{height:100%;background:var(--accent);border-radius:4px;transition:width .3s;}
+
+/* ── SPINNER ── */
+.spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-overlay{display:none;align-items:center;gap:10px;padding:16px;background:var(--surface2);border-radius:var(--radius);margin:8px 0;font-size:12px;color:var(--text3);}
+.loading-overlay.show{display:flex;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface3);color:var(--text);border:1px solid var(--border2);padding:9px 18px;border-radius:var(--radius);font-size:12px;opacity:0;transition:.25s;pointer-events:none;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+#toast.show{opacity:1;}
+
+/* ── LOADING SCREEN ── */
+#loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:100;}
+.spinner-lg{width:32px;height:32px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+</style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="spinner-lg"></div>
+  <span style="font-size:12px;color:var(--text3);">Lade Steuertool …</span>
+</div>
+
+<!-- NAV -->
+<nav id="nav">
+  <span class="nav-logo">VISO <span>Media</span></span>
+  <div class="nav-sep"></div>
+  <a class="nav-btn" href="/dashboard"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+  <a class="nav-btn" href="/tool"><i data-lucide="file-text"></i> Dokumente</a>
+  <a class="nav-btn active" href="/steuer"><i data-lucide="calculator"></i> Steuer</a>
+  <div class="nav-spacer"></div>
+  <span style="font-size:11px;color:var(--text3);padding:0 6px;" id="nav-user"></span>
+  <button class="nav-icon-btn" onclick="doSignOut()" title="Abmelden"><i data-lucide="log-out"></i></button>
+</nav>
+
+<div id="app">
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sb-section">Zeitraum</div>
+  <select id="sel-year" onchange="onPeriodChange()">
+    <option value="2026">2026</option>
+    <option value="2025">2025</option>
+    <option value="2024">2024</option>
+  </select>
+  <div style="margin-top:8px;margin-bottom:4px;font-size:10px;color:var(--text3);">Quartal</div>
+  <div class="quartal-grid">
+    <button class="q-btn" id="q1" onclick="setQuartal(1)">Q1 Jan–Mär</button>
+    <button class="q-btn active" id="q2" onclick="setQuartal(2)">Q2 Apr–Jun</button>
+    <button class="q-btn" id="q3" onclick="setQuartal(3)">Q3 Jul–Sep</button>
+    <button class="q-btn" id="q4" onclick="setQuartal(4)">Q4 Okt–Dez</button>
+  </div>
+  <button class="q-btn active" id="qjahr" onclick="setQuartal(0)" style="width:100%;margin-top:4px;">Ganzes Jahr</button>
+
+  <div class="sb-section">Schritte</div>
+  <button class="step-btn active" id="step-btn-1" onclick="goPage(1)">
+    <span class="step-num">1</span> Einnahmen
+  </button>
+  <button class="step-btn" id="step-btn-2" onclick="goPage(2)">
+    <span class="step-num">2</span> Ausgaben
+  </button>
+  <button class="step-btn" id="step-btn-3" onclick="goPage(3)">
+    <span class="step-num">3</span> KI-Analyse
+  </button>
+  <button class="step-btn" id="step-btn-4" onclick="goPage(4)">
+    <span class="step-num">4</span> UStVA-Ergebnis
+  </button>
+
+  <div class="sb-section">Zusammenfassung</div>
+  <div class="sb-stat">
+    <div class="sb-stat-label">Einnahmen Netto</div>
+    <div class="sb-stat-val green" id="sb-einnahmen">0,00 €</div>
+  </div>
+  <div class="sb-stat">
+    <div class="sb-stat-label">Ausgaben Netto</div>
+    <div class="sb-stat-val red" id="sb-ausgaben">0,00 €</div>
+  </div>
+  <div class="sb-stat">
+    <div class="sb-stat-label">Gewinn (EÜR)</div>
+    <div class="sb-stat-val accent" id="sb-gewinn">0,00 €</div>
+  </div>
+  <div class="sb-stat">
+    <div class="sb-stat-label">USt-Zahllast</div>
+    <div class="sb-stat-val blue" id="sb-zahllast">0,00 €</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- ── SEITE 1: EINNAHMEN ── -->
+  <div class="page active" id="page-1">
+    <div class="page-title">Einnahmen</div>
+    <div class="page-sub">Wähle welche Rechnungen in diesen Zeitraum fallen. Oder füge manuelle Einnahmen hinzu.</div>
+
+    <div class="hinweis"><i data-lucide="info"></i>
+      <div>Rechnungen aus dem Dokumenten-Tool werden automatisch geladen. Der Filter rechts (Jahr/Quartal) grenzt den Zeitraum ein. Nur <strong>Rechnungen</strong> (nicht Angebote) werden berücksichtigt.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Rechnungen aus dem Tool <span id="income-count" style="font-weight:400;color:var(--text3);font-size:11px;"></span></div>
+      <div class="card-sub">Haken setzen = in die Auswertung aufnehmen</div>
+      <div class="income-list" id="income-list">
+        <div style="color:var(--text3);font-size:11px;padding:10px;">Lade Rechnungen …</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-sm" onclick="selectAllIncome(true)"><i data-lucide="check-square"></i> Alle</button>
+        <button class="btn btn-ghost btn-sm" onclick="selectAllIncome(false)"><i data-lucide="square"></i> Keine</button>
+        <span style="flex:1;"></span>
+        <span style="font-size:11px;color:var(--text3);align-self:center;" id="income-sel-info"></span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Manuelle Einnahmen</div>
+      <div class="card-sub">Einnahmen die nicht als Rechnung erfasst sind (Bargeschäfte, Nebeneinnahmen, etc.)</div>
+      <div class="entry-table-wrap" id="manual-income-wrap" style="display:none;">
+        <table class="entry-table">
+          <thead><tr><th>Beschreibung</th><th>Datum</th><th style="text-align:right;">Brutto</th><th></th></tr></thead>
+          <tbody id="manual-income-tbody"></tbody>
+        </table>
+      </div>
+      <div class="add-entry-row">
+        <input class="inp-desc" id="mi-desc" type="text" placeholder="Beschreibung">
+        <input class="inp-amt" id="mi-amt" type="text" placeholder="Brutto €">
+        <input class="inp-date" id="mi-date" type="date">
+        <button class="btn btn-ghost btn-sm" onclick="addManualIncome()"><i data-lucide="plus"></i> Hinzufügen</button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="goPage(2)"><i data-lucide="arrow-right"></i> Weiter: Ausgaben</button>
+  </div>
+
+  <!-- ── SEITE 2: AUSGABEN ── -->
+  <div class="page" id="page-2">
+    <div class="page-title">Ausgaben</div>
+    <div class="page-sub">Trage alle Betriebsausgaben ein. Die KI kategorisiert sie automatisch im nächsten Schritt.</div>
+
+    <div class="hinweis warn"><i data-lucide="alert-triangle"></i>
+      <div><strong>Tipp für den Import:</strong> Exportiere deinen Kontoauszug aus Kontist als CSV, oder fotografiere Belege und füge den Text unten ein. Die KI erkennt Beträge, Händler und Datum automatisch.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Freitext-Import (KI)</div>
+      <div class="card-sub">Füge rohen Text aus Kontoauszügen, E-Mail-Bestätigungen oder abgetippten Belegen ein. Die KI extrahiert alle Transaktionen.</div>
+      <textarea class="freitext-area" id="freitext-input" placeholder="Beispiel:&#10;15.01.2026 Adobe Creative Cloud 54,99 EUR&#10;22.01.2026 Zoom Pro Abo 15,99 USD&#10;03.02.2026 Bewirtung Kundenessen Restaurant Moritz 87,50 EUR&#10;..."></textarea>
+      <div class="loading-overlay" id="freitext-loading"><div class="spinner"></div> KI analysiert Text …</div>
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="analyzeFreitext()"><i data-lucide="sparkles"></i> Aus Text extrahieren</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Ausgaben-Liste <span id="expense-count" style="font-weight:400;color:var(--text3);font-size:11px;"></span></div>
+      <div class="card-sub">Manuell hinzugefügte oder aus dem Text extrahierte Ausgaben</div>
+      <div class="entry-table-wrap">
+        <table class="entry-table">
+          <thead><tr><th>Beschreibung</th><th>Datum</th><th style="text-align:right;">Betrag</th><th></th></tr></thead>
+          <tbody id="expense-tbody">
+            <tr><td colspan="4" style="color:var(--text3);text-align:center;padding:16px;">Noch keine Ausgaben. Importiere Text oder füge manuell hinzu.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="add-entry-row">
+        <input class="inp-desc" id="exp-desc" type="text" placeholder="Beschreibung (z.B. Adobe Creative Cloud)">
+        <input class="inp-amt" id="exp-amt" type="text" placeholder="Betrag €">
+        <input class="inp-date" id="exp-date" type="date">
+        <button class="btn btn-ghost btn-sm" onclick="addExpense()"><i data-lucide="plus"></i> Hinzufügen</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost" onclick="goPage(1)"><i data-lucide="arrow-left"></i> Zurück</button>
+      <button class="btn btn-primary" onclick="startAIAnalysis()"><i data-lucide="sparkles"></i> KI-Analyse starten</button>
+    </div>
+  </div>
+
+  <!-- ── SEITE 3: KI-ANALYSE ── -->
+  <div class="page" id="page-3">
+    <div class="page-title">KI-Analyse</div>
+    <div class="page-sub">Überprüfe und korrigiere die Kategorien. Rot markierte Einträge brauchen deine Aufmerksamkeit.</div>
+
+    <div class="loading-overlay" id="ai-loading" style="margin-bottom:16px;">
+      <div class="spinner"></div>
+      <div>
+        <div style="color:var(--text2);font-size:12px;">KI analysiert <span id="ai-progress-text">0</span> Einträge …</div>
+        <div class="progress-wrap" style="width:200px;"><div class="progress-bar" id="ai-progress-bar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <div id="ai-results-wrap" style="display:none;">
+      <div class="hinweis" id="ai-review-hint" style="display:none;"><i data-lucide="alert-circle"></i>
+        <div><strong id="ai-review-count">0</strong> Einträge wurden zur Überprüfung markiert – bitte Kategorie prüfen und ggf. anpassen.</div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+          <span style="font-size:12px;font-weight:600;">Alle Einträge</span>
+          <span style="flex:1;"></span>
+          <button class="btn btn-ghost btn-sm" onclick="expandAllReasons()"><i data-lucide="eye"></i> Begründungen</button>
+        </div>
+        <div id="ai-results-list"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-ghost" onclick="goPage(2)"><i data-lucide="arrow-left"></i> Zurück</button>
+      <button class="btn btn-primary" id="btn-to-ustva" onclick="buildUStVA()" style="display:none;"><i data-lucide="calculator"></i> UStVA berechnen</button>
+    </div>
+  </div>
+
+  <!-- ── SEITE 4: USTVA-ERGEBNIS ── -->
+  <div class="page" id="page-4">
+    <div class="page-title">UStVA-Ergebnis</div>
+    <div class="page-sub" id="ustva-period-label">Quartal / Jahr</div>
+
+    <div class="hinweis warn"><i data-lucide="alert-triangle"></i>
+      <div><strong>Kein Ersatz für Steuerberatung.</strong> Diese Berechnung ist eine Arbeitshilfe und muss von dir oder deinem Steuerberater geprüft werden, bevor du die offizielle UStVA einreichst. Alle Angaben ohne Gewähr.</div>
+    </div>
+
+    <div class="ustv-grid" id="ustv-kpi-grid"></div>
+
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;">Detailauswertung</div>
+      <table class="detail-table" id="detail-table"><tbody></tbody></table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">EÜR-Zusammenfassung</div>
+      <div class="card-sub">Einnahmenüberschussrechnung – Basis für die Jahressteuererklärung</div>
+      <table class="detail-table" id="euer-table"><tbody></tbody></table>
+    </div>
+
+    <div class="card" style="background:var(--accent-bg);border-color:var(--accent);">
+      <div class="card-title">Für deinen Steuerberater</div>
+      <div class="card-sub">Exportiere eine kompakte Zusammenfassung als Text zum Weiterschicken.</div>
+      <button class="btn btn-primary" onclick="exportSummary()"><i data-lucide="copy"></i> Zusammenfassung kopieren</button>
+      <button class="btn btn-ghost" style="margin-left:8px;" onclick="window.print()"><i data-lucide="printer"></i> Drucken</button>
+    </div>
+
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost" onclick="goPage(3)"><i data-lucide="arrow-left"></i> Zurück zur Analyse</button>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /app -->
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase.js"></script>
+<script>
+lucide.createIcons();
+
+// ── STATE ─────────────────────────────────────────────────
+let allDocs = [];
+let selectedYear = new Date().getFullYear();
+let selectedQuartal = 0; // 0=Jahr, 1-4=Quartal
+let incomeItems = [];   // { id, nr, firma, betreff, datum, brutto, netto, tax, checked }
+let manualIncomes = []; // { id, desc, datum, brutto }
+let expenses = [];      // { id, desc, datum, betrag }
+let aiResults = [];     // nach KI-Analyse
+let showReasons = false;
+
+const fmt = n => n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+'\u00a0€';
+const fmtDate = v=>{if(!v)return'–';try{const[y,m,d]=v.split('-');return`${d}.${m}.${y}`;}catch{return v;}};
+const parseAmt = s=>{if(!s)return 0;s=String(s).trim();if(/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(s)){return parseFloat(s.replace(/\./g,'').replace(',','.'));}return parseFloat(s.replace(',','.').replace(/[^\d.]/g,''))||0;};
+const toast = msg=>{const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);};
+const $ = id=>document.getElementById(id);
+
+function parsePreis(s){return parseAmt(s);}
+
+function docNetto(doc){
+  if(!doc.positionen?.length)return 0;
+  return doc.positionen.reduce((s,p)=>s+parsePreis(p.menge)*parsePreis(p.preis),0);
+}
+function docBrutto(doc){const n=docNetto(doc);return doc.tax==='de'?n*1.19:n;}
+
+// ── ZEITRAUM ──────────────────────────────────────────────
+function setQuartal(q){
+  selectedQuartal=q;
+  document.querySelectorAll('.q-btn').forEach(b=>b.classList.remove('active'));
+  $(q===0?'qjahr':`q${q}`).classList.add('active');
+  refreshIncomeList();
+}
+function onPeriodChange(){
+  selectedYear=parseInt($('sel-year').value);
+  refreshIncomeList();
+}
+function inPeriod(datum){
+  if(!datum)return false;
+  const [y,m]=datum.split('-').map(Number);
+  if(y!==selectedYear)return false;
+  if(selectedQuartal===0)return true;
+  const qMap={1:[1,2,3],2:[4,5,6],3:[7,8,9],4:[10,11,12]};
+  return qMap[selectedQuartal].includes(m);
+}
+
+// ── NAVIGATION ────────────────────────────────────────────
+let currentPage=1;
+function goPage(n){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  $(`page-${n}`).classList.add('active');
+  document.querySelectorAll('.step-btn').forEach((b,i)=>b.classList.toggle('active',i+1===n));
+  currentPage=n;
+  if(n===1)refreshIncomeList();
+  if(n===2)renderExpenses();
+  updateSidebar();
+}
+
+// ── EINNAHMEN ─────────────────────────────────────────────
+function refreshIncomeList(){
+  const el=$('income-list');
+  const relevant=allDocs.filter(d=>d.typ==='rechnung'&&inPeriod(d.datum));
+  $('income-count').textContent=`(${relevant.length} im Zeitraum)`;
+
+  if(!relevant.length){
+    el.innerHTML='<div style="color:var(--text3);font-size:11px;padding:10px;">Keine Rechnungen im gewählten Zeitraum.</div>';
+    incomeItems=[];updateSidebar();return;
+  }
+
+  // State mergen – neu hinzugekommene als checked markieren
+  const existingIds=new Set(incomeItems.map(x=>x.id));
+  relevant.forEach(d=>{
+    if(!existingIds.has(d.id)){
+      incomeItems.push({id:d.id,nr:d.nr,firma:d.firma,betreff:d.betreff,datum:d.datum,
+        brutto:docBrutto(d),netto:docNetto(d),tax:d.tax,checked:true});
+    }
+  });
+  // Nicht mehr im Zeitraum entfernen
+  incomeItems=incomeItems.filter(x=>relevant.find(d=>d.id===x.id));
+
+  el.innerHTML=incomeItems.map(item=>`
+    <div class="income-row">
+      <input type="checkbox" class="income-check" ${item.checked?'checked':''} onchange="toggleIncome('${item.id}',this.checked)">
+      <span class="income-nr">${item.nr||'–'}</span>
+      <span class="income-firma">${item.firma||'–'} · ${item.betreff||'–'}</span>
+      <span class="income-date">${fmtDate(item.datum)}</span>
+      <span class="income-betrag">${fmt(item.brutto)}</span>
+    </div>`).join('');
+  updateIncomeSelInfo();
+  updateSidebar();
+}
+function toggleIncome(id,checked){
+  const item=incomeItems.find(x=>x.id===id);
+  if(item)item.checked=checked;
+  updateIncomeSelInfo();updateSidebar();
+}
+function selectAllIncome(v){
+  incomeItems.forEach(x=>x.checked=v);
+  refreshIncomeList();
+}
+function updateIncomeSelInfo(){
+  const sel=incomeItems.filter(x=>x.checked);
+  const sum=sel.reduce((s,x)=>s+x.brutto,0);
+  $('income-sel-info').textContent=`${sel.length} ausgewählt · ${fmt(sum)}`;
+}
+
+// ── MANUELLE EINNAHMEN ────────────────────────────────────
+function addManualIncome(){
+  const desc=$('mi-desc').value.trim(),amt=$('mi-amt').value.trim(),date=$('mi-date').value;
+  if(!desc||!amt){toast('Beschreibung und Betrag erforderlich.');return;}
+  manualIncomes.push({id:'m'+Date.now(),desc,datum:date,brutto:parseAmt(amt)});
+  $('mi-desc').value='';$('mi-amt').value='';
+  renderManualIncomes();updateSidebar();
+}
+function removeManualIncome(id){manualIncomes=manualIncomes.filter(x=>x.id!==id);renderManualIncomes();updateSidebar();}
+function renderManualIncomes(){
+  const wrap=$('manual-income-wrap');
+  if(!manualIncomes.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  $('manual-income-tbody').innerHTML=manualIncomes.map(x=>`
+    <tr><td>${x.desc}</td><td>${fmtDate(x.datum)}</td>
+    <td class="entry-betrag">${fmt(x.brutto)}</td>
+    <td><button class="entry-del" onclick="removeManualIncome('${x.id}')"><i data-lucide="x"></i></button></td></tr>`).join('');
+  lucide.createIcons();
+}
+
+// ── AUSGABEN ──────────────────────────────────────────────
+function addExpense(){
+  const desc=$('exp-desc').value.trim(),amt=$('exp-amt').value.trim(),date=$('exp-date').value;
+  if(!desc||!amt){toast('Beschreibung und Betrag erforderlich.');return;}
+  expenses.push({id:'e'+Date.now(),desc,datum:date,betrag:parseAmt(amt)});
+  $('exp-desc').value='';$('exp-amt').value='';
+  renderExpenses();
+}
+function removeExpense(id){expenses=expenses.filter(x=>x.id!==id);renderExpenses();}
+function renderExpenses(){
+  const tbody=$('expense-tbody');
+  $('expense-count').textContent=`(${expenses.length} Einträge)`;
+  if(!expenses.length){
+    tbody.innerHTML='<tr><td colspan="4" style="color:var(--text3);text-align:center;padding:16px;">Noch keine Ausgaben.</td></tr>';
+    return;
+  }
+  tbody.innerHTML=expenses.map(x=>`
+    <tr><td>${x.desc}</td><td>${fmtDate(x.datum)}</td>
+    <td class="entry-betrag">${fmt(x.betrag)}</td>
+    <td><button class="entry-del" onclick="removeExpense('${x.id}')"><i data-lucide="x"></i></button></td></tr>`).join('');
+  lucide.createIcons();
+}
+
+// ── FREITEXT ANALYSE ──────────────────────────────────────
+async function analyzeFreitext(){
+  const text=$('freitext-input').value.trim();
+  if(!text){toast('Bitte erst Text einfügen.');return;}
+  $('freitext-loading').classList.add('show');
+  try{
+    const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({entries:[{id:'ft1',text}],mode:'freitext'})});
+    if(!res.ok){const e=await res.json();throw new Error(e.error||'API-Fehler');}
+    const data=await res.json();
+    // Aus Freitext-Modus: KI gibt Ausgaben zurück – in expenses einfügen
+    if(data.results?.length){
+      data.results.forEach(r=>{
+        if(r.kategorie_info?.type!=='income'){
+          expenses.push({id:'ft'+Date.now()+Math.random(),desc:r.beschreibung||r.begruendung||'Import',datum:r.datum||'',betrag:r.betrag_brutto||0});
+        }
+      });
+      renderExpenses();
+      $('freitext-input').value='';
+      toast(`${data.results.length} Einträge extrahiert ✓`);
+    }else{toast('Keine Transaktionen gefunden.');}
+  }catch(e){toast('Fehler: '+e.message);}
+  $('freitext-loading').classList.remove('show');
+}
+
+// ── KI ANALYSE ────────────────────────────────────────────
+async function startAIAnalysis(){
+  const allEntries=buildAllEntries();
+  if(!allEntries.length){toast('Keine Einträge für die Analyse vorhanden.');return;}
+  goPage(3);
+  $('ai-loading').classList.add('show');
+  $('ai-results-wrap').style.display='none';
+  $('btn-to-ustva').style.display='none';
+  $('ai-progress-text').textContent=allEntries.length;
+
+  // In Batches von 30 senden
+  const batchSize=30;
+  aiResults=[];
+  for(let i=0;i<allEntries.length;i+=batchSize){
+    const batch=allEntries.slice(i,i+batchSize);
+    const pct=Math.round((i/allEntries.length)*100);
+    $('ai-progress-bar').style.width=pct+'%';
+    try{
+      const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({entries:batch,mode:'categorize'})});
+      if(!res.ok){const e=await res.json();throw new Error(e.error||'API-Fehler');}
+      const data=await res.json();
+      aiResults.push(...(data.results||[]));
+    }catch(e){
+      toast('KI-Fehler: '+e.message);
+      $('ai-loading').classList.remove('show');return;
+    }
+  }
+  $('ai-progress-bar').style.width='100%';
+  $('ai-loading').classList.remove('show');
+  renderAIResults();
+}
+
+function buildAllEntries(){
+  const entries=[];
+  // Einnahmen
+  incomeItems.filter(x=>x.checked).forEach(x=>entries.push({
+    id:x.id,beschreibung:`Rechnung ${x.nr||''} – ${x.firma||''}: ${x.betreff||''}`,
+    betrag:x.brutto,datum:x.datum,quelle:'rechnung'
+  }));
+  manualIncomes.forEach(x=>entries.push({id:x.id,beschreibung:x.desc,betrag:x.brutto,datum:x.datum,quelle:'manuell_einnahme'}));
+  expenses.forEach(x=>entries.push({id:x.id,beschreibung:x.desc,betrag:x.betrag,datum:x.datum,quelle:'ausgabe'}));
+  return entries;
+}
+
+function renderAIResults(){
+  $('ai-results-wrap').style.display='block';
+  $('btn-to-ustva').style.display='inline-flex';
+  const reviewItems=aiResults.filter(r=>r.unklar);
+  if(reviewItems.length){
+    $('ai-review-hint').style.display='flex';
+    $('ai-review-count').textContent=reviewItems.length;
+  }else{
+    $('ai-review-hint').style.display='none';
+  }
+
+  // Kategorien-Optionen
+  const catOptions=Object.entries(window._categories||{}).map(([k,v])=>
+    `<option value="${k}">${v.label}</option>`).join('');
+
+  $('ai-results-list').innerHTML=aiResults.map((r,i)=>{
+    const isIncome=r.kategorie_info?.type==='income';
+    const konfCls=r.unklar?'unklar':(r.konfidenz||'hoch');
+    return`<div class="ai-result-row" id="air-${i}">
+      <div>
+        <div class="ai-desc">${r.beschreibung||r.id||'–'}</div>
+        <div class="ai-sub" id="air-reason-${i}" style="display:${showReasons?'block':'none'};">${r.begruendung||''}</div>
+        ${r.unklar?`<span class="review-flag"><i data-lucide="alert-triangle"></i> Prüfen</span>`:''}
+      </div>
+      <div>
+        <div class="ai-amt ${isIncome?'income':'expense'}">${fmt(r.betrag_brutto||0)}</div>
+        <div class="ai-netto">Netto: ${fmt(r.betrag_netto||0)}</div>
+      </div>
+      <div>
+        <span class="konfidenz ${konfCls}">${r.unklar?'Prüfen':r.konfidenz||'–'}</span>
+      </div>
+      <div>
+        <select class="ai-kat-select" onchange="updateAIKat(${i},this.value)">
+          ${Object.entries(window._categories||{}).map(([k,v])=>`<option value="${k}"${k===r.kategorie?' selected':''}>${v.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="ai-netto">${r.mwst_betrag?'MwSt: '+fmt(r.mwst_betrag):''}</div>
+      <div></div>
+    </div>`;
+  }).join('');
+  lucide.createIcons();
+}
+
+function updateAIKat(idx,kat){
+  if(!aiResults[idx])return;
+  aiResults[idx].kategorie=kat;
+  // Netto/MwSt neu berechnen
+  const cats=window._categories||{};
+  const info=cats[kat]||cats.sonstiges;
+  const brutto=aiResults[idx].betrag_brutto||0;
+  const vat=info.vat||0;
+  aiResults[idx].betrag_netto=vat>0?brutto/(1+vat):brutto;
+  aiResults[idx].mwst_betrag=brutto-aiResults[idx].betrag_netto;
+  aiResults[idx].kategorie_info=info;
+  aiResults[idx].unklar=false;
+  renderAIResults();
+  updateSidebar();
+}
+
+function expandAllReasons(){
+  showReasons=!showReasons;
+  document.querySelectorAll('[id^="air-reason-"]').forEach(el=>el.style.display=showReasons?'block':'none');
+}
+
+// ── USTVA BERECHNEN ───────────────────────────────────────
+function buildUStVA(){
+  goPage(4);
+  const cats=window._categories||{};
+  const periodLabel=selectedQuartal===0?`${selectedYear}`:
+    `Q${selectedQuartal} ${selectedYear} (${['','Jan–Mär','Apr–Jun','Jul–Sep','Okt–Dez'][selectedQuartal]})`;
+  $('ustva-period-label').textContent=`Zeitraum: ${periodLabel}`;
+
+  // Einnahmen gruppieren
+  let ein19=0,ein7=0,ein0=0;
+  let aus19=0,aus7=0,aus0=0,ausMwst19=0,ausMwst7=0;
+  let bewirtung=0;
+
+  aiResults.forEach(r=>{
+    const info=r.kategorie_info||cats[r.kategorie]||cats.sonstiges;
+    const netto=r.betrag_netto||0;
+    const mwst=r.mwst_betrag||0;
+    if(info.type==='income'){
+      if(info.vat===0.19)ein19+=netto;
+      else if(info.vat===0.07)ein7+=netto;
+      else ein0+=netto;
+    }else if(info.type==='expense'){
+      const absetzbar=info.limitFactor?netto*info.limitFactor:netto;
+      if(r.kategorie==='bewirtung')bewirtung+=netto;
+      if(info.vat===0.19){aus19+=absetzbar;ausMwst19+=mwst*(info.limitFactor||1);}
+      else if(info.vat===0.07){aus7+=absetzbar;ausMwst7+=mwst;}
+      else aus0+=absetzbar;
+    }
+    // privat → ignorieren
+  });
+
+  const ustAuf=(ein19*0.19)+(ein7*0.07);
+  const vorsteuer=ausMwst19+ausMwst7;
+  const zahllast=ustAuf-vorsteuer;
+  const totalEin=ein19+ein7+ein0+manualIncomes.reduce((s,x)=>s+x.brutto/(1.19),0);
+  const totalAus=aus19+aus7+aus0;
+  const gewinn=totalEin-totalAus;
+
+  // KPI-Grid
+  $('ustv-kpi-grid').innerHTML=`
+    <div class="ustv-card">
+      <div class="ustv-label">Umsatzsteuer auf Einnahmen</div>
+      <div class="ustv-zeile">UStVA Zeile 81 (19%) + Zeile 86 (7%)</div>
+      <div class="ustv-val accent">${fmt(ustAuf)}</div>
+      <div class="ustv-sub">${fmt(ein19)} Netto @ 19% · ${fmt(ein7)} @ 7%</div>
+    </div>
+    <div class="ustv-card">
+      <div class="ustv-label">Abziehbare Vorsteuer</div>
+      <div class="ustv-zeile">UStVA Zeile 66</div>
+      <div class="ustv-val blue">${fmt(vorsteuer)}</div>
+      <div class="ustv-sub">${fmt(ausMwst19)} (19%) · ${fmt(ausMwst7)} (7%)</div>
+    </div>
+    <div class="ustv-card ${zahllast>0?'danger':''}">
+      <div class="ustv-label">USt-Zahllast / Erstattung</div>
+      <div class="ustv-zeile">Zeile 83 – fällig ans Finanzamt</div>
+      <div class="ustv-val ${zahllast>0?'red':'green'}">${fmt(Math.abs(zahllast))}</div>
+      <div class="ustv-sub">${zahllast>0?'→ Zahlbetrag ans Finanzamt':'→ Erstattung vom Finanzamt'}</div>
+    </div>
+    <div class="ustv-card highlight">
+      <div class="ustv-label">Gewinn (EÜR)</div>
+      <div class="ustv-zeile">Einnahmen – Betriebsausgaben Netto</div>
+      <div class="ustv-val ${gewinn>=0?'green':'red'}">${fmt(gewinn)}</div>
+      <div class="ustv-sub">${fmt(totalEin)} Einnahmen – ${fmt(totalAus)} Ausgaben</div>
+    </div>`;
+
+  // Detailtabelle
+  const dtbody=$('detail-table').querySelector('tbody');
+  dtbody.innerHTML=`
+    <tr class="group-hd"><td colspan="3">EINNAHMEN</td></tr>
+    <tr><td>19% Umsätze (Zeile 81)</td><td class="r">${fmt(ein19)}</td><td class="r">${fmt(ein19*0.19)}</td></tr>
+    ${ein7?`<tr><td>7% Umsätze (Zeile 86)</td><td class="r">${fmt(ein7)}</td><td class="r">${fmt(ein7*0.07)}</td></tr>`:''}
+    ${ein0?`<tr><td>Steuerfreie / Ausland-Umsätze</td><td class="r">${fmt(ein0)}</td><td class="r">–</td></tr>`:''}
+    <tr class="total"><td>Gesamt Einnahmen</td><td class="r">${fmt(totalEin)}</td><td class="r">${fmt(ustAuf)}</td></tr>
+    <tr class="group-hd"><td colspan="3">VORSTEUER (AUSGABEN)</td></tr>
+    <tr><td>19% Vorsteuer (Zeile 66)</td><td class="r">${fmt(aus19)}</td><td class="r">${fmt(ausMwst19)}</td></tr>
+    ${aus7?`<tr><td>7% Vorsteuer</td><td class="r">${fmt(aus7)}</td><td class="r">${fmt(ausMwst7)}</td></tr>`:''}
+    ${aus0?`<tr><td>Ausgaben ohne Vorsteuer</td><td class="r">${fmt(aus0)}</td><td class="r">–</td></tr>`:''}
+    ${bewirtung?`<tr><td style="color:var(--orange);">davon Bewirtung (70% absetzbar)</td><td class="r">${fmt(bewirtung)}</td><td class="r">–</td></tr>`:''}
+    <tr class="total"><td>Gesamt Vorsteuer</td><td class="r">${fmt(totalAus)}</td><td class="r">${fmt(vorsteuer)}</td></tr>
+    <tr class="group-hd"><td colspan="3">ERGEBNIS</td></tr>
+    <tr class="total"><td>${zahllast>0?'Zahllast':'Erstattung'} (Zeile 83)</td><td class="r" colspan="2" style="color:${zahllast>0?'var(--red)':'var(--green)'}">${fmt(Math.abs(zahllast))}</td></tr>
+  `;
+  $('detail-table').querySelector('thead')?.remove();
+  const dtHead=document.createElement('thead');
+  dtHead.innerHTML='<tr><th>Position</th><th class="r">Netto</th><th class="r">MwSt</th></tr>';
+  $('detail-table').prepend(dtHead);
+
+  // EÜR
+  const euerbody=$('euer-table').querySelector('tbody');
+  euerbody.innerHTML=`
+    <tr><td>Betriebseinnahmen Netto</td><td class="r">${fmt(totalEin)}</td></tr>
+    <tr><td>Betriebsausgaben Netto</td><td class="r">− ${fmt(totalAus)}</td></tr>
+    <tr class="total"><td>Gewinn / Verlust</td><td class="r" style="color:${gewinn>=0?'var(--green)':'var(--red)'}">${fmt(gewinn)}</td></tr>
+  `;
+
+  // Sidebar updaten
+  updateSidebar(totalEin,totalAus,gewinn,zahllast);
+}
+
+// ── SIDEBAR STATS ─────────────────────────────────────────
+function updateSidebar(ein,aus,gew,zahl){
+  if(ein!==undefined){
+    $('sb-einnahmen').textContent=fmt(ein);
+    $('sb-ausgaben').textContent=fmt(aus||0);
+    $('sb-gewinn').textContent=fmt(gew||0);
+    $('sb-zahllast').textContent=fmt(zahl||0);
+    return;
+  }
+  // Live-Schätzung aus aktuellen Daten
+  const selIncome=incomeItems.filter(x=>x.checked).reduce((s,x)=>s+(x.netto||0),0)
+    +manualIncomes.reduce((s,x)=>s+x.brutto/(1.19),0);
+  const selExp=expenses.reduce((s,x)=>s+x.betrag/(1.19),0);
+  $('sb-einnahmen').textContent=fmt(selIncome);
+  $('sb-ausgaben').textContent=fmt(selExp);
+  $('sb-gewinn').textContent=fmt(selIncome-selExp);
+  $('sb-zahllast').textContent='–';
+}
+
+// ── EXPORT ────────────────────────────────────────────────
+function exportSummary(){
+  const period=$('ustva-period-label').textContent;
+  const lines=[
+    `VISO Media – Steuerauswertung`,
+    period,``,
+    `Einnahmen (Netto): ${$('sb-einnahmen').textContent}`,
+    `Ausgaben (Netto): ${$('sb-ausgaben').textContent}`,
+    `Gewinn: ${$('sb-gewinn').textContent}`,
+    `USt-Zahllast: ${$('sb-zahllast').textContent}`,
+    ``,`Erstellt: ${new Date().toLocaleDateString('de-DE')}`,
+    `Hinweis: Unverbindliche Arbeitshilfe – bitte durch Steuerberater prüfen.`
+  ];
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>toast('In Zwischenablage kopiert ✓'));
+}
+
+// ── INIT ──────────────────────────────────────────────────
+async function init(){
+  const user=await getUser();
+  if(!user){window.location.href='/';return;}
+  $('nav-user').textContent=user.email||'';
+
+  // Kategorien vom Server laden (einmalig, dann cachen)
+  // Wir nutzen einen kleinen Trick: api/tax mit leerem Aufruf gibt categories zurück
+  // Stattdessen: Kategorien direkt hier definieren (identisch mit api/tax.js)
+  window._categories={
+    einnahmen_19:{label:'Einnahmen 19% MwSt.',type:'income',vat:0.19},
+    einnahmen_7:{label:'Einnahmen 7% MwSt.',type:'income',vat:0.07},
+    einnahmen_0:{label:'Einnahmen steuerfrei / Ausland',type:'income',vat:0},
+    software:{label:'Software & Tools',type:'expense',vat:0.19},
+    hardware:{label:'Hardware & Technik',type:'expense',vat:0.19},
+    buero:{label:'Büro & Arbeitsmittel',type:'expense',vat:0.19},
+    marketing:{label:'Marketing & Werbung',type:'expense',vat:0.19},
+    reise:{label:'Reise & Fahrtkosten',type:'expense',vat:0.07},
+    bewirtung:{label:'Bewirtung (70% absetzbar)',type:'expense',vat:0.19,limitFactor:0.7},
+    telefon:{label:'Telefon & Internet',type:'expense',vat:0.19},
+    weiterbildung:{label:'Weiterbildung & Kurse',type:'expense',vat:0.19},
+    freelancer:{label:'Fremdleistungen / Freelancer',type:'expense',vat:0.19},
+    versicherung:{label:'Versicherungen',type:'expense',vat:0},
+    steuerberatung:{label:'Steuerberatung & Buchhaltung',type:'expense',vat:0.19},
+    miete:{label:'Miete / Raumkosten',type:'expense',vat:0.19},
+    sonstiges:{label:'Sonstiges',type:'expense',vat:0.19},
+    privat:{label:'Privat (nicht absetzbar)',type:'private',vat:0},
+  };
+
+  // Jahr-Select befüllen
+  const ySel=$('sel-year');
+  const curYear=new Date().getFullYear();
+  ySel.innerHTML='';
+  [curYear,curYear-1,curYear-2].forEach(y=>{
+    const o=document.createElement('option');o.value=y;o.textContent=y;
+    if(y===curYear)o.selected=true;ySel.appendChild(o);
+  });
+  selectedYear=curYear;
+
+  // Aktuelles Quartal vorselektieren
+  const curQ=Math.ceil((new Date().getMonth()+1)/3);
+  setQuartal(curQ);
+
+  // Dokumente laden
+  try{allDocs=await DB.getDocuments();}
+  catch(e){console.error(e);toast('Fehler beim Laden der Rechnungen');}
+
+  refreshIncomeList();
+  updateSidebar();
+  $('loading-screen').style.display='none';
+  lucide.createIcons();
+}
+
+async function doSignOut(){await signOut();}
+
+init();
+</script>
+</body>
+</html>
