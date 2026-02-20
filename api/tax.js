@@ -26,33 +26,12 @@ const CATEGORIES = {
   privat:          { label: 'Privat (nicht absetzbar)',  type: 'private', vat: 0 },
 };
 
-const SYSTEM_PROMPT = `Du bist ein deutscher Steuerexperte-Assistent für Selbstständige und Freiberufler.
-Deine Aufgabe: Analysiere Finanztransaktionen und kategorisiere sie für die Umsatzsteuervoranmeldung (UStVA) und Einnahmenüberschussrechnung (EÜR).
-
-Verfügbare Kategorien:
-${Object.entries(CATEGORIES).map(([k,v]) => `- "${k}": ${v.label} (${v.type})`).join('\n')}
-
-Antworte IMMER als valides JSON-Objekt mit einem "entries" Array. Für jeden Eintrag:
-{
-  "id": <original id oder fortlaufende Nummer>,
-  "beschreibung": <Kurzbeschreibung der Transaktion>,
-  "kategorie": <kategorie-key>,
-  "betrag_netto": <Nettobetrag als Zahl>,
-  "betrag_brutto": <Bruttobetrag als Zahl>,
-  "mwst_betrag": <MwSt-Betrag als Zahl>,
-  "mwst_satz": <0.19 oder 0.07 oder 0>,
-  "datum": <Datum als String falls erkennbar, sonst "">,
-  "begruendung": <kurze Begründung auf Deutsch, max 80 Zeichen>,
-  "konfidenz": <"hoch"|"mittel"|"niedrig">,
-  "unklar": <true wenn Human-Review empfohlen>
-}
-
-Regeln:
-- Bei Ausgaben: Vorsteuer nur wenn Beleg vorliegt und betrieblicher Zweck klar ist
-- Bewirtung: max 70% der Kosten absetzbar, flagge als unklar wenn >50€
-- Gemischte Nutzung (privat/geschäftlich): flagge als unklar
-- Im Zweifel: konfidenz "niedrig" und unklar: true setzen
-- Betrag immer positiv zurückgeben, Typ (income/expense) kommt aus der Kategorie`;
+// Kompaktes System-Prompt – weniger Token = schnellere Antwort
+const CAT_LIST = Object.entries(CATEGORIES).map(([k,v]) => `${k}:${v.label}`).join('|');
+const SYSTEM_PROMPT = `Steuerexperte DE. Kategorisiere Finanztransaktionen für UStVA/EÜR.
+Kategorien: ${CAT_LIST}
+Antworte NUR als JSON: {"entries":[{"id":<id>,"beschreibung":<str>,"kategorie":<key>,"betrag_netto":<num>,"betrag_brutto":<num>,"mwst_betrag":<num>,"mwst_satz":<0|0.07|0.19>,"datum":<str>,"begruendung":<max60chr>,"konfidenz":<hoch|mittel|niedrig>,"unklar":<bool>}]}
+Regeln: Betrag immer positiv. Bei Unklarheit unklar:true. Bewirtung limitFactor 0.7.`;
 
 const VISION_PROMPT = `Du bist ein deutscher Steuerexperte. Analysiere dieses Bild (Rechnung, Kontoauszug oder Beleg).
 Extrahiere ALLE erkennbaren Finanztransaktionen oder Buchungsposten.
