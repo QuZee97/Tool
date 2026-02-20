@@ -46,7 +46,7 @@
 // Wenn bereits eingeloggt → direkt weiterleiten
 (async () => {
   const user = await getUser();
-  if (user) window.location.href = '/tool';
+  if (user) window.location.href = '/dashboard';
 })();
 
 async function login() {
@@ -66,7 +66,7 @@ async function login() {
 
   try {
     await signIn(email, password);
-    window.location.href = '/tool';
+    window.location.href = '/dashboard';
   } catch(e) {
     showError('Falsche E-Mail oder falsches Passwort.');
     btn.disabled = false;
