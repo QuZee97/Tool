@@ -87,12 +87,14 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
   margin-bottom:16px;
 }
 
-/* Form elements – kein schwarzer Hintergrund, solid border */
+/* Form elements – nur im Sidebar anwenden, NICHT im doc-page */
 .field-group{margin-bottom:14px;}
 .field-label{font-size:11px;color:var(--text3);margin-bottom:5px;display:block;}
-.field-input,
-input[type=text],input[type=email],input[type=number],input[type=date],
-textarea,select{
+#sidebar .field-input,
+#sidebar input[type=text],#sidebar input[type=email],
+#sidebar input[type=number],#sidebar input[type=date],
+#sidebar textarea,#sidebar select,
+#topbar input[type=text],#topbar input[type=email]{
   width:100%;background:var(--surface2);
   border:1px solid var(--border2);border-radius:var(--radius-sm);
   color:var(--text);font-size:12px;padding:7px 10px;
@@ -100,16 +102,16 @@ textarea,select{
   transition:border-color .15s,background .15s;
   -webkit-appearance:none;
 }
-input:focus,textarea:focus,select:focus{
+#sidebar input:focus,#sidebar textarea:focus,#sidebar select:focus{
   border-color:var(--accent);
   background:var(--surface3);
 }
-textarea{resize:vertical;min-height:56px;line-height:1.6;}
-select{cursor:pointer;appearance:none;-webkit-appearance:none;
+#sidebar textarea{resize:vertical;min-height:56px;line-height:1.6;}
+#sidebar select{cursor:pointer;appearance:none;-webkit-appearance:none;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235c5f6b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 9px center;
   padding-right:28px;}
-select option{background:var(--surface2);color:var(--text);}
+#sidebar select option{background:var(--surface2);color:var(--text);}
 
 /* Section header */
 .section-hd{
@@ -279,15 +281,19 @@ select option{background:var(--surface2);color:var(--text);}
   outline:none;
   transition:background .12s,border-color .12s;
 }
-/* Hover: leichter Hinweis dass editierbar */
+/* Standard: subtiler Rand – immer sichtbar */
+.ie,.ie-block,.ie-select,.ie-date{
+  border-color:#e8e8e8;
+}
+/* Hover: etwas deutlicher */
 .ie:hover,.ie-block:hover,.ie-select:hover,.ie-date:hover{
   background:rgba(0,0,0,.03);
-  border-color:#ddd;
+  border-color:#ccc;
 }
 /* Focus: klarer Rahmen */
 .ie:focus,.ie-block:focus,.ie-select:focus,.ie-date:focus{
   background:#f5f5e8;
-  border-color:#aaa;
+  border-color:#999;
 }
 /* Einzelne Maße */
 .ie{padding:1px 3px;width:auto;min-width:40px;}
@@ -313,8 +319,8 @@ select option{background:var(--surface2);color:var(--text);}
 .doc-meta{text-align:right;}
 /* Typ-Titel kein hartes Schwarz – dunkles Grau */
 .doc-meta h1{font-size:21px;font-weight:700;color:#4a4a4a;margin-bottom:5px;}
-.doc-meta-row{font-size:11.5px;color:#555;line-height:1.9;}
-.doc-meta-label{color:#999;font-size:10.5px;}
+.doc-meta-row{font-size:11.5px;color:#555;line-height:1.9;display:flex;align-items:center;gap:4px;justify-content:flex-end;}
+.doc-meta-label{color:#999;font-size:10.5px;white-space:nowrap;}
 
 .sender-bar{font-size:9px;color:#aaa;margin-bottom:5mm;border-bottom:1px solid #eee;padding-bottom:2mm;}
 
@@ -326,22 +332,26 @@ select option{background:var(--surface2);color:var(--text);}
 .recipient-toolbar{
   display:flex;gap:5px;align-items:center;margin-bottom:4px;
 }
-.recipient-toolbar select.rc-sel{
-  font-size:10.5px;padding:2px 6px;border-radius:3px;
-  background:#f7f7f7;border:1px dashed #ccc;color:#666;
+/* Einheitliche Inline-Steuerelemente im Dokument-Kontext */
+.doc-ctrl{
+  font-size:10.5px;padding:3px 8px;border-radius:3px;
+  background:#f0f0f0;border:1px solid #d0d0d0;color:#555;
   font-family:inherit;cursor:pointer;outline:none;
+  transition:background .12s,border-color .12s;
+}
+.doc-ctrl:hover{background:#e4e4e4;border-color:#aaa;color:#333;}
+.doc-ctrl:focus{border-color:#999;outline:none;}
+.recipient-toolbar select.rc-sel{
   -webkit-appearance:none;appearance:none;
-  padding-right:18px;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  padding-right:20px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 5px center;
+  background-color:#f0f0f0;
+  max-width:220px;
 }
 .recipient-toolbar button.rc-btn{
-  font-size:10px;padding:2px 7px;border-radius:3px;
-  border:1px dashed #ccc;background:#f7f7f7;color:#666;
-  cursor:pointer;font-family:inherit;white-space:nowrap;
-  transition:.15s;
+  padding:3px 8px;white-space:nowrap;flex-shrink:0;
 }
-.recipient-toolbar button.rc-btn:hover{border-color:#888;color:#333;}
 
 .doc-subject{
   font-size:13.5px;font-weight:700;color:#111;
@@ -670,8 +680,8 @@ select option{background:var(--surface2);color:var(--text);}
           <span class="doc-meta-label" id="d_date_label">Datum:</span>
           <input type="date" class="ie-date" id="f_datum" oninput="update()" style="width:138px;">
         </div>
-        <div class="doc-meta-row" id="row_extra">
-          <span class="doc-meta-label" id="d_extra_label">Gültig bis:</span>
+        <div class="doc-meta-row" id="row_extra" style="display:flex;align-items:center;gap:4px;">
+          <span class="doc-meta-label" id="d_extra_label" style="white-space:nowrap;">Gültig bis:</span>
           <input type="date" class="ie-date" id="f_gueltig" oninput="update()" style="width:138px;">
           <input type="date" class="ie-date" id="f_von" oninput="update()" style="display:none;width:138px;">
         </div>
@@ -685,10 +695,10 @@ select option{background:var(--surface2);color:var(--text);}
     <div class="recipient-block">
       <!-- Kunden-Toolbar (nur Editor, nicht PDF) -->
       <div class="recipient-toolbar no-print">
-        <select class="rc-sel" id="f_kunde_inline" onchange="loadCustomerInline()">
-          <option value="">Kunde aus Datenbank übernehmen …</option>
+        <select class="rc-sel doc-ctrl" id="f_kunde_inline" onchange="loadCustomerInline()">
+          <option value="">Kunde wählen …</option>
         </select>
-        <button class="rc-btn" onclick="saveCurrentAsCustomer()" title="Aktuelle Adresse in Kundendatenbank speichern">+ in DB</button>
+        <button class="rc-btn doc-ctrl" onclick="saveCurrentAsCustomer()" title="Aktuelle Adresse in Kundendatenbank speichern">+ DB</button>
       </div>
       <p>
         <input class="ie-block" id="f_firma" placeholder="Firma / Company" oninput="update()" style="font-weight:700;margin-bottom:2px;">
@@ -735,7 +745,7 @@ select option{background:var(--surface2);color:var(--text);}
 
     <!-- Lib select (inline) -->
     <div class="no-print" style="margin-top:-3mm;margin-bottom:5mm;">
-      <select id="f_lib_select" onchange="addFromLib()" style="width:auto;font-size:11px;padding:5px 8px;background:#f7f7f7;border:1px dashed #ccc;color:#666;border-radius:4px;cursor:pointer;outline:none;">
+      <select id="f_lib_select" class="doc-ctrl" onchange="addFromLib()" style="font-size:11px;-webkit-appearance:none;appearance:none;padding-right:20px;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 6px center;">
         <option value="">+ Aus Bibliothek hinzufügen</option>
       </select>
     </div>
@@ -769,7 +779,7 @@ select option{background:var(--surface2);color:var(--text);}
 
     <!-- Footer -->
     <div class="doc-footer">
-      <div><strong id="t_contact">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br>david&#64;viso.media</div>
+      <div><strong id="t_contact">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br>rechnungen&#64;viso.media</div>
       <div><strong id="t_tax_f">Steuer</strong><span id="t_taxnr_label">Steuernummer:</span> 02087201058<br><span id="t_vatid_label">USt-IdNr.:</span> DE354878347</div>
       <div><strong id="t_bank">Bankverbindung</strong><span id="t_accholder_label">Kontoinhaber:</span> David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
     </div>
@@ -797,9 +807,9 @@ select option{background:var(--surface2);color:var(--text);}
       <div class="sig-field"><div class="sig-line"></div><span id="t_sig_date">Ort, Datum</span></div>
       <div class="sig-field"><div class="sig-line"></div><span id="t_sig_sign">Unterschrift Auftraggeber / Stempel</span></div>
     </div>
-    <div style="margin-top:8mm;font-size:10px;color:#aaa;text-align:center;" id="t_return">Bitte unterschriebene Seite per E-Mail zurücksenden an: david&#64;viso.media</div>
+    <div style="margin-top:8mm;font-size:10px;color:#aaa;text-align:center;" id="t_return">Bitte unterschriebene Seite per E-Mail zurücksenden an: rechnungen&#64;viso.media</div>
     <div class="doc-footer" style="margin-top:7mm;">
-      <div><strong id="t_contact2">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br>david&#64;viso.media</div>
+      <div><strong id="t_contact2">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br>rechnungen&#64;viso.media</div>
       <div><strong id="t_tax2">Steuer</strong><span id="t_taxnr_label2">Steuernummer:</span> 02087201058<br><span id="t_vatid_label2">USt-IdNr.:</span> DE354878347</div>
       <div><strong id="t_bank2">Bankverbindung</strong><span id="t_accholder_label2">Kontoinhaber:</span> David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
     </div>
@@ -864,7 +874,7 @@ const T={
     confirm_title:'Auftragsbestätigung',
     confirm:nr=>`Mit Unterzeichnung bestätigt der Auftraggeber, das Angebot (Nr.: ${nr}) gelesen und akzeptiert zu haben, und erteilt verbindlich den Auftrag. Er erklärt sich mit den vorstehenden AGB einverstanden.`,
     sig_date:'Ort, Datum',sig_sign:'Unterschrift Auftraggeber / Stempel',
-    return:'Bitte unterschriebene Seite per E-Mail zurücksenden an: david@viso.media',
+    return:'Bitte unterschriebene Seite per E-Mail zurücksenden an: rechnungen@viso.media',
     prefix_q:'Angebot: ',prefix_i:'Rechnung: ',
     empty_sub:'Betreff …',
     annex_label:'Anhang zu',annex_q:'Angebots',annex_i:'Rechnungs',
@@ -889,7 +899,7 @@ const T={
     confirm_title:'Order Confirmation',
     confirm:nr=>`By signing, the client confirms having read and accepted the quote (No.: ${nr}) and hereby places a binding order, agreeing to the Terms and Conditions stated above.`,
     sig_date:'Place, Date',sig_sign:'Signature Client / Stamp',
-    return:'Please return the signed page by e-mail to: david@viso.media',
+    return:'Please return the signed page by e-mail to: rechnungen@viso.media',
     prefix_q:'Quote: ',prefix_i:'Invoice: ',
     empty_sub:'Subject …',
     annex_label:'Annex to',annex_q:'Quote',annex_i:'Invoice',
@@ -922,10 +932,10 @@ const AGB={
 };
 
 const EMAIL_TPL={
-  angebot_de:{subject:'Angebot {{nr}} – {{betreff}} | VISO Media',body:`Guten Tag {{name}},\n\nvielen Dank für Ihr Interesse an einer Zusammenarbeit mit VISO Media.\n\nIm Anhang erhalten Sie das Angebot Nr. {{nr}} für „{{betreff}}" über {{betrag}} (brutto inkl. MwSt.).\n\nDas Angebot ist bis zum {{datum}} gültig. Bitte senden Sie die unterschriebene Seite 2 zurück, um den Auftrag verbindlich zu erteilen.\n\nMit freundlichen Grüßen,\nDavid Stiehler · VISO Media\ndavid@viso.media · 015735386155`},
-  angebot_en:{subject:'Quote {{nr}} – {{betreff}} | VISO Media',body:`Dear {{name}},\n\nThank you for your interest in working with VISO Media.\n\nPlease find attached Quote No. {{nr}} for "{{betreff}}" totalling {{betrag}} (net).\n\nThis quote is valid until {{datum}}. Please sign and return page 2 to confirm your order.\n\nKind regards,\nDavid Stiehler · VISO Media\ndavid@viso.media · +49 157 35386155`},
-  rechnung_de:{subject:'Rechnung {{nr}} – {{betreff}} | VISO Media',body:`Guten Tag {{name}},\n\nim Anhang erhalten Sie die Rechnung Nr. {{nr}} für „{{betreff}}" über {{betrag}}.\n\nBitte überweisen Sie den Betrag innerhalb von 14 Tagen auf das angegebene Konto.\n\nMit freundlichen Grüßen,\nDavid Stiehler · VISO Media\ndavid@viso.media · 015735386155`},
-  rechnung_en:{subject:'Invoice {{nr}} – {{betreff}} | VISO Media',body:`Dear {{name}},\n\nPlease find attached Invoice No. {{nr}} for "{{betreff}}" totalling {{betrag}}.\n\nPayment is due within 14 days to the bank account stated on the invoice.\n\nKind regards,\nDavid Stiehler · VISO Media\ndavid@viso.media · +49 157 35386155`},
+  angebot_de:{subject:'Angebot {{nr}} – {{betreff}} | VISO Media',body:`Guten Tag {{name}},\n\nvielen Dank für Ihr Interesse an einer Zusammenarbeit mit VISO Media.\n\nIm Anhang erhalten Sie das Angebot Nr. {{nr}} für „{{betreff}}" über {{betrag}} (brutto inkl. MwSt.).\n\nDas Angebot ist bis zum {{datum}} gültig. Bitte senden Sie die unterschriebene Seite 2 zurück, um den Auftrag verbindlich zu erteilen.\n\nMit freundlichen Grüßen,\nDavid Stiehler · VISO Media\nrechnungen@viso.media · 015735386155`},
+  angebot_en:{subject:'Quote {{nr}} – {{betreff}} | VISO Media',body:`Dear {{name}},\n\nThank you for your interest in working with VISO Media.\n\nPlease find attached Quote No. {{nr}} for "{{betreff}}" totalling {{betrag}} (net).\n\nThis quote is valid until {{datum}}. Please sign and return page 2 to confirm your order.\n\nKind regards,\nDavid Stiehler · VISO Media\nrechnungen@viso.media · +49 157 35386155`},
+  rechnung_de:{subject:'Rechnung {{nr}} – {{betreff}} | VISO Media',body:`Guten Tag {{name}},\n\nim Anhang erhalten Sie die Rechnung Nr. {{nr}} für „{{betreff}}" über {{betrag}}.\n\nBitte überweisen Sie den Betrag innerhalb von 14 Tagen auf das angegebene Konto.\n\nMit freundlichen Grüßen,\nDavid Stiehler · VISO Media\nrechnungen@viso.media · 015735386155`},
+  rechnung_en:{subject:'Invoice {{nr}} – {{betreff}} | VISO Media',body:`Dear {{name}},\n\nPlease find attached Invoice No. {{nr}} for "{{betreff}}" totalling {{betrag}}.\n\nPayment is due within 14 days to the bank account stated on the invoice.\n\nKind regards,\nDavid Stiehler · VISO Media\nrechnungen@viso.media · +49 157 35386155`},
   followup_de:{subject:'Nachfrage: Angebot {{nr}} | VISO Media',body:`Guten Tag {{name}},\n\nich möchte kurz nachfragen, ob Sie das Angebot Nr. {{nr}} für „{{betreff}}" erhalten haben.\n\nDas Angebot ist noch bis zum {{datum}} gültig.\n\nMit freundlichen Grüßen,\nDavid Stiehler · VISO Media`},
   followup_en:{subject:'Follow-up: Quote {{nr}} | VISO Media',body:`Dear {{name}},\n\nI wanted to follow up on Quote No. {{nr}} for "{{betreff}}" and check if you have any questions.\n\nThe quote remains valid until {{datum}}.\n\nKind regards,\nDavid Stiehler · VISO Media`}
 };
@@ -1092,12 +1102,12 @@ function renderPositionen(){
       <td style="text-align:right;vertical-align:top;padding-top:10px;">
         <select class="ie-select" onchange="posUpdate(${p.id},'einheit',this.value)" style="font-size:11px;">${unitOptions(p.einheit)}</select>
       </td>
-      <td style="text-align:right;vertical-align:top;padding-top:10px;">
-        <input class="ie" type="text" value="${p.preis}" placeholder="0,00" style="width:70px;text-align:right;"
-          oninput="posUpdate(${p.id},'preis',this.value)">
+      <td style="text-align:right;vertical-align:top;padding-top:10px;white-space:nowrap;">
+        <input class="ie" type="text" value="${p.preis}" placeholder="0,00" style="width:62px;text-align:right;"
+          oninput="posUpdate(${p.id},'preis',this.value)"><span style="color:#888;font-size:11px;"> €</span>
       </td>
       <td style="text-align:right;vertical-align:top;padding-top:10px;white-space:nowrap;font-weight:600;">
-        ${sum?fmt(sum):'–'}
+        ${sum?fmt(sum):(p.preis?fmt(0):'–')}
       </td>
       <td style="vertical-align:top;padding-top:8px;" class="no-print">
         <button class="pos-del" onclick="removePos(${p.id})" title="Löschen">✕</button>
