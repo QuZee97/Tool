@@ -109,12 +109,15 @@ const DB = {
     const user = await getUser();
     const ext = file.name.split('.').pop().toLowerCase();
     const ts  = Date.now();
-    const path = `${user.id}/${ts}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
+    const path = `${user.id}/${ts}_${safeName}`;
     // 1) Datei in Storage hochladen
     const { error: upErr } = await db.storage.from('receipts').upload(path, file, {
-      cacheControl: '3600', upsert: false,
+      cacheControl: '3600',
+      upsert: true,
+      contentType: file.type || 'application/octet-stream',
     });
-    if (upErr) throw upErr;
+    if (upErr) throw new Error(`Storage-Fehler: ${upErr.message} (Pfad: ${path})`);
     // 2) Signed URL für späteren Zugriff (1 Jahr gültig)
     const { data: urlData, error: urlErr } = await db.storage
       .from('receipts').createSignedUrl(path, 60 * 60 * 24 * 365);
