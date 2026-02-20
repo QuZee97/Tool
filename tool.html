@@ -475,14 +475,14 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 <nav id="nav">
   <span class="nav-logo">VISO <span>Media</span></span>
   <div class="nav-sep"></div>
+  <a class="nav-btn" href="/dashboard" title="Dashboard">
+    <i data-lucide="layout-dashboard"></i> Dashboard
+  </a>
   <a class="nav-btn active" href="/tool" title="Angebote & Rechnungen">
     <i data-lucide="file-text"></i> Angebote & Rechnungen
   </a>
   <a class="nav-btn" href="/steuer" title="Steuertool">
     <i data-lucide="calculator"></i> Steuer
-  </a>
-  <a class="nav-btn" href="/dashboard" title="Dashboard">
-    <i data-lucide="layout-dashboard"></i> Dashboard
   </a>
   <div class="nav-sep"></div>
   <!-- Sidebar-Panel-Shortcuts -->
@@ -1423,12 +1423,22 @@ function addFromLib(){
 
 // ── DOCUMENTS ─────────────────────────────────────────────
 async function saveDoc(){
+  // HTML-Snapshot für Dashboard-Vorschau erzeugen
+  let pdf_html='';
+  try{
+    const snap=buildCleanPages();
+    // CSS aus dem Dokument extrahieren
+    let css='';
+    try{css=Array.from(document.styleSheets).reduce((a,ss)=>{try{return a+Array.from(ss.cssRules).map(r=>r.cssText).join('\n');}catch{return a;}},'')}catch{}
+    pdf_html=JSON.stringify({p1:snap.p1,p2:snap.p2,css});
+  }catch(e){console.warn('Snapshot fehlgeschlagen:',e);}
+
   const doc={
     typ,nr:val('f_nr'),datum:val('f_datum'),gueltig:val('f_gueltig'),
     von:val('f_von'),bis:'',betreff:val('f_betreff'),zahlung:val('f_zahlung'),
     hinweise:val('f_hinweise'),firma:val('f_firma'),ansp:val('f_ansprechpartner'),
     str:val('f_strasse'),ort:val('f_ort'),land:val('f_land'),uid:val('f_uid'),
-    lang,tax,positionen
+    lang,tax,positionen,pdf_html
   };
   // Wenn wir eine bekannte ID haben, Update via ID (kein upsert-Konflikt)
   if(currentDocId){doc.id=currentDocId;}
@@ -1549,27 +1559,20 @@ function updateDataStats(){
   $('data_stats').innerHTML=`Kunden: <strong>${customers.length}</strong><br>Leistungen: <strong>${library.length}</strong><br>Dokumente: <strong>${history.length}</strong>`;
 }
 
-// ── PDF ───────────────────────────────────────────────────
-async function printPDF(){
+// ── PDF SNAPSHOT HELPER ────────────────────────────────────
+// Erzeugt bereinigtes HTML des Dokuments (für PDF-Export und Dashboard-Vorschau)
+function buildCleanPages(){
   const isRe=typ==='rechnung';
-  const nr=val('f_nr')||'–';
-  const firma=val('f_firma')||val('f_ansprechpartner')||'';
-  const filename=firma?`${nr} – ${firma}`:nr;
-
   const notes=val('f_hinweise').trim();
   const l=T[lang];
 
-  // Klone die Seiten
   const p1clone=$('page1').cloneNode(true);
   const p2clone=$('page2').cloneNode(true);
 
-  // Alle .no-print Elemente entfernen
   p1clone.querySelectorAll('.no-print').forEach(el=>el.remove());
   p2clone.querySelectorAll('.no-print').forEach(el=>el.remove());
 
-  // ie-inputs durch ihre Werte ersetzen
   function replaceInputs(container){
-    // .ie inputs (inkl. type=text/date) → span mit Wert
     container.querySelectorAll('input.ie,input.ie-date').forEach(inp=>{
       const span=document.createElement('span');
       span.style.cssText=inp.style.cssText;
@@ -1578,32 +1581,24 @@ async function printPDF(){
       else{span.textContent=raw||'';}
       inp.replaceWith(span);
     });
-    // .ie-block inputs → div
     container.querySelectorAll('input.ie-block').forEach(inp=>{
       const div=document.createElement('div');
       div.textContent=inp.value||'';
       div.style.cssText=inp.style.cssText;
-      // Kein border im PDF
       div.style.border='none';div.style.background='transparent';
       inp.replaceWith(div);
     });
-    // ie-select → span
     container.querySelectorAll('select.ie-select').forEach(sel=>{
       const span=document.createElement('span');
       span.textContent=sel.options[sel.selectedIndex]?.text||'';
       sel.replaceWith(span);
     });
-    // textareas → div mit Bullet-Liste (Einrückung + Leerzeile zwischen Bullets)
     container.querySelectorAll('textarea.ie-block,textarea.pos-details-input').forEach(ta=>{
       if(!ta.value.trim()){ta.remove();return;}
       const wrap=document.createElement('div');
       wrap.style.marginTop='4px';
       ta.value.trim().split('\n').filter(x=>x.trim()).forEach((line,idx)=>{
-        if(idx>0){
-          // Leerzeile zwischen Bullets
-          const gap=document.createElement('div');gap.style.height='3px';
-          wrap.appendChild(gap);
-        }
+        if(idx>0){const gap=document.createElement('div');gap.style.height='3px';wrap.appendChild(gap);}
         const d=document.createElement('div');
         d.style.cssText='display:block;padding-left:14px;position:relative;font-size:11px;color:#333;line-height:1.6;font-family:Helvetica Neue,Arial,sans-serif;';
         d.innerHTML=`<span style="position:absolute;left:0;color:#666;">–</span>${line.trim()}`;
@@ -1611,7 +1606,6 @@ async function printPDF(){
       });
       ta.replaceWith(wrap);
     });
-    // Notes textarea
     container.querySelectorAll('#f_hinweise').forEach(ta=>{
       if(!ta.value.trim()){ta.remove();return;}
       const box=document.createElement('div');
@@ -1626,7 +1620,18 @@ async function printPDF(){
   replaceInputs(p1clone);
   if(!isRe)replaceInputs(p2clone);
 
-  // CSS extrahieren
+  return{p1:p1clone.innerHTML, p2:isRe?'':p2clone.innerHTML, isRe};
+}
+
+// ── PDF ───────────────────────────────────────────────────
+async function printPDF(){
+  const isRe=typ==='rechnung';
+  const nr=val('f_nr')||'–';
+  const firma=val('f_firma')||val('f_ansprechpartner')||'';
+  const filename=firma?`${nr} – ${firma}`:nr;
+
+  const {p1,p2}=buildCleanPages();
+
   let css='';
   try{css=Array.from(document.styleSheets).reduce((a,ss)=>{try{return a+Array.from(ss.cssRules).map(r=>r.cssText).join('\n');}catch{return a;}},'')}catch{}
 
@@ -1635,11 +1640,7 @@ async function printPDF(){
     const resp=await fetch('/api/pdf',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        page1:p1clone.innerHTML,
-        page2:isRe?'':p2clone.innerHTML,
-        css,filename
-      })
+      body:JSON.stringify({page1:p1,page2:p2,css,filename})
     });
     if(!resp.ok){const e=await resp.json();throw new Error(e.error||resp.statusText);}
     const blob=await resp.blob();
