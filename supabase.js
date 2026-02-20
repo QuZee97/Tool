@@ -101,4 +101,57 @@ const DB = {
       .upsert({ key, subject, body, user_id: user.id }, { onConflict: 'key,user_id' });
     if (error) throw error;
   },
+
+  // ── BELEGE / RECEIPTS (Supabase Storage) ──────────────────
+  // Bucket: "receipts" – muss einmalig in Supabase Dashboard → Storage → New Bucket
+  // erstellt werden (Name: "receipts", Private bucket aktivieren).
+  async uploadReceipt(file, meta = {}) {
+    const user = await getUser();
+    const ext = file.name.split('.').pop().toLowerCase();
+    const ts  = Date.now();
+    const path = `${user.id}/${ts}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    // 1) Datei in Storage hochladen
+    const { error: upErr } = await db.storage.from('receipts').upload(path, file, {
+      cacheControl: '3600', upsert: false,
+    });
+    if (upErr) throw upErr;
+    // 2) Signed URL für späteren Zugriff (1 Jahr gültig)
+    const { data: urlData, error: urlErr } = await db.storage
+      .from('receipts').createSignedUrl(path, 60 * 60 * 24 * 365);
+    if (urlErr) throw urlErr;
+    // 3) Metadaten in DB-Tabelle "receipts" speichern
+    const { data, error } = await db.from('receipts').insert({
+      user_id: user.id,
+      filename: file.name,
+      storage_path: path,
+      signed_url: urlData.signedUrl,
+      size_bytes: file.size,
+      mime_type: file.type || 'application/octet-stream',
+      datum: meta.datum || null,
+      beschreibung: meta.beschreibung || file.name,
+      kategorie: meta.kategorie || null,
+      betrag: meta.betrag || null,
+    }).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async getReceipts() {
+    const { data, error } = await db.from('receipts')
+      .select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+  async deleteReceipt(id, storagePath) {
+    // Datei aus Storage löschen
+    await db.storage.from('receipts').remove([storagePath]);
+    // DB-Eintrag löschen
+    const { error } = await db.from('receipts').delete().eq('id', id);
+    if (error) throw error;
+  },
+  async refreshReceiptUrl(storagePath) {
+    const { data, error } = await db.storage
+      .from('receipts').createSignedUrl(storagePath, 60 * 60 * 24 * 365);
+    if (error) throw error;
+    return data.signedUrl;
+  },
 };
