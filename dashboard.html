@@ -210,6 +210,9 @@ table.dash-table tbody td.r{text-align:right;}
   <a class="nav-btn" href="/tool">
     <i data-lucide="file-text"></i> Dokumente
   </a>
+  <a class="nav-btn" href="/steuer">
+    <i data-lucide="calculator"></i> Steuer
+  </a>
   <div class="nav-spacer"></div>
   <button class="nav-btn" style="background:var(--accent);color:#111;" onclick="goNew()">
     <i data-lucide="plus"></i> Neues Dokument
@@ -302,6 +305,10 @@ table.dash-table tbody td.r{text-align:right;}
         <option value="">Alle Jahre</option>
       </select>
       <div class="filter-spacer"></div>
+      <label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text3);cursor:pointer;white-space:nowrap;">
+        <input type="checkbox" id="f-dedup" onchange="applyFilter()" style="accent-color:var(--accent);width:13px;height:13px;">
+        Angebote mit Rechnung ausblenden
+      </label>
       <span class="filter-count" id="filter-count"></span>
     </div>
 
@@ -380,10 +387,13 @@ function setMode(mode, btn){
 }
 
 // ── STATUS ─────────────────────────────────────────────────
+// Priority order: höchster Status gewinnt
+const STATUS_PRIORITY=['paid','accepted','declined','sent'];
 function getActiveStatus(doc){
   if(!doc.status)return null;
-  const keys=Object.keys(doc.status).filter(k=>doc.status[k]);
-  return keys.length?keys[keys.length-1]:null;
+  // Höchste Priorität zurückgeben
+  for(const k of STATUS_PRIORITY){if(doc.status[k])return k;}
+  return null;
 }
 function statusChip(doc){
   const s=getActiveStatus(doc);
@@ -394,12 +404,28 @@ function statusChip(doc){
 }
 
 // ── FILTER & TABLE ─────────────────────────────────────────
+// Ermittelt Angebote, zu denen bereits eine Rechnung existiert (gleiche Firma + Betreff)
+function getConvertedAngebotIds(){
+  const reSet=new Set(
+    allDocs.filter(d=>d.typ==='rechnung'&&d.firma&&d.betreff)
+           .map(d=>`${(d.firma||'').trim().toLowerCase()}||${(d.betreff||'').trim().toLowerCase()}`)
+  );
+  return new Set(
+    allDocs.filter(d=>d.typ==='angebot'&&d.firma&&d.betreff&&
+      reSet.has(`${(d.firma||'').trim().toLowerCase()}||${(d.betreff||'').trim().toLowerCase()}`))
+    .map(d=>d.id)
+  );
+}
+
 function applyFilter(){
   const search=($('f-search').value||'').toLowerCase();
   const typ=$('f-typ').value;
   const status=$('f-status').value;
   const year=$('f-year').value;
+  const dedup=$('f-dedup').checked;
+  const convertedIds=dedup?getConvertedAngebotIds():new Set();
   filteredDocs=allDocs.filter(d=>{
+    if(dedup&&convertedIds.has(d.id))return false;
     if(typ&&d.typ!==typ)return false;
     if(year&&(!d.datum||!d.datum.startsWith(year)))return false;
     if(status){const active=getActiveStatus(d)||'open';if(active!==status)return false;}
@@ -417,12 +443,18 @@ function renderTable(){
     $('table-footer-left').textContent='–';$('footer-netto').textContent='–';$('footer-brutto').textContent='–';
     return;
   }
+  // Zeige kleinen Hinweis bei Angeboten, zu denen eine Rechnung existiert
+  const convertedIds=getConvertedAngebotIds();
   let sumN=0,sumB=0;
   tbody.innerHTML=filteredDocs.map((d,i)=>{
     const n=docNetto(d),b=docBrutto(d);sumN+=n;sumB+=b;
-    return`<tr>
+    const isConverted=d.typ==='angebot'&&convertedIds.has(d.id);
+    const nrCell=isConverted
+      ?`<span style="font-weight:600;">${d.nr||'–'}</span> <span title="Rechnung wurde erstellt" style="font-size:9px;color:var(--green);vertical-align:middle;">→ RE</span>`
+      :`<span style="font-weight:600;">${d.nr||'–'}</span>`;
+    return`<tr${isConverted?' style="opacity:.65;"':''}>
       <td><span class="badge ${d.typ==='rechnung'?'badge-re':'badge-ang'}">${d.typ==='rechnung'?'RE':'ANG'}</span></td>
-      <td style="font-weight:600;">${d.nr||'–'}</td>
+      <td>${nrCell}</td>
       <td style="color:var(--text2);">${d.firma||'–'}</td>
       <td style="color:var(--text3);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.betreff||'–'}</td>
       <td class="r" style="font-variant-numeric:tabular-nums;">${n?fmt(n):'–'}</td>
