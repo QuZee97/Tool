@@ -435,6 +435,11 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
   page-break-inside:avoid;
   break-inside:avoid;
 }
+/* Abschluss-Block: Zahlung + Sign + Footer kompakt zusammenhalten */
+.doc-closing-block{
+  page-break-inside:avoid;
+  break-inside:avoid;
+}
 .doc-footer strong{color:#333;font-size:10.5px;display:block;margin-bottom:2px;}
 
 /* AGB */
@@ -473,6 +478,9 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
   <div class="nav-sep"></div>
   <a class="nav-btn active" href="/tool" title="Angebote & Rechnungen">
     <i data-lucide="file-text"></i> Dokumente
+  </a>
+  <a class="nav-btn" href="/steuer" title="Steuertool">
+    <i data-lucide="calculator"></i> Steuer
   </a>
   <div class="nav-sep"></div>
   <!-- Sidebar-Panel-Shortcuts -->
@@ -786,6 +794,9 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
     </div>
     <div id="d_notes_rendered" style="display:none;" class="info-box"></div>
 
+    <!-- Abschlussblock: Zahlung + Sign + AGB-Hinweis + Footer werden im PDF zusammengehalten -->
+    <div class="doc-closing-block">
+
     <!-- Payment -->
     <div class="info-box"><strong id="t_payment_title">Zahlungsbedingungen:</strong><br><span id="d_zahlung_text">–</span></div>
 
@@ -801,6 +812,8 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
       <div><strong id="t_tax_f">Steuer</strong><span id="t_taxnr_label">Steuernummer:</span> 02087201058<br><span id="t_vatid_label">USt-IdNr.:</span> DE354878347</div>
       <div><strong id="t_bank">Bankverbindung</strong><span id="t_accholder_label">Kontoinhaber:</span> David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
     </div>
+
+    </div><!-- /doc-closing-block -->
   </div><!-- /page1 -->
 
   <!-- PAGE 2 (AGB – Angebot only) -->
