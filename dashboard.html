@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VISO Media – Dashboard</title>
+<title>Dashboard – VISO Media</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23d4cc2e'/><text x='16' y='23' text-anchor='middle' font-size='20' font-family='Helvetica Neue,Arial,sans-serif' font-weight='700' fill='%23111'>V</text></svg>">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
@@ -173,6 +174,81 @@ table.dash-table tbody td.r{text-align:right;}
 .btn-row:hover{background:var(--surface3);color:var(--text);}
 .btn-row svg{width:13px;height:13px;stroke-width:1.8;}
 
+/* ── DOC PREVIEW MODAL ── */
+#preview-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;
+  display:none;align-items:flex-start;justify-content:center;
+  padding:24px 16px;overflow-y:auto;
+}
+#preview-overlay.open{display:flex;}
+#preview-modal{
+  background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);
+  width:100%;max-width:820px;position:relative;flex-shrink:0;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+}
+#preview-topbar{
+  display:flex;align-items:center;gap:8px;padding:12px 16px;
+  border-bottom:1px solid var(--border);background:var(--surface2);
+  border-radius:var(--radius) var(--radius) 0 0;position:sticky;top:0;z-index:2;
+}
+#preview-topbar .preview-title{flex:1;font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.preview-action-btn{
+  height:32px;padding:0 12px;border:1px solid var(--border2);background:var(--surface3);
+  color:var(--text2);cursor:pointer;border-radius:var(--radius-sm);
+  display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
+  font-family:var(--font);transition:background .12s,color .12s;white-space:nowrap;
+}
+.preview-action-btn:hover{background:var(--border2);color:var(--text);}
+.preview-action-btn.primary{background:var(--accent);color:#111;border-color:var(--accent);}
+.preview-action-btn.primary:hover{background:var(--accent-dim);border-color:var(--accent-dim);}
+.preview-close{
+  width:32px;height:32px;border:none;background:transparent;color:var(--text3);
+  cursor:pointer;border-radius:var(--radius-sm);font-size:18px;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;transition:.12s;
+}
+.preview-close:hover{background:var(--surface3);color:var(--text);}
+#preview-body{padding:24px;background:#f5f5f5;border-radius:0 0 var(--radius) var(--radius);}
+
+/* The document sheet inside the preview */
+.doc-sheet{
+  background:#fff;max-width:740px;margin:0 auto;padding:30px 36px;
+  font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#222;
+  line-height:1.5;box-shadow:0 2px 20px rgba(0,0,0,.15);
+}
+.ds-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;}
+.ds-logo{font-size:18px;font-weight:800;color:#111;letter-spacing:-.5px;}
+.ds-logo span{color:#888;font-weight:300;}
+.ds-meta{text-align:right;font-size:11px;color:#555;line-height:1.7;}
+.ds-meta h1{font-size:15px;font-weight:800;color:#111;letter-spacing:.5px;margin-bottom:4px;}
+.ds-meta-row{display:flex;justify-content:flex-end;gap:6px;}
+.ds-meta-label{color:#888;min-width:80px;text-align:left;}
+.ds-sender{font-size:9px;color:#888;padding:5px 0;border-top:1px solid #eee;border-bottom:1px solid #eee;margin-bottom:14px;}
+.ds-recipient{font-size:11px;color:#222;margin-bottom:14px;min-height:60px;line-height:1.6;}
+.ds-recipient strong{font-size:12px;}
+.ds-subject{font-size:13px;font-weight:700;color:#111;margin:14px 0 10px;}
+.ds-subject .ds-sub-prefix{font-weight:400;color:#888;font-size:11px;}
+.ds-intro{font-size:11.5px;color:#333;margin-bottom:12px;line-height:1.6;}
+.ds-table{width:100%;border-collapse:collapse;margin-bottom:12px;font-size:11px;}
+.ds-table thead tr{border-bottom:2px solid #111;}
+.ds-table thead th{padding:6px 8px;font-weight:700;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:#555;}
+.ds-table thead th.r{text-align:right;}
+.ds-table tbody tr{border-bottom:1px solid #eee;}
+.ds-table tbody td{padding:7px 8px;vertical-align:top;}
+.ds-table tbody td.r{text-align:right;white-space:nowrap;}
+.ds-pos-num{color:#888;font-size:10px;}
+.ds-pos-desc{font-weight:600;color:#111;}
+.ds-pos-detail{font-size:10px;color:#666;margin-top:2px;line-height:1.5;}
+.ds-totals{margin-left:auto;width:260px;margin-bottom:16px;}
+.ds-totals table{width:100%;border-collapse:collapse;font-size:11.5px;}
+.ds-totals td{padding:4px 6px;}
+.ds-totals td:last-child{text-align:right;white-space:nowrap;}
+.ds-totals .ds-total-final td{font-weight:700;font-size:13px;border-top:2px solid #111;padding-top:6px;}
+.ds-infobox{background:#f8f8f8;border-left:3px solid #ddd;padding:8px 12px;font-size:10.5px;color:#444;margin-bottom:10px;line-height:1.6;}
+.ds-infobox strong{display:block;margin-bottom:2px;color:#111;}
+.ds-sign{font-size:11px;color:#555;margin:12px 0;}
+.ds-footer{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;border-top:1px solid #ddd;padding-top:10px;margin-top:14px;font-size:9.5px;color:#666;line-height:1.6;}
+.ds-footer strong{display:block;font-size:10px;color:#111;margin-bottom:2px;}
+
 /* ── TOAST / LOADING ── */
 #toast{
   position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
@@ -208,7 +284,7 @@ table.dash-table tbody td.r{text-align:right;}
     <i data-lucide="layout-dashboard"></i> Dashboard
   </a>
   <a class="nav-btn" href="/tool">
-    <i data-lucide="file-text"></i> Dokumente
+    <i data-lucide="file-text"></i> Angebote & Rechnungen
   </a>
   <a class="nav-btn" href="/steuer">
     <i data-lucide="calculator"></i> Steuer
@@ -304,11 +380,11 @@ table.dash-table tbody td.r{text-align:right;}
       <select id="f-year" onchange="applyFilter()">
         <option value="">Alle Jahre</option>
       </select>
-      <div class="filter-spacer"></div>
-      <label style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text3);cursor:pointer;white-space:nowrap;">
-        <input type="checkbox" id="f-dedup" onchange="applyFilter()" style="accent-color:var(--accent);width:13px;height:13px;">
+      <label style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--text3);cursor:pointer;white-space:nowrap;padding:0 2px;">
+        <input type="checkbox" id="f-dedup" onchange="applyFilter()" style="accent-color:var(--accent);width:13px;height:13px;margin:0;flex-shrink:0;">
         Angebote mit Rechnung ausblenden
       </label>
+      <div class="filter-spacer"></div>
       <span class="filter-count" id="filter-count"></span>
     </div>
 
@@ -339,6 +415,25 @@ table.dash-table tbody td.r{text-align:right;}
 
 </div><!-- /content -->
 <div id="toast"></div>
+
+<!-- ── DOC PREVIEW MODAL ── -->
+<div id="preview-overlay" onclick="closePreview(event)">
+  <div id="preview-modal">
+    <div id="preview-topbar">
+      <span class="preview-title" id="preview-modal-title">Vorschau</span>
+      <button class="preview-action-btn primary" id="preview-edit-btn" onclick="previewEdit()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        Bearbeiten
+      </button>
+      <button class="preview-action-btn" id="preview-dl-btn" onclick="previewDownload()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Herunterladen
+      </button>
+      <button class="preview-close" onclick="closePreview()" title="Schließen">✕</button>
+    </div>
+    <div id="preview-body"></div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase.js"></script>
@@ -452,7 +547,7 @@ function renderTable(){
     const nrCell=isConverted
       ?`<span style="font-weight:600;">${d.nr||'–'}</span> <span title="Rechnung wurde erstellt" style="font-size:9px;color:var(--green);vertical-align:middle;">→ RE</span>`
       :`<span style="font-weight:600;">${d.nr||'–'}</span>`;
-    return`<tr${isConverted?' style="opacity:.65;"':''}>
+    return`<tr${isConverted?' style="opacity:.65;cursor:pointer;"':' style="cursor:pointer;"'} onclick="openDoc(${i})" title="Vorschau öffnen">
       <td><span class="badge ${d.typ==='rechnung'?'badge-re':'badge-ang'}">${d.typ==='rechnung'?'RE':'ANG'}</span></td>
       <td>${nrCell}</td>
       <td style="color:var(--text2);">${d.firma||'–'}</td>
@@ -461,7 +556,7 @@ function renderTable(){
       <td class="r" style="font-variant-numeric:tabular-nums;font-weight:600;">${b?fmt(b):'–'}</td>
       <td style="color:var(--text3);white-space:nowrap;">${fmtDate(d.datum)}</td>
       <td>${statusChip(d)}</td>
-      <td><div class="row-actions"><button class="btn-row" onclick="openDoc(${i})" title="Öffnen"><i data-lucide="external-link"></i></button></div></td>
+      <td><div class="row-actions"><button class="btn-row" onclick="event.stopPropagation();previewEdit_id('${d.id}')" title="Bearbeiten"><i data-lucide="external-link"></i></button></div></td>
     </tr>`;
   }).join('');
   $('table-footer-left').textContent=`${filteredDocs.length} Dokumente`;
@@ -470,9 +565,271 @@ function renderTable(){
   lucide.createIcons();
 }
 
+// ── DOC PREVIEW ────────────────────────────────────────────
+let previewDocId = null;
+
 function openDoc(i){
-  sessionStorage.setItem('loadDocId',filteredDocs[i].id);
-  window.location.href='/tool';
+  openPreview(filteredDocs[i]);
+}
+
+function openPreview(doc){
+  previewDocId = doc.id;
+  const isRe = doc.typ === 'rechnung';
+  const lang = doc.lang || 'de';
+  const tax  = doc.tax  || 'de';
+
+  // Modal title
+  const firma = doc.firma || doc.ansprechpartner || '';
+  const titleStr = `${isRe ? 'Rechnung' : 'Angebot'} ${doc.nr || ''}${firma ? ' – ' + firma : ''}`;
+  $('preview-modal-title').textContent = titleStr;
+
+  // Render the document HTML
+  $('preview-body').innerHTML = buildDocHTML(doc, lang, tax, isRe);
+
+  // Open overlay
+  $('preview-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePreview(e){
+  if(e && e.target !== $('preview-overlay') && !e.target.classList.contains('preview-close')) return;
+  $('preview-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function previewEdit(){
+  if(!previewDocId) return;
+  sessionStorage.setItem('loadDocId', previewDocId);
+  window.location.href = '/tool';
+}
+function previewEdit_id(id){
+  sessionStorage.setItem('loadDocId', id);
+  window.location.href = '/tool';
+}
+// Escape key closes preview
+document.addEventListener('keydown', e => { if(e.key==='Escape') { $('preview-overlay').classList.remove('open'); document.body.style.overflow=''; } });
+
+async function previewDownload(){
+  const doc = allDocs.find(d => d.id === previewDocId);
+  if(!doc) return;
+  const btn = $('preview-dl-btn');
+  btn.textContent = '…';
+  btn.disabled = true;
+  try {
+    await downloadDocPDF(doc);
+  } finally {
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Herunterladen';
+    btn.disabled = false;
+  }
+}
+
+async function downloadDocPDF(doc){
+  const isRe = doc.typ === 'rechnung';
+  const lang = doc.lang || 'de';
+  const tax  = doc.tax  || 'de';
+  const firma = doc.firma || doc.ansprechpartner || '';
+  const filename = firma ? `${doc.nr || 'Dokument'} – ${firma}` : (doc.nr || 'Dokument');
+
+  // Build temp div with page1 content, extract HTML + CSS
+  const tmpDiv = document.createElement('div');
+  tmpDiv.style.cssText = 'position:absolute;left:-9999px;top:0;width:794px;';
+  tmpDiv.innerHTML = buildDocHTMLForPDF(doc, lang, tax, isRe);
+  document.body.appendChild(tmpDiv);
+
+  const page1el = tmpDiv.querySelector('#pdf-page1');
+  const page2el = tmpDiv.querySelector('#pdf-page2');
+  const p1html = page1el ? page1el.innerHTML : '';
+  const p2html = (!isRe && page2el) ? page2el.innerHTML : '';
+
+  document.body.removeChild(tmpDiv);
+
+  // Grab existing CSS from the page
+  let css = '';
+  try {
+    css = Array.from(document.styleSheets).reduce((a,ss)=>{
+      try{return a+Array.from(ss.cssRules).map(r=>r.cssText).join('\n');}catch{return a;}
+    },'');
+  } catch{}
+
+  toast('PDF wird erstellt …');
+  try {
+    const resp = await fetch('/api/pdf',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ page1: p1html, page2: p2html, css, filename })
+    });
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error||resp.statusText);}
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download=filename+'.pdf'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),10000);
+    toast('PDF heruntergeladen ✓');
+  } catch(e){
+    console.error('PDF-Fehler:',e);
+    toast('PDF-Fehler: '+e.message);
+  }
+}
+
+// ── RENDER DOC HTML FOR PREVIEW ────────────────────────────
+function parsePreisNum(s){
+  if(!s) return 0;
+  s = String(s).trim();
+  if(/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(s)) return parseFloat(s.replace(/\./g,'').replace(',','.'));
+  return parseFloat(s.replace(',','.').replace(/[^\d.-]/g,''))||0;
+}
+function fmtMoney(n){ return n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+'\u00a0€'; }
+function fmtDateStr(v){ if(!v)return'–'; const[y,m,d]=(v||'').split('-'); return`${d}.${m}.${y}`; }
+
+const UNIT_MAP = {
+  pauschal:{de:'pauschal',en:'flat rate'},
+  stunde:{de:'Stunde',en:'hour'},
+  tag:{de:'Tag',en:'day'},
+  stueck:{de:'Stück',en:'unit'},
+  monat:{de:'Monat',en:'month'},
+  wort:{de:'Wort',en:'word'},
+};
+
+function buildDocHTML(doc, lang, tax, isRe){
+  const l = lang === 'en';
+  const pos = doc.positionen || [];
+  const netto = pos.reduce((s,p)=>s + parsePreisNum(p.menge)*parsePreisNum(p.preis), 0);
+  const mwstRate = tax === 'de' ? 0.19 : 0;
+  const mwst = netto * mwstRate;
+  const brutto = netto + mwst;
+
+  const zahlung = doc.zahlung || 'voll';
+
+  // Tax note text
+  let taxNoteHtml = '';
+  if(tax === 'eu'){
+    taxNoteHtml = `<div class="ds-infobox">${l?'VAT is not charged due to the reverse charge procedure (§ 13b UStG). The recipient is liable for tax.':'Die Umsatzsteuer wird nicht berechnet, da das Reverse-Charge-Verfahren (§ 13b UStG) angewendet wird. Steuerschuldner ist der Leistungsempfänger.'}</div>`;
+  } else if(tax === 'int'){
+    taxNoteHtml = `<div class="ds-infobox">${l?'This service is exempt from VAT as per § 4 No. 1a UStG (export delivery / third country).':'Diese Leistung ist nach § 4 Nr. 1a UStG umsatzsteuerfrei (Ausfuhrlieferung / Drittland).'}</div>`;
+  }
+
+  // Payment text
+  let zahlungText = '';
+  if(isRe){
+    if(zahlung === 'voll'){
+      zahlungText = l ? 'Payment is due within 14 days of receipt without deduction.' : 'Zahlung ist innerhalb von 14 Tagen nach Erhalt ohne Abzug fällig.';
+    } else {
+      zahlungText = l ? '50% advance payment due upon receipt. Remainder due on completion.' : '50% Anzahlung bei Auftragserteilung. Restbetrag nach Fertigstellung.';
+    }
+  } else {
+    zahlungText = l ? 'Payment due within 14 days of order confirmation.' : 'Zahlung 14 Tage nach Auftragsbestätigung.';
+  }
+
+  // Intro text
+  let intro = '';
+  if(isRe){
+    intro = l ? `Dear ${doc.ansprechpartner||'Sir or Madam'},<br>we hereby invoice the following services:` : `Sehr geehrte Damen und Herren,<br>hiermit stellen wir Ihnen folgende Leistungen in Rechnung:`;
+  } else {
+    intro = l ? `Dear ${doc.ansprechpartner||'Sir or Madam'},<br>we are pleased to submit the following offer:` : `Sehr geehrte Damen und Herren,<br>wir unterbreiten Ihnen gerne folgendes Angebot:`;
+  }
+
+  // Positions rows
+  const posRows = pos.map((p,i) => {
+    const menge = parsePreisNum(p.menge);
+    const preis = parsePreisNum(p.preis);
+    const gesamt = menge * preis;
+    const unitKey = p.einheit || 'pauschal';
+    const unitLabel = (UNIT_MAP[unitKey] || {})[lang] || unitKey;
+    const detailHtml = p.beschreibung ? `<div class="ds-pos-detail">${p.beschreibung.replace(/\n/g,'<br>')}</div>` : '';
+    return `<tr>
+      <td class="ds-pos-num">${i+1}</td>
+      <td><div class="ds-pos-desc">${p.bezeichnung||''}</div>${detailHtml}</td>
+      <td class="r">${menge.toLocaleString('de-DE')}</td>
+      <td class="r">${unitLabel}</td>
+      <td class="r">${fmtMoney(preis)}</td>
+      <td class="r">${fmtMoney(gesamt)}</td>
+    </tr>`;
+  }).join('');
+
+  // Totals
+  let totalsHtml = '';
+  if(tax === 'de'){
+    totalsHtml = `
+      <tr><td>${l?'Net amount':'Nettobetrag'}</td><td>${fmtMoney(netto)}</td></tr>
+      <tr><td>${l?'plus 19% VAT':'zzgl. 19% MwSt.'}</td><td>${fmtMoney(mwst)}</td></tr>
+      <tr class="ds-total-final"><td><strong>${l?'Total':'Gesamtbetrag'}</strong></td><td><strong>${fmtMoney(brutto)}</strong></td></tr>`;
+  } else {
+    totalsHtml = `
+      <tr class="ds-total-final"><td><strong>${l?'Total (net)':'Gesamtbetrag (netto)'}</strong></td><td><strong>${fmtMoney(netto)}</strong></td></tr>`;
+  }
+
+  // Validity / period row
+  const extraLabel = isRe ? (l?'Service period:':'Leistungszeitraum:') : (l?'Valid until:':'Gültig bis:');
+  const extraVal   = isRe ? (doc.von ? fmtDateStr(doc.von) : '–') : (doc.gueltig ? fmtDateStr(doc.gueltig) : '–');
+
+  // Notes
+  const notesHtml = doc.hinweise ? `<div class="ds-infobox"><strong>${l?'Notes':'Hinweise'}</strong>${doc.hinweise}</div>` : '';
+
+  // Sign block
+  const signHtml = `<div class="ds-sign">Mit freundlichen Grüßen,<br><strong>David Stiehler</strong> · VISO Media</div>`;
+
+  // UID
+  const uidRow = (tax !== 'de' && doc.uid) ? `<div class="ds-meta-row"><span class="ds-meta-label">${l?'VAT ID Client:':'USt-IdNr. Kunde:'}</span><span>${doc.uid}</span></div>` : '';
+
+  return `<div class="doc-sheet">
+    <div class="ds-header">
+      <div>
+        <div class="ds-logo">VISO <span>Media</span></div>
+        <div style="font-size:10px;color:#888;margin-top:2px;">David Stiehler</div>
+      </div>
+      <div class="ds-meta">
+        <h1>${isRe ? (l?'INVOICE':'RECHNUNG') : (l?'QUOTE':'ANGEBOT')}</h1>
+        <div class="ds-meta-row"><span class="ds-meta-label">${isRe?(l?'Invoice No.:':'Rechnungs-Nr.:'):(l?'Quote No.:':'Angebots-Nr.:')}</span><span style="font-weight:700;">${doc.nr||'–'}</span></div>
+        <div class="ds-meta-row"><span class="ds-meta-label">${l?'Date:':'Datum:'}</span><span>${fmtDateStr(doc.datum)}</span></div>
+        <div class="ds-meta-row"><span class="ds-meta-label">${extraLabel}</span><span>${extraVal}</span></div>
+        ${uidRow}
+      </div>
+    </div>
+    <div class="ds-sender">David Stiehler · Schiffenberger Weg 28A · 35394 Gießen · Germany</div>
+    <div class="ds-recipient">
+      <strong>${doc.firma||''}</strong><br>
+      ${doc.ansprechpartner ? doc.ansprechpartner+'<br>' : ''}
+      ${doc.strasse ? doc.strasse+'<br>' : ''}
+      ${doc.ort ? doc.ort+'<br>' : ''}
+      ${doc.land ? doc.land : ''}
+    </div>
+    <div class="ds-subject">
+      <span class="ds-sub-prefix">${isRe?(l?'Re: ':'Betr.: '):(l?'Re: ':'Betr.: ')}</span>
+      ${doc.betreff||''}
+    </div>
+    <div class="ds-intro">${intro}</div>
+    <table class="ds-table">
+      <thead><tr>
+        <th style="width:4%">${l?'Pos.':'Pos.'}</th>
+        <th>${l?'Description':'Leistungsbeschreibung'}</th>
+        <th class="r" style="width:8%">${l?'Qty':'Menge'}</th>
+        <th class="r" style="width:10%">${l?'Unit':'Einheit'}</th>
+        <th class="r" style="width:13%">${l?'Unit price':'Einzelpreis'}</th>
+        <th class="r" style="width:13%">${l?'Total':'Gesamt'}</th>
+      </tr></thead>
+      <tbody>${posRows||'<tr><td colspan="6" style="color:#aaa;text-align:center;padding:14px;">–</td></tr>'}</tbody>
+    </table>
+    <div class="ds-totals"><table>${totalsHtml}</table></div>
+    ${taxNoteHtml}
+    ${notesHtml}
+    <div class="ds-infobox">
+      <strong>${l?'Payment terms:':'Zahlungsbedingungen:'}</strong>
+      ${zahlungText}
+    </div>
+    ${signHtml}
+    <div class="ds-footer">
+      <div><strong>${l?'Contact':'Kontakt'}</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br>rechnungen@viso.media</div>
+      <div><strong>${l?'Tax':'Steuer'}</strong>Steuernummer: 02087201058<br>USt-IdNr.: DE354878347</div>
+      <div><strong>${l?'Bank details':'Bankverbindung'}</strong>Kontoinhaber: David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
+    </div>
+  </div>`;
+}
+
+// Lightweight wrapper for PDF API (reuses same structure as tool.html)
+function buildDocHTMLForPDF(doc, lang, tax, isRe){
+  // Return the inner HTML wrapped in page divs so api/pdf can render it
+  const inner = buildDocHTML(doc, lang, tax, isRe);
+  return `<div id="pdf-page1" class="doc-page">${inner}</div><div id="pdf-page2" class="doc-page" style="display:none;"></div>`;
 }
 function goNew(){sessionStorage.removeItem('loadDocId');window.location.href='/tool';}
 async function doSignOut(){await signOut();}
