@@ -266,41 +266,43 @@ select option{background:var(--surface2);color:var(--text);}
   line-height:1.5;
 }
 
-/* Inline edit styles – dashed, no black backgrounds */
-.ie{
-  background:transparent;border:none;border-bottom:1px dashed #ccc;
+/* ── INLINE EDIT STYLES ────────────────────────────────────
+   Alle Inline-Felder im Dokument: einheitlich, kein schwarzer Hintergrund,
+   kein gestrichelter Rand – stattdessen dezenter Hover/Focus-Effekt.
+   Im PDF werden alle Klassen komplett bereinigt.
+──────────────────────────────────────────────────────────── */
+.ie,.ie-block,.ie-select,.ie-date{
   font-family:inherit;font-size:inherit;color:inherit;
-  padding:1px 3px;outline:none;width:auto;
-  min-width:40px;
-}
-.ie:focus{border-bottom-color:#888;background:#f5f5e8;}
-.ie-block{
-  background:transparent;border:1px dashed #ddd;
-  font-family:inherit;font-size:inherit;color:inherit;
-  padding:3px 5px;outline:none;width:100%;
+  background:transparent;
+  border:1px solid transparent;
   border-radius:3px;
+  outline:none;
+  transition:background .12s,border-color .12s;
 }
-.ie-block:focus{border-color:#888;background:#f5f5e8;}
+/* Hover: leichter Hinweis dass editierbar */
+.ie:hover,.ie-block:hover,.ie-select:hover,.ie-date:hover{
+  background:rgba(0,0,0,.03);
+  border-color:#ddd;
+}
+/* Focus: klarer Rahmen */
+.ie:focus,.ie-block:focus,.ie-select:focus,.ie-date:focus{
+  background:#f5f5e8;
+  border-color:#aaa;
+}
+/* Einzelne Maße */
+.ie{padding:1px 3px;width:auto;min-width:40px;}
+.ie-block{padding:3px 5px;width:100%;}
 .ie-select{
-  background:transparent;border:1px dashed #ddd;
-  font-family:inherit;font-size:inherit;color:inherit;
-  padding:2px 4px;outline:none;border-radius:3px;cursor:pointer;
+  padding:2px 4px;cursor:pointer;
   -webkit-appearance:none;appearance:none;
 }
-.ie-select:focus{border-color:#888;}
-/* Native date picker – behält den Kalender */
+/* Native date picker – behält Browser-Kalender */
 .ie-date{
-  background:transparent;border:1px dashed #ddd;
-  font-family:inherit;font-size:inherit;color:inherit;
-  padding:2px 4px;outline:none;border-radius:3px;cursor:pointer;
-  width:130px;
-  /* Kalender-Icon zeigen */
-  -webkit-appearance:auto;
-  appearance:auto;
+  padding:2px 4px;cursor:pointer;width:138px;
+  -webkit-appearance:auto;appearance:auto;
 }
-.ie-date:focus{border-color:#888;}
 .ie-date::-webkit-calendar-picker-indicator{
-  opacity:0.5;cursor:pointer;
+  opacity:0.4;cursor:pointer;
 }
 
 /* Doc header */
@@ -370,11 +372,22 @@ select option{background:var(--surface2);color:var(--text);}
 }
 .pos-del:hover{color:#e05555;}
 .pos-details-input{
-  width:100%;background:transparent;border:none;border-bottom:1px dashed #ddd;
-  font-family:inherit;font-size:11px;color:#666;padding:1px 3px;
-  outline:none;margin-top:2px;resize:none;min-height:0;overflow:hidden;
+  width:100%;background:transparent;border:none;border-bottom:1px solid transparent;
+  font-family:inherit;font-size:11px;color:#555;padding:2px 3px;
+  outline:none;margin-top:3px;resize:none;min-height:0;overflow:hidden;
+  border-radius:2px;
+  transition:background .12s,border-color .12s;
 }
-.pos-details-input:focus{border-bottom-color:#999;background:#f5f5f5;}
+.pos-details-input:hover{background:rgba(0,0,0,.03);border-bottom-color:#ddd;}
+.pos-details-input:focus{border-bottom-color:#aaa;background:#f5f5f5;}
+/* Bullet-Rendering im Editor */
+.pos-detail-line{
+  display:block;padding-left:14px;position:relative;
+  font-size:11px;color:#555;line-height:1.6;margin-top:3px;
+}
+.pos-detail-line::before{
+  content:'–';position:absolute;left:0;color:#999;
+}
 
 /* Totals */
 .totals-wrap{margin-left:auto;width:240px;margin-bottom:6mm;}
@@ -840,7 +853,7 @@ const T={
     net:'Nettobetrag',tax19:'zzgl. 19% MwSt.',total_q:'Gesamtbetrag',total_i:'Rechnungsbetrag',
     payment:'Zahlungsbedingungen:',notes:'Hinweise:',contact:'Kontakt',tax_f:'Steuer',bank:'Bankverbindung',
     intro_q:'vielen Dank für Ihr Interesse. Gerne unterbreite ich Ihnen folgendes Angebot für die beschriebenen Leistungen:',
-    intro_i:'Für die erbrachten Leistungen stelle ich Ihnen folgendes in Rechnung:',
+    intro_i:'Vielen Dank für Ihren Auftrag. Für die erbrachten Leistungen stelle ich Ihnen folgendes in Rechnung:',
     sign_q:'Für Rückfragen stehe ich Ihnen gerne zur Verfügung. Ich freue mich auf eine gute Zusammenarbeit.<br><br>Mit freundlichen Grüßen,<br><br><strong>David Stiehler</strong><br>VISO Media',
     sign_i:'Für Rückfragen stehe ich Ihnen jederzeit gerne zur Verfügung.<br><br>Mit freundlichen Grüßen,<br><br><strong>David Stiehler</strong><br>VISO Media',
     pay_full:b=>`Gesamtbetrag von <strong>${b}</strong> zahlbar innerhalb von 14 Tagen nach Rechnungsstellung.`,
@@ -865,7 +878,7 @@ const T={
     net:'Net amount',tax19:'plus 19% VAT',total_q:'Total amount',total_i:'Invoice total',
     payment:'Payment terms:',notes:'Notes:',contact:'Contact',tax_f:'Tax',bank:'Bank details',
     intro_q:'Thank you for your interest. Please find our quote for the described services below:',
-    intro_i:'Please find below our invoice for services rendered:',
+    intro_i:'Thank you for your order. Please find below our invoice for services rendered:',
     sign_q:'Please do not hesitate to contact me with any questions. I look forward to working with you.<br><br>Kind regards,<br><br><strong>David Stiehler</strong><br>VISO Media',
     sign_i:'Please do not hesitate to contact me with any questions.<br><br>Kind regards,<br><br><strong>David Stiehler</strong><br>VISO Media',
     pay_full:b=>`Total amount of <strong>${b}</strong> due within 14 days of invoice date.`,
@@ -1520,20 +1533,23 @@ async function printPDF(){
       span.textContent=sel.options[sel.selectedIndex]?.text||'';
       sel.replaceWith(span);
     });
-    // textareas → div mit Bullet-Liste
+    // textareas → div mit Bullet-Liste (Einrückung + Leerzeile zwischen Bullets)
     container.querySelectorAll('textarea.ie-block,textarea.pos-details-input').forEach(ta=>{
       if(!ta.value.trim()){ta.remove();return;}
-      const div=document.createElement('div');
-      div.style.cssText=ta.style.cssText;
-      div.style.fontSize='11px';div.style.color='#444';div.style.lineHeight='1.6';
-      div.style.border='none';div.style.background='transparent';
-      ta.value.trim().split('\n').filter(x=>x.trim()).forEach(line=>{
+      const wrap=document.createElement('div');
+      wrap.style.marginTop='4px';
+      ta.value.trim().split('\n').filter(x=>x.trim()).forEach((line,idx)=>{
+        if(idx>0){
+          // Leerzeile zwischen Bullets
+          const gap=document.createElement('div');gap.style.height='3px';
+          wrap.appendChild(gap);
+        }
         const d=document.createElement('div');
-        d.style.paddingLeft='10px';d.style.position='relative';
-        d.innerHTML=`<span style="position:absolute;left:0;">–</span>${line.trim()}`;
-        div.appendChild(d);
+        d.style.cssText='display:block;padding-left:14px;position:relative;font-size:11px;color:#333;line-height:1.6;font-family:Helvetica Neue,Arial,sans-serif;';
+        d.innerHTML=`<span style="position:absolute;left:0;color:#666;">–</span>${line.trim()}`;
+        wrap.appendChild(d);
       });
-      ta.replaceWith(div);
+      ta.replaceWith(wrap);
     });
     // Notes textarea
     container.querySelectorAll('#f_hinweise').forEach(ta=>{
