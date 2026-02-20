@@ -116,10 +116,51 @@ module.exports = async function handler(req, res) {
     .add-row-btn { display: none !important; }
     .pos-del { display: none !important; }
 
-    /* ── FOOTER ZUSAMMENHALTEN ───────────────────────────── */
+    /* ── TABELLENZEILEN: Kein Umbruch innerhalb einer Leistungszeile ── */
+    .doc-table tbody tr {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    /* Abschlussblock komplett zusammenhalten */
+    .doc-closing-block {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+
+    /* ── TOTALS + FOOTER: Immer zusammen auf der gleichen Seite ── */
+    .totals-wrap {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    /* Footer-Block: zusammen mit den Rechnungsdaten halten */
     .doc-footer {
       page-break-inside: avoid !important;
       break-inside: avoid !important;
+    }
+    /* Signatur-Block auf Seite 2 zusammenhalten */
+    .sig-block {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    /* Info-Boxen nicht auftrennen */
+    .info-box, .agb-hint-box {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    /* AGB-Sektionen einzeln zusammenhalten */
+    .agb-section {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    /* Unterschriftsblock + Zahlungsbedinungen + Footer: als Gruppe */
+    .sign-block {
+      page-break-inside: avoid !important;
+      break-inside: avoid !important;
+    }
+    /* Totals + Footer + Sign zusammenhalten (verhindert Trennung am Seitenende) */
+    .totals-wrap, .sign-block, .doc-footer, .info-box {
+      orphans: 4;
+      widows: 4;
     }
 
     /* ── DANN: Page-spezifisches CSS aus dem Tool ────────── */
