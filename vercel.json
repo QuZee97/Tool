@@ -1,16 +1,17 @@
 {
   "functions": {
-    "api/pdf.js": {
-      "maxDuration": 30
-    }
+    "api/pdf.js": { "maxDuration": 30 },
+    "api/tax.js": { "maxDuration": 30 }
   },
   "rewrites": [
     { "source": "/", "destination": "/index.html" },
     { "source": "/tool", "destination": "/tool.html" },
-    { "source": "/dashboard", "destination": "/dashboard.html" }
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/steuer", "destination": "/steuer.html" }
   ],
   "redirects": [
     { "source": "/tool.html", "permanent": true, "destination": "/tool" },
-    { "source": "/dashboard.html", "permanent": true, "destination": "/dashboard" }
+    { "source": "/dashboard.html", "permanent": true, "destination": "/dashboard" },
+    { "source": "/steuer.html", "permanent": true, "destination": "/steuer" }
   ]
 }
