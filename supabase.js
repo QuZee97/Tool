@@ -108,6 +108,14 @@ const DB = {
   async saveTransactions(rows) {
     const user = await getUser();
     if (!rows.length) return [];
+    // Erst alle Transaktionen derselben Quelldatei löschen (verhindert Duplikate beim erneuten Hochladen)
+    const quellDatei = rows[0]?.quellDatei;
+    if (quellDatei) {
+      await db.from('transactions')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('quelle_datei', quellDatei);
+    }
     const payload = rows.map(r => ({
       user_id:          user.id,
       datum:            r.datum || null,
@@ -122,14 +130,26 @@ const DB = {
     if (error) throw error;
     return data || [];
   },
-  async getTransactions(year) {
+  async getTransactions(year, quartal) {
     let q = db.from('transactions').select('*').order('datum', { ascending: false });
     if (year) {
       q = q.gte('datum', `${year}-01-01`).lte('datum', `${year}-12-31`);
     }
+    if (quartal && quartal > 0) {
+      const qMap = { 1: ['01','03'], 2: ['04','06'], 3: ['07','09'], 4: ['10','12'] };
+      const [mFrom, mTo] = qMap[quartal] || ['01','12'];
+      q = q.gte('datum', `${year}-${mFrom}-01`).lte('datum', `${year}-${mTo}-31`);
+    }
     const { data, error } = await q;
     if (error) throw error;
     return data || [];
+  },
+  async deleteAllTransactions(year) {
+    const user = await getUser();
+    let q = db.from('transactions').delete().eq('user_id', user.id);
+    if (year) q = q.gte('datum', `${year}-01-01`).lte('datum', `${year}-12-31`);
+    const { error } = await q;
+    if (error) throw error;
   },
   async deleteTransaction(id) {
     const { error } = await db.from('transactions').delete().eq('id', id);
