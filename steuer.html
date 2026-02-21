@@ -139,21 +139,63 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 .tx-tag.unmatched{background:var(--orange-bg);color:var(--orange);}
 .tx-tag.manual{background:var(--blue-bg);color:var(--blue);}
 
-/* MATCH CARD */
-.match-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden;}
-.match-card.review{border-color:var(--orange);}
-.match-card.confirmed{border-color:var(--green);}
-.match-header{padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
-.match-conf{font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;}
-.match-conf.hoch{background:var(--green-bg);color:var(--green);}
-.match-conf.mittel{background:var(--orange-bg);color:var(--orange);}
-.match-conf.niedrig{background:var(--red-bg);color:var(--red);}
-.match-body{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);}
-.match-col{background:var(--surface);padding:10px 14px;font-size:11px;}
-.match-col-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
-.match-actions{padding:10px 14px;display:flex;gap:6px;align-items:center;}
+/* LEXOFFICE-STYLE REVIEW TABLE */
+.lx-row{display:grid;grid-template-columns:72px 1fr 90px 60px 140px 72px 28px;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border);font-size:11px;transition:background .1s;}
+.lx-row:hover{background:var(--surface2);}
+.lx-row.unsicher{box-shadow:inset 3px 0 0 var(--orange);}
+.lx-row.bestaetigt{box-shadow:inset 3px 0 0 var(--green);}
+.lx-header{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);padding:6px 14px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:72px 1fr 90px 60px 140px 72px 28px;gap:8px;}
+.lx-date{color:var(--text3);font-size:10px;white-space:nowrap;}
+.lx-desc-main{color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lx-desc-sub{color:var(--text3);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lx-amt{font-weight:600;font-size:12px;text-align:right;white-space:nowrap;}
+.lx-amt.in{color:var(--green);}
+.lx-amt.out{color:var(--red);}
 
-/* AI RESULT ROW */
+/* BELEG-THUMBNAIL */
+.thumb-slot{width:48px;height:48px;border-radius:6px;border:2px dashed var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;transition:.15s;position:relative;background:var(--surface2);}
+.thumb-slot:hover{border-color:var(--accent);background:var(--accent-bg);}
+.thumb-slot.has-thumb{border-style:solid;border-color:var(--border);}
+.thumb-slot.has-thumb:hover{border-color:var(--accent);}
+.thumb-slot img{width:100%;height:100%;object-fit:cover;border-radius:3px;}
+.thumb-slot .pdf-lbl{font-size:9px;font-weight:700;color:var(--text3);text-align:center;line-height:1.4;padding:2px;}
+.thumb-slot .add-lbl{color:var(--text3);font-size:22px;line-height:1;margin-bottom:2px;}
+.conf-dot{position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;border:1.5px solid var(--surface);}
+.conf-dot.hoch{background:var(--green);}
+.conf-dot.mittel{background:var(--orange);}
+.conf-dot.niedrig{background:var(--red);}
+
+/* KONFIDENZ BADGE */
+.konfidenz{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;}
+.konfidenz.hoch{background:var(--green-bg);color:var(--green);}
+.konfidenz.mittel{background:var(--orange-bg);color:var(--orange);}
+.konfidenz.niedrig,.konfidenz.unklar{background:var(--red-bg);color:var(--red);}
+.konfidenz.bestaetigt{background:var(--green-bg);color:var(--green);}
+
+/* CAT SELECT */
+.cat-select{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:10px;padding:3px 6px;outline:none;font-family:var(--font);width:100%;}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal-box{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);max-width:700px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.modal-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.modal-head h3{flex:1;font-size:14px;font-weight:600;margin:0;}
+.modal-close{width:28px;height:28px;border:none;background:none;color:var(--text3);cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;flex-shrink:0;}
+.modal-close:hover{background:var(--surface2);color:var(--text);}
+.modal-body{flex:1;overflow-y:auto;padding:20px;}
+.modal-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;}
+
+/* PICKER GRID */
+.picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;}
+.picker-item{border:2px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;cursor:pointer;transition:.15s;}
+.picker-item:hover{border-color:var(--accent);}
+.picker-item.selected{border-color:var(--accent);background:var(--accent-bg);}
+.picker-thumb{width:100%;height:72px;object-fit:cover;display:block;background:var(--surface2);}
+.picker-pdf{height:72px;display:flex;align-items:center;justify-content:center;background:var(--surface2);color:var(--text3);font-size:11px;font-weight:700;}
+.picker-name{padding:5px 7px;font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* AI RESULT ROW (legacy, wird noch für nicht-CSV Einträge verwendet) */
 .ai-row{display:grid;grid-template-columns:1fr auto 140px auto;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;}
 .ai-row:last-child{border-bottom:none;}
 .ai-desc{color:var(--text2);font-size:12px;}
@@ -161,11 +203,6 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 .ai-amt{font-weight:600;font-size:12px;white-space:nowrap;text-align:right;}
 .ai-amt.income{color:var(--green);}
 .ai-amt.expense{color:var(--red);}
-.konfidenz{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;}
-.konfidenz.hoch{background:var(--green-bg);color:var(--green);}
-.konfidenz.mittel{background:var(--orange-bg);color:var(--orange);}
-.konfidenz.niedrig,.konfidenz.unklar{background:var(--red-bg);color:var(--red);}
-.cat-select{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:10px;padding:3px 6px;outline:none;font-family:var(--font);width:100%;}
 
 /* USTVA GRID */
 .ustv-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
@@ -475,6 +512,57 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 
 <div id="toast"></div>
 
+<!-- ── BELEG-VOLLANSICHT MODAL ── -->
+<div class="modal-overlay" id="modal-beleg">
+  <div class="modal-box" style="max-width:820px;">
+    <div class="modal-head">
+      <h3 id="modal-beleg-title">Beleg</h3>
+      <button class="modal-close" onclick="closeModal('modal-beleg')">×</button>
+    </div>
+    <div class="modal-body" style="display:grid;grid-template-columns:1fr 260px;gap:20px;">
+      <div>
+        <img id="modal-beleg-img" src="" alt="" style="width:100%;border-radius:6px;display:none;">
+        <div id="modal-beleg-pdf" style="display:none;padding:40px;text-align:center;background:var(--surface2);border-radius:6px;">
+          <div style="font-size:32px;margin-bottom:8px;">📄</div>
+          <div style="color:var(--text3);font-size:12px;" id="modal-beleg-pdf-name"></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Beleg-Details</div>
+        <div id="modal-beleg-meta" style="font-size:11px;color:var(--text2);line-height:2;"></div>
+        <div style="margin-top:16px;">
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Verknüpfte Transaktion</div>
+          <div id="modal-beleg-tx" style="font-size:11px;color:var(--text2);"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-red btn-sm" id="modal-beleg-unlink" onclick="unlinkReceipt()"><i data-lucide="link-2-off"></i> Verknüpfung lösen</button>
+      <button class="btn btn-ghost btn-sm" id="modal-beleg-change" onclick="openPickerFromModal()"><i data-lucide="refresh-cw"></i> Anderen Beleg wählen</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-beleg')">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── BELEG-PICKER MODAL ── -->
+<div class="modal-overlay" id="modal-picker">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Beleg zuordnen</h3>
+      <button class="modal-close" onclick="closeModal('modal-picker')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="hinweis" style="margin-bottom:14px;"><i data-lucide="info"></i><div>Wähle den passenden Beleg für diese Transaktion. Bereits zugeordnete Belege sind ausgegraut.</div></div>
+      <div class="picker-grid" id="picker-grid"></div>
+      <div id="picker-empty" style="display:none;text-align:center;color:var(--text3);font-size:12px;padding:30px 0;">Keine Belege verfügbar. Lade zuerst Belege hoch und lasse sie von der KI auslesen.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-picker')">Abbrechen</button>
+      <button class="btn btn-primary btn-sm" id="picker-confirm" onclick="confirmPicker()" disabled><i data-lucide="link-2"></i> Zuordnen</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase.js"></script>
 <script>
@@ -509,10 +597,15 @@ let allDocs         = [];   // Dokumente aus dem Tool
 let reChecked       = {};   // {id: bool} – welche Rechnungen sind angehakt
 let manualIncomes   = [];   // {id, desc, datum, brutto}
 let csvTransactions = [];   // Rohdaten aus CSV (nach Import)
-let belegFiles      = [];   // {file, status, result}
-let aiResults       = [];   // nach KI-Analyse
+let belegFiles      = [];   // {file, status, result, thumbnail} – Session-only
+let receipts        = [];   // Aus DB geladene Belege (mit thumbnail_data)
+let matches         = [];   // Aus DB geladene Matches (persistent) – ersetzt aiResults
+let aiResults       = [];   // Legacy-Alias → zeigt auf matches
 let showReasons     = false;
 let filterReview    = false;
+// Modal-State
+let modalMatchIdx   = null; // welcher Match ist gerade im Modal
+let pickerSelected  = null; // ausgewählter Receipt im Picker
 
 // ── HELPERS ────────────────────────────────────────────────
 const fmt    = n => n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+'\u00a0€';
@@ -537,41 +630,50 @@ function goPage(n){
 }
 
 // ── ZEITRAUM ───────────────────────────────────────────────
-function setQuartal(q){
+async function setQuartal(q){
   selectedQuartal=q;
   document.querySelectorAll('.q-btn').forEach(b=>b.classList.remove('active'));
   if(q===0)$('qjahr').classList.add('active');
   else $(`q${q}`).classList.add('active');
   refreshReList();
   updateUploadSummary();
+  // Matches für neues Quartal laden
+  await loadMatchesFromDB(selectedYear,q);
   updateSidebar();
+  if(currentPage===3)renderReview();
 }
 async function onPeriodChange(){
   selectedYear=parseInt($('sel-year').value);
-  // CSV-Transaktionen für das neue Jahr nachladen
-  try{
-    const txs=await DB.getTransactions(selectedYear);
-    if(txs.length){
-      csvTransactions=txs.map(t=>({
-        id:'tx'+t.id, datum:t.datum||'', empfaenger:t.empfaenger||'',
-        verwendungszweck:t.verwendungszweck||'',
-        beschreibung:t.beschreibung||(t.empfaenger||'')+(t.verwendungszweck?' – '+t.verwendungszweck:''),
-        betrag:parseFloat(t.betrag)||0, isEinnahme:!!t.is_einnahme, quelle:'csv', _fromDB:true
-      }));
-      const ein=csvTransactions.filter(t=>t.isEinnahme).length;
-      const aus=csvTransactions.filter(t=>!t.isEinnahme).length;
-      const st=$('csv-status');
-      st.style.display='block';
-      st.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} gespeicherte Buchungen</strong> aus ${selectedYear}: ${ein} Eingänge, ${aus} Ausgaben. <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="clearCSVData()"><i data-lucide="trash-2"></i> Löschen</button></div></div>`;
-      lucide.createIcons();
-    } else {
-      csvTransactions=[];
-      $('csv-status').style.display='none';
-    }
-  }catch(e){console.info('Transaktionen nicht geladen:',e.message);}
+  // CSV + Matches für das neue Jahr nachladen
+  await Promise.all([
+    (async()=>{
+      try{
+        const txs=await DB.getTransactions(selectedYear);
+        if(txs.length){
+          csvTransactions=txs.map(t=>({
+            id:'tx'+t.id, datum:t.datum||'', empfaenger:t.empfaenger||'',
+            verwendungszweck:t.verwendungszweck||'',
+            beschreibung:t.beschreibung||(t.empfaenger||'')+(t.verwendungszweck?' – '+t.verwendungszweck:''),
+            betrag:parseFloat(t.betrag)||0, isEinnahme:!!t.is_einnahme, quelle:'csv', _fromDB:true
+          }));
+          const ein=csvTransactions.filter(t=>t.isEinnahme).length;
+          const aus=csvTransactions.filter(t=>!t.isEinnahme).length;
+          const st=$('csv-status');
+          st.style.display='block';
+          st.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} Buchungen</strong> aus ${selectedYear}: ${ein} Eingänge, ${aus} Ausgaben. <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="clearCSVData()"><i data-lucide="trash-2"></i> Löschen</button></div></div>`;
+          lucide.createIcons();
+        } else {
+          csvTransactions=[];
+          $('csv-status').style.display='none';
+        }
+      }catch(e){console.info('CSV nicht geladen:',e.message);}
+    })(),
+    loadMatchesFromDB(selectedYear,selectedQuartal),
+  ]);
   refreshReList();
   updateUploadSummary();
   updateSidebar();
+  if(currentPage===3)renderReview();
 }
 function inPeriod(datum){
   if(!datum)return false;
@@ -593,9 +695,10 @@ async function clearCSVData(){
 
 // ── SIDEBAR-STATS ──────────────────────────────────────────
 function updateSidebar(){
-  if(!aiResults.length){$('sb-einnahmen').textContent='–';$('sb-ausgaben').textContent='–';$('sb-gewinn').textContent='–';$('sb-zahllast').textContent='–';return;}
+  const src=matches.length?matches:aiResults;
+  if(!src.length){$('sb-einnahmen').textContent='–';$('sb-ausgaben').textContent='–';$('sb-gewinn').textContent='–';$('sb-zahllast').textContent='–';return;}
   let ein=0,aus=0,zl=0;
-  aiResults.forEach(r=>{
+  src.forEach(r=>{
     const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
     const netto=r.betrag_netto||0;const mwst=r.mwst_betrag||0;
     if(cat.type==='income'){ein+=netto;zl+=mwst;}
@@ -815,6 +918,29 @@ function renderBelegStatusList(){
   </div>`).join('');
 }
 
+// ── THUMBNAIL ERZEUGUNG ────────────────────────────────────
+async function createThumbnail(file){
+  if(file.type==='application/pdf')return null; // PDFs: kein Canvas-Thumbnail möglich
+  return new Promise(resolve=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const canvas=document.createElement('canvas');
+      canvas.width=96;canvas.height=96;
+      const ctx=canvas.getContext('2d');
+      ctx.fillStyle='#27282c';ctx.fillRect(0,0,96,96);
+      // Cover-Fit
+      const scale=Math.max(96/img.width,96/img.height);
+      const w=img.width*scale,h=img.height*scale;
+      ctx.drawImage(img,(96-w)/2,(96-h)/2,w,h);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg',0.65));
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);resolve(null);};
+    img.src=url;
+  });
+}
+
 // ── BELEGE AUSLESEN (KI) ───────────────────────────────────
 async function readBelege(){
   const pending=belegFiles.filter(b=>b.status==='pending');
@@ -829,6 +955,9 @@ async function readBelege(){
     $('beleg-loading-text').textContent=`Lese ${b.file.name} …`;
     $('beleg-progress-bar').style.width=Math.round(i/belegFiles.length*100)+'%';
     try{
+      // Thumbnail erzeugen (vor dem API-Call, damit wir es speichern können)
+      b.thumbnail=await createThumbnail(b.file);
+
       const b64=await readFileAsBase64(b.file);
       const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({mode:'vision',imageData:b64,imageType:b.file.type,filename:b.file.name})});
@@ -836,18 +965,46 @@ async function readBelege(){
       const data=await res.json();
       b.result=data.results||[];
       b.status='done';
-      // Beleg in Storage speichern (optional – schlägt fehl wenn Policy nicht gesetzt)
+
+      // Beleg in DB + Storage speichern
       try{
-        await DB.uploadReceipt(b.file,{
-          beschreibung:b.result[0]?.beschreibung||b.file.name,
-          datum:b.result[0]?.datum||null,
-          betrag:b.result[0]?.betrag_brutto||null,
-          kategorie:b.result[0]?.kategorie||null,
-        });
+        const r0=b.result[0]||{};
+        // Versuche Storage-Upload (schlägt fehl wenn Policy nicht gesetzt – ignorieren)
+        let uploadedReceipt=null;
+        try{
+          uploadedReceipt=await DB.uploadReceipt(b.file,{
+            beschreibung:r0.beschreibung||b.file.name,
+            datum:r0.datum||null,
+            betrag:r0.betrag_brutto||null,
+            kategorie:r0.kategorie||null,
+          });
+        }catch(se){
+          console.warn('Storage-Upload fehlgeschlagen (Fallback ohne Datei):',se.message);
+          // Fallback: nur Metadaten in receipts speichern ohne Storage-Datei
+          uploadedReceipt=await DB.saveReceiptMeta({
+            filename:b.file.name,
+            size_bytes:b.file.size,
+            mime_type:b.file.type||'application/octet-stream',
+            datum:r0.datum||null,
+            beschreibung:r0.beschreibung||b.file.name,
+            kategorie:r0.kategorie||null,
+            betrag:r0.betrag_brutto||null,
+          });
+        }
+        // Thumbnail in DB speichern
+        if(uploadedReceipt&&b.thumbnail){
+          try{
+            await DB.updateReceipt(uploadedReceipt.id,{thumbnail_data:b.thumbnail});
+            uploadedReceipt.thumbnail_data=b.thumbnail;
+          }catch(te){console.warn('Thumbnail-Speicherung fehlgeschlagen:',te.message);}
+        }
+        b.receiptId=uploadedReceipt?.id||null;
+        b.receiptRecord=uploadedReceipt;
+        // In lokale receipts-Liste aufnehmen
+        if(uploadedReceipt)receipts.push({...uploadedReceipt,thumbnail_data:b.thumbnail});
         b.savedToStorage=true;
       }catch(se){
-        // Storage-Fehler: nur warnen, KI-Ergebnis ist trotzdem nutzbar
-        console.warn('Beleg-Storage (ignoriert):',se.message);
+        console.warn('Beleg-DB-Speicherung fehlgeschlagen:',se.message);
         b.savedToStorage=false;
       }
     }catch(e){b.status='err';b.error=e.message;toast(`Fehler bei ${b.file.name}: ${e.message}`);}
@@ -875,13 +1032,56 @@ function readFileAsBase64(file){
   });
 }
 
+// ── BELEG-MATCHING (Client-seitig, kein API-Call) ──────────
+function matchBelegToTransactions(belegResult,belegReceiptId,txList){
+  // Gibt {transaction_id, score, konfidenz} zurück oder null
+  if(!belegResult)return null;
+  const bBetrag=parseFloat(belegResult.betrag_brutto)||0;
+  const bDatum=belegResult.datum||'';
+  const bDate=bDatum?new Date(bDatum):null;
+  let best=null,bestScore=0;
+  txList.forEach(tx=>{
+    if(!tx.isEinnahme){ // Belege sind meist Ausgaben
+      const tBetrag=parseFloat(tx.betrag)||0;
+      const tDate=tx.datum?new Date(tx.datum):null;
+      // Betrag-Match: ±max(2%, 0.50€)
+      const betragstoleranz=Math.max(tBetrag*0.02,0.5);
+      const betragsMatch=Math.abs(bBetrag-tBetrag)<=betragstoleranz;
+      if(!betragsMatch)return;
+      // Datum-Match: ±5 Tage
+      let datumScore=0.5;
+      if(bDate&&tDate){
+        const diffDays=Math.abs((bDate-tDate)/(1000*60*60*24));
+        if(diffDays<=1)datumScore=1;
+        else if(diffDays<=3)datumScore=0.8;
+        else if(diffDays<=5)datumScore=0.6;
+        else return; // zu weit entfernt
+      }
+      // Empfänger-Match (optional, Bonus)
+      let empfScore=0;
+      if(belegResult.beschreibung&&tx.empfaenger){
+        const bDesc=(belegResult.beschreibung||'').toLowerCase();
+        const tEmpf=(tx.empfaenger||'').toLowerCase();
+        // Einfache Teilstring-Übereinstimmung
+        const words=tEmpf.split(/\s+/).filter(w=>w.length>3);
+        const matchWords=words.filter(w=>bDesc.includes(w));
+        empfScore=words.length?matchWords.length/words.length*0.3:0;
+      }
+      const score=datumScore*0.7+empfScore;
+      if(score>bestScore){bestScore=score;best=tx;}
+    }
+  });
+  if(!best)return null;
+  const konfidenz=bestScore>=0.85?'hoch':bestScore>=0.6?'mittel':'niedrig';
+  return{transaction_id:best.id,score:bestScore,konfidenz};
+}
+
 // ── MATCHING & KATEGORISIERUNG (KI) ───────────────────────
 async function runMatching(){
   $('match-loading').classList.add('show');
   $('btn-match').disabled=true;
   $('match-loading-text').textContent='KI kategorisiert und matcht …';
 
-  // Alle Einträge zusammenbauen: CSV + Rechnungen + manuelle Einnahmen + Beleg-Ergebnisse
   const allEntries=buildAllEntries();
   if(!allEntries.length){
     $('match-loading').classList.remove('show');
@@ -889,47 +1089,91 @@ async function runMatching(){
     return;
   }
 
-  // CSV-Einträge direkt übernehmen (kein KI-Call), Rest zur KI
-  // Datum-Filter anwenden: nur Einträge im gewählten Zeitraum
   const allFiltered=allEntries.filter(e=>!e.datum||inPeriod(e.datum)||e.quelle==='rechnung'||e.quelle==='manuell');
-  const needsAI  =allFiltered.filter(e=>!e._skipAI);
-  const skipAI   =allFiltered.filter(e=> e._skipAI);
+  const needsAI=allFiltered.filter(e=>!e._skipAI);
+  const skipAI =allFiltered.filter(e=> e._skipAI);
 
-  aiResults=[];
+  const newMatches=[];
 
-  // Vorkategorisierte CSV-Einträge direkt aufnehmen
-  skipAI.forEach(e=>{
-    const catKey=e.isEinnahme?'einnahmen_19':'sonstiges';
-    const cat=CATEGORIES[catKey];
-    const betrag=e.betrag||0;
-    const netto=cat.vat?Math.round(betrag/( 1+cat.vat)*100)/100:betrag;
-    aiResults.push({
-      id:e.id, beschreibung:e.beschreibung, datum:e.datum,
-      kategorie:catKey, kategorie_info:cat,
-      betrag_brutto:betrag, betrag_netto:netto,
-      mwst_satz:cat.vat, mwst_betrag:Math.round((betrag-netto)*100)/100,
-      begruendung:'Aus CSV-Import', konfidenz:'mittel', unklar:false,
-      _fromCSV:true, _isEinnahme:e.isEinnahme
+  // 1. Beleg-Matching (Client-seitig): Belege aus dieser Session den CSV-Transaktionen zuordnen
+  // belegFiles mit status='done' gegen csvTransactions matchen
+  const belegsDone=belegFiles.filter(b=>b.status==='done');
+  const matchedTxIds=new Set();
+  belegsDone.forEach(b=>{
+    if(!b.result?.length)return;
+    b.result.forEach(r=>{
+      const m=matchBelegToTransactions(r,b.receiptId,csvTransactions);
+      if(m&&!matchedTxIds.has(m.transaction_id)){
+        matchedTxIds.add(m.transaction_id);
+        // Die CSV-Transaktion bekommt einen Beleg zugeordnet
+        const tx=csvTransactions.find(t=>t.id===m.transaction_id);
+        if(tx){
+          const catKey=tx.isEinnahme?'einnahmen_19':'sonstiges';
+          const cat=CATEGORIES[catKey];
+          const betrag=tx.betrag||0;
+          const netto=cat.vat?Math.round(betrag/(1+cat.vat)*100)/100:betrag;
+          newMatches.push({
+            transaction_id:tx.id,
+            receipt_id:b.receiptId||null,
+            beschreibung:tx.beschreibung,
+            datum:tx.datum,
+            kategorie:catKey,
+            betrag_brutto:betrag,betrag_netto:netto,
+            mwst_satz:cat.vat,mwst_betrag:Math.round((betrag-netto)*100)/100,
+            begruendung:`Beleg ${b.file.name} zugeordnet (Betrag+Datum Match)`,
+            konfidenz:m.konfidenz,unklar:m.konfidenz==='niedrig',
+            quelle:'csv',is_einnahme:tx.isEinnahme,
+            _receipt:b.receiptRecord, // für lokale Darstellung
+          });
+        }
+      }
     });
   });
 
-  // Nur manuelle/Rechnungen/Beleg-Ergebnisse zur KI
+  // 2. CSV-Einträge ohne Beleg-Match direkt aufnehmen
+  skipAI.forEach(e=>{
+    // Schon durch Beleg-Matching abgedeckt? Überspringen
+    if(matchedTxIds.has(e.id))return;
+    const catKey=e.isEinnahme?'einnahmen_19':'sonstiges';
+    const cat=CATEGORIES[catKey];
+    const betrag=e.betrag||0;
+    const netto=cat.vat?Math.round(betrag/(1+cat.vat)*100)/100:betrag;
+    newMatches.push({
+      transaction_id:e.id,
+      receipt_id:null,
+      beschreibung:e.beschreibung,datum:e.datum,
+      kategorie:catKey,betrag_brutto:betrag,betrag_netto:netto,
+      mwst_satz:cat.vat,mwst_betrag:Math.round((betrag-netto)*100)/100,
+      begruendung:'Aus CSV-Import',konfidenz:'mittel',unklar:false,
+      quelle:'csv',is_einnahme:e.isEinnahme,
+    });
+  });
+
+  // 3. Rechnungen + manuelle Einnahmen + Beleg-Ergebnisse → KI-Kategorisierung
   if(needsAI.length){
+    $('match-loading-text').textContent=`KI kategorisiert ${needsAI.length} Einträge …`;
     const batchSize=8;
     for(let i=0;i<needsAI.length;i+=batchSize){
       const batch=needsAI.slice(i,i+batchSize).map(e=>({
         id:e.id,
         beschreibung:(e.beschreibung||'').slice(0,100),
-        betrag:e.betrag, datum:e.datum||'', quelle:e.quelle||''
+        betrag:e.betrag,datum:e.datum||'',quelle:e.quelle||''
       }));
-      $('match-progress-bar').style.width=Math.round(i/needsAI.length*100)+'%';
-      $('match-loading-text').textContent=`KI analysiert ${i+1}–${Math.min(i+batchSize,needsAI.length)} / ${needsAI.length} …`;
+      $('match-progress-bar').style.width=Math.round((i/needsAI.length)*70+20)+'%';
       try{
         const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
           body:JSON.stringify({entries:batch,mode:'categorize'})});
         if(!res.ok){const e=await res.json();throw new Error(e.error||'API-Fehler '+res.status);}
         const data=await res.json();
-        aiResults.push(...(data.results||[]).map(r=>({...r,kategorie_info:CATEGORIES[r.kategorie]||CATEGORIES.sonstiges})));
+        (data.results||[]).forEach(r=>{
+          newMatches.push({
+            transaction_id:r.id||r.beschreibung,
+            receipt_id:null,
+            ...r,
+            quelle:needsAI.find(e=>e.id===r.id)?.quelle||'manuell',
+            is_einnahme:CATEGORIES[r.kategorie]?.type==='income',
+          });
+        });
       }catch(e){
         toast('KI-Fehler: '+e.message);
         $('match-loading').classList.remove('show');
@@ -939,13 +1183,39 @@ async function runMatching(){
     }
   }
 
+  // 4. Matches in DB speichern
+  $('match-loading-text').textContent='Speichere Ergebnisse …';
+  $('match-progress-bar').style.width='90%';
+  try{
+    const saved=await DB.saveMatches(newMatches.map(m=>({
+      ...m,
+      kategorie_info:undefined,_receipt:undefined // kein extra JSON in DB
+    })));
+    // Lokalen State aktualisieren: gespeicherte IDs zuordnen
+    saved.forEach(s=>{
+      const local=newMatches.find(m=>m.transaction_id===s.transaction_id);
+      if(local){local.id=s.id;local.db_id=s.id;}
+    });
+  }catch(e){
+    console.warn('Match-Speicherung fehlgeschlagen:',e.message);
+    toast('Warnung: Ergebnisse konnten nicht gespeichert werden – bleiben nicht nach Reload.');
+  }
+
+  // State setzen
+  matches=newMatches.map(m=>({
+    ...m,
+    kategorie_info:CATEGORIES[m.kategorie]||CATEGORIES.sonstiges,
+    receipts:m._receipt?{...m._receipt,thumbnail_data:m._receipt?.thumbnail_data}:null,
+  }));
+  aiResults=matches; // legacy-Alias
+
   $('match-progress-bar').style.width='100%';
   $('match-loading').classList.remove('show');
   $('btn-match').disabled=false;
   $('btn-skip-to-review').style.display='inline-flex';
 
   // Review-Badge
-  const reviewCount=aiResults.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
+  const reviewCount=matches.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
   const badge=$('badge-review');
   badge.textContent=reviewCount;
   badge.classList.toggle('show',reviewCount>0);
@@ -982,56 +1252,249 @@ function buildAllEntries(){
   return entries;
 }
 
-// ── REVIEW ─────────────────────────────────────────────────
+// ── REVIEW – LEXOFFICE-STIL ────────────────────────────────
+function getReceiptForMatch(m){
+  // Liefert das Receipt-Objekt für einen Match (aus matches.receipts oder lokaler receipts-Liste)
+  if(m.receipts)return m.receipts; // aus DB-Join
+  if(m.receipt_id){return receipts.find(r=>r.id===m.receipt_id)||null;}
+  return null;
+}
+
+function renderThumb(m,idx){
+  const rec=getReceiptForMatch(m);
+  if(rec){
+    const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
+    const confDot=m.unklar?'niedrig':(m.konfidenz||'hoch');
+    if(isPDF){
+      return`<div class="thumb-slot has-thumb" onclick="openBelegModal(${idx})" title="${rec.filename||'PDF'}">
+        <div class="pdf-lbl">PDF<br>${(rec.filename||'').slice(0,8)}</div>
+        <div class="conf-dot ${confDot}"></div>
+      </div>`;
+    }
+    if(rec.thumbnail_data){
+      return`<div class="thumb-slot has-thumb" onclick="openBelegModal(${idx})" title="${rec.filename||'Beleg'}">
+        <img src="${rec.thumbnail_data}" alt="Beleg">
+        <div class="conf-dot ${confDot}"></div>
+      </div>`;
+    }
+    // Hat Receipt aber kein Thumbnail
+    return`<div class="thumb-slot has-thumb" onclick="openBelegModal(${idx})" title="${rec.filename||'Beleg'}">
+      <div class="pdf-lbl">📎<br>${(rec.filename||'').slice(0,8)}</div>
+      <div class="conf-dot ${confDot}"></div>
+    </div>`;
+  }
+  // Kein Beleg → "+" Slot
+  return`<div class="thumb-slot" onclick="openPicker(${idx})" title="Beleg zuordnen">
+    <div class="add-lbl">+</div>
+  </div>`;
+}
+
 function renderReview(){
   const list=$('review-list');
-  if(!aiResults.length){
+  if(!matches.length){
     list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">Noch keine Analyse durchgeführt. Bitte zuerst Schritt 2 abschließen.</div>';
     $('review-empty').style.display='none';
     return;
   }
 
-  // Sortierung nach Datum (neueste zuerst), dann nach isEinnahme
-  const sorted=[...aiResults].sort((a,b)=>{
+  // Sortierung nach Datum (älteste zuerst für Buchungsübersicht)
+  const sorted=[...matches].sort((a,b)=>{
     const da=a.datum||'';const db2=b.datum||'';
-    if(da>db2)return-1;if(da<db2)return 1;return 0;
+    if(da<db2)return-1;if(da>db2)return 1;return 0;
   });
-  // Index-Map: sorted[i] → Index in aiResults (für onchange)
-  const idxMap=sorted.map(r=>aiResults.indexOf(r));
 
-  const reviewCount=aiResults.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
-  $('review-empty').style.display=reviewCount?'none':'flex';
+  const reviewCount=matches.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
+  $('review-empty').style.display=reviewCount===0&&matches.length>0?'flex':'none';
+
   const displayed=filterReview?sorted.filter(r=>r.unklar||r.konfidenz==='niedrig'):sorted;
-  list.innerHTML=displayed.map((r,i)=>{
-    const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
-    const isIncome=cat.type==='income';
-    const konfCls=r.unklar?'unklar':(r.konfidenz||'hoch');
-    const realIdx=aiResults.indexOf(r);
-    return`<div class="ai-row" id="air-${realIdx}">
-      <div>
-        <div class="ai-desc">${r.beschreibung||'–'}</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:2px;">${r.datum?fmtDate(r.datum):''}</div>
-        <div class="ai-sub" id="air-reason-${realIdx}" style="display:${showReasons?'block':'none'};">${r.begruendung||''}</div>
-        ${r.unklar?'<span style="font-size:9px;color:var(--orange);margin-top:2px;display:block;">⚠ Zur Prüfung</span>':''}
-      </div>
-      <div style="text-align:right;">
-        <div class="ai-amt ${isIncome?'income':'expense'}">${isIncome?'+':'−'}${fmt(r.betrag_brutto||0)}</div>
-        <div style="font-size:10px;color:var(--text3);">Netto: ${fmt(r.betrag_netto||0)}</div>
-      </div>
-      <select class="cat-select" onchange="aiResults[${realIdx}].kategorie=this.value;aiResults[${realIdx}].kategorie_info=CATEGORIES[this.value]||CATEGORIES.sonstiges;updateSidebar();">
-        ${Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}" ${r.kategorie===k?'selected':''}>${v.label}</option>`).join('')}
-      </select>
-      <span class="konfidenz ${konfCls}">${r.unklar?'Prüfen':r.konfidenz||'–'}</span>
-    </div>`;
-  }).join('');
+
+  // Update Badge
+  $('badge-review').textContent=reviewCount;
+  $('badge-review').classList.toggle('show',reviewCount>0);
+
+  // Sorted-Indexe rückführen auf matches-Array für DOM-IDs
+  const catOptions=Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
+
+  list.innerHTML=`
+    <div class="lx-header">
+      <span>Datum</span><span>Buchung</span><span style="text-align:right;">Betrag</span>
+      <span style="text-align:center;">Beleg</span><span>Kategorie</span><span>Status</span><span></span>
+    </div>
+    ${displayed.map(r=>{
+      const realIdx=matches.indexOf(r);
+      const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
+      const isIncome=r.is_einnahme||(cat.type==='income');
+      const rowCls=r.bestaetigt?'bestaetigt':r.unklar?'unsicher':'';
+      const statusLbl=r.bestaetigt?'<span class="konfidenz bestaetigt">✓ OK</span>':
+                      r.unklar?`<span class="konfidenz unklar">⚠ Prüfen</span>`:
+                      `<span class="konfidenz ${r.konfidenz||'mittel'}">${r.konfidenz||'–'}</span>`;
+      return`<div class="lx-row ${rowCls}" id="lxr-${realIdx}">
+        <div class="lx-date">${r.datum?fmtDate(r.datum):'–'}</div>
+        <div>
+          <div class="lx-desc-main" title="${r.beschreibung||''}">${r.beschreibung||'–'}</div>
+          ${showReasons&&r.begruendung?`<div class="lx-desc-sub" title="${r.begruendung}">${r.begruendung}</div>`:''}
+        </div>
+        <div class="lx-amt ${isIncome?'in':'out'}">${isIncome?'+':'−'}${fmt(r.betrag_brutto||0)}</div>
+        <div style="display:flex;justify-content:center;">${renderThumb(r,realIdx)}</div>
+        <select class="cat-select" onchange="onCatChange(${realIdx},this.value)">
+          ${Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}" ${r.kategorie===k?'selected':''}>${v.label}</option>`).join('')}
+        </select>
+        <div>${statusLbl}</div>
+        <button class="entry-del" onclick="onConfirmToggle(${realIdx})" title="${r.bestaetigt?'Bestätigung aufheben':'Als OK markieren'}">
+          <i data-lucide="${r.bestaetigt?'check-circle':'circle'}"></i>
+        </button>
+      </div>`;
+    }).join('')}`;
   lucide.createIcons();
 }
+
+async function onCatChange(idx,newCat){
+  matches[idx].kategorie=newCat;
+  matches[idx].kategorie_info=CATEGORIES[newCat]||CATEGORIES.sonstiges;
+  updateSidebar();
+  // In DB speichern
+  if(matches[idx].id){
+    try{await DB.updateMatch(matches[idx].id,{kategorie:newCat});}
+    catch(e){console.warn('Kategorie-Update fehlgeschlagen:',e.message);}
+  }
+}
+
+async function onConfirmToggle(idx){
+  matches[idx].bestaetigt=!matches[idx].bestaetigt;
+  if(matches[idx].id){
+    try{await DB.updateMatch(matches[idx].id,{bestaetigt:matches[idx].bestaetigt});}
+    catch(e){console.warn('Bestätigung fehlgeschlagen:',e.message);}
+  }
+  renderReview();
+}
+
 function toggleReasons(){showReasons=!showReasons;renderReview();}
 function toggleFilterReview(){filterReview=!filterReview;$('btn-filter-review').classList.toggle('active',filterReview);renderReview();}
 
+// ── BELEG-MODAL ────────────────────────────────────────────
+function openBelegModal(matchIdx){
+  modalMatchIdx=matchIdx;
+  const m=matches[matchIdx];
+  const rec=getReceiptForMatch(m);
+  if(!rec){openPicker(matchIdx);return;}
+  $('modal-beleg-title').textContent=rec.filename||'Beleg';
+  const img=$('modal-beleg-img');
+  const pdf=$('modal-beleg-pdf');
+  const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
+  if(isPDF){
+    img.style.display='none';pdf.style.display='block';
+    $('modal-beleg-pdf-name').textContent=rec.filename||'PDF';
+    // Wenn signed_url vorhanden, zeige Link
+    if(rec.signed_url){
+      $('modal-beleg-pdf-name').innerHTML=`<a href="${rec.signed_url}" target="_blank" style="color:var(--accent);">${rec.filename||'PDF öffnen'}</a>`;
+    }
+  } else {
+    pdf.style.display='none';img.style.display='block';
+    img.src=rec.signed_url||rec.thumbnail_data||'';
+  }
+  $('modal-beleg-meta').innerHTML=`
+    <div><span style="color:var(--text3);">Datum:</span> ${fmtDate(rec.datum||'')}</div>
+    <div><span style="color:var(--text3);">Betrag:</span> ${rec.betrag?fmt(parseFloat(rec.betrag)):'–'}</div>
+    <div><span style="color:var(--text3);">Beschreibung:</span> ${rec.beschreibung||rec.filename||'–'}</div>
+    <div><span style="color:var(--text3);">Kategorie:</span> ${CATEGORIES[rec.kategorie]?.label||rec.kategorie||'–'}</div>
+  `;
+  $('modal-beleg-tx').innerHTML=`
+    <div style="background:var(--surface2);border-radius:5px;padding:8px 10px;">
+      <div style="color:var(--text2);">${m.beschreibung||'–'}</div>
+      <div style="color:var(--text3);font-size:10px;margin-top:3px;">${fmtDate(m.datum||'')} · ${m.is_einnahme?'+':'−'}${fmt(m.betrag_brutto||0)}</div>
+    </div>
+  `;
+  $('modal-overlay').style.display; // trigger
+  $('modal-beleg').classList.add('open');
+  lucide.createIcons();
+}
+
+function openPickerFromModal(){
+  closeModal('modal-beleg');
+  openPicker(modalMatchIdx);
+}
+
+async function unlinkReceipt(){
+  if(modalMatchIdx===null)return;
+  const m=matches[modalMatchIdx];
+  if(!confirm('Verknüpfung zum Beleg lösen?'))return;
+  m.receipt_id=null;m.receipts=null;
+  if(m.id){
+    try{await DB.updateMatch(m.id,{receipt_id:null});}
+    catch(e){console.warn('Unlink fehlgeschlagen:',e.message);}
+  }
+  closeModal('modal-beleg');
+  renderReview();
+  toast('Verknüpfung gelöst ✓');
+}
+
+function closeModal(id){$(`${id}`).classList.remove('open');}
+
+// ── BELEG-PICKER ───────────────────────────────────────────
+function openPicker(matchIdx){
+  modalMatchIdx=matchIdx;
+  pickerSelected=null;
+  $('picker-confirm').disabled=true;
+  // Alle verfügbaren Belege anzeigen (aus DB geladene + aus Session)
+  const allReceipts=[...receipts];
+  // Session-Belege die noch nicht in receipts-Array sind
+  belegFiles.filter(b=>b.status==='done'&&b.receiptRecord&&!receipts.find(r=>r.id===b.receiptRecord.id))
+    .forEach(b=>allReceipts.push({...b.receiptRecord,thumbnail_data:b.thumbnail}));
+
+  const grid=$('picker-grid');
+  const empty=$('picker-empty');
+  if(!allReceipts.length){grid.innerHTML='';empty.style.display='block';$('modal-picker').classList.add('open');lucide.createIcons();return;}
+  empty.style.display='none';
+
+  // Bereits zugeordnete receipt_ids
+  const usedIds=new Set(matches.filter((m,i)=>i!==matchIdx&&m.receipt_id).map(m=>m.receipt_id));
+
+  grid.innerHTML=allReceipts.map(rec=>{
+    const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
+    const used=usedIds.has(rec.id);
+    const thumb=isPDF
+      ?`<div class="picker-pdf">${used?'✓ ':''}PDF</div>`
+      :rec.thumbnail_data
+        ?`<img class="picker-thumb" src="${rec.thumbnail_data}" alt="">`
+        :`<div class="picker-pdf">IMG</div>`;
+    return`<div class="picker-item ${used?'style="opacity:.45;cursor:not-allowed;"':''}" onclick="${used?'':'pickReceipt(this,\''+rec.id+'\')'}" data-id="${rec.id}">
+      ${thumb}
+      <div class="picker-name" title="${rec.filename||''}">${rec.filename||'Beleg'}</div>
+      ${rec.datum?`<div class="picker-name" style="color:var(--text3);">${fmtDate(rec.datum)}</div>`:''}
+    </div>`;
+  }).join('');
+  $('modal-picker').classList.add('open');
+  lucide.createIcons();
+}
+
+function pickReceipt(el,receiptId){
+  document.querySelectorAll('.picker-item').forEach(e=>e.classList.remove('selected'));
+  el.closest('.picker-item').classList.add('selected');
+  pickerSelected=receiptId;
+  $('picker-confirm').disabled=false;
+}
+
+async function confirmPicker(){
+  if(!pickerSelected||modalMatchIdx===null)return;
+  const rec=receipts.find(r=>r.id===pickerSelected)||
+    belegFiles.map(b=>b.receiptRecord).find(r=>r?.id===pickerSelected);
+  if(!rec)return;
+  matches[modalMatchIdx].receipt_id=pickerSelected;
+  matches[modalMatchIdx].receipts=rec;
+  // In DB speichern
+  if(matches[modalMatchIdx].id){
+    try{await DB.updateMatch(matches[modalMatchIdx].id,{receipt_id:pickerSelected});}
+    catch(e){console.warn('Picker-Update fehlgeschlagen:',e.message);}
+  }
+  closeModal('modal-picker');
+  renderReview();
+  toast('Beleg zugeordnet ✓');
+}
+
 // ── USTVA BERECHNUNG ───────────────────────────────────────
 function buildUStVA(){
-  if(!aiResults.length){
+  const src=matches.length?matches:aiResults;
+  if(!src.length){
     $('ustv-kpi-grid').innerHTML='<div style="color:var(--text3);font-size:12px;padding:10px;">Noch keine Analyse. Bitte zuerst Schritte 1–3 durchführen.</div>';
     return;
   }
@@ -1043,7 +1506,7 @@ function buildUStVA(){
   let vor19=0,vor7=0;
   let einNetto=0,ausNetto=0;
 
-  aiResults.forEach(r=>{
+  src.forEach(r=>{
     const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
     if(cat.type==='private')return;
     const netto=r.betrag_netto||0;
@@ -1092,7 +1555,7 @@ function buildUStVA(){
     <tr><td>Betriebseinnahmen Netto</td><td style="color:var(--green);">${fmt(einNetto)}</td></tr>
     <tr><td>Betriebsausgaben Netto</td><td style="color:var(--red);">${fmt(ausNetto)}</td></tr>
     <tr><td><strong>Gewinn / Verlust</strong></td><td><strong style="color:${gewinn>=0?'var(--green)':'var(--red)'};">${fmt(gewinn)}</strong></td></tr>
-    <tr><td style="color:var(--text3);">Nicht-abzugsfähig (Privat etc.)</td><td style="color:var(--text3);">${fmt(aiResults.filter(r=>CATEGORIES[r.kategorie]?.type==='private').reduce((s,r)=>s+r.betrag_brutto,0))}</td></tr>
+    <tr><td style="color:var(--text3);">Nicht-abzugsfähig (Privat etc.)</td><td style="color:var(--text3);">${fmt(src.filter(r=>CATEGORIES[r.kategorie]?.type==='private').reduce((s,r)=>s+(r.betrag_brutto||0),0))}</td></tr>
   `;
 
   updateSidebar();
@@ -1103,7 +1566,8 @@ function exportSummary(){
   const q=selectedQuartal,year=selectedYear;
   const label=q?`Q${q} ${year}`:year;
   let txt=`UStVA-Zusammenfassung VISO Media – ${label}\n${'─'.repeat(40)}\n`;
-  aiResults.forEach(r=>{
+  const src=matches.length?matches:aiResults;
+  src.forEach(r=>{
     const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
     txt+=`${fmtDate(r.datum)} | ${r.beschreibung?.slice(0,40)||'–'} | ${cat.type==='income'?'+':'−'}${fmt(r.betrag_brutto||0)} | ${cat.label}\n`;
   });
@@ -1112,7 +1576,8 @@ function exportSummary(){
 
 function exportElsterXML(){
   let ein19=0,ein7=0,vor=0;
-  aiResults.forEach(r=>{
+  const src=matches.length?matches:aiResults;
+  src.forEach(r=>{
     const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
     if(cat.type==='income'){if(r.mwst_satz===0.19)ein19+=r.betrag_netto||0;if(r.mwst_satz===0.07)ein7+=r.betrag_netto||0;}
     else if(cat.type==='expense'){vor+=r.mwst_betrag||0;}
@@ -1147,6 +1612,40 @@ function exportElsterXML(){
   toast('ELSTER XML heruntergeladen ✓');
 }
 
+// ── MATCHES AUS DB LADEN ───────────────────────────────────
+async function loadMatchesFromDB(year,quartal){
+  try{
+    const dbMatches=await DB.getMatches(year,quartal||0);
+    if(dbMatches.length){
+      matches=dbMatches.map(m=>({
+        ...m,
+        id:m.id,
+        is_einnahme:!!m.is_einnahme,
+        unklar:!!m.unklar,
+        bestaetigt:!!m.bestaetigt,
+        kategorie_info:CATEGORIES[m.kategorie]||CATEGORIES.sonstiges,
+        // receipts kommt aus dem JOIN (DB.getMatches selektiert *, receipts(...))
+        receipts:m.receipts||null,
+      }));
+      aiResults=matches; // legacy-Alias
+      // Review-Badge
+      const reviewCount=matches.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
+      $('badge-review').textContent=reviewCount;
+      $('badge-review').classList.toggle('show',reviewCount>0);
+      updateSidebar();
+      return true;
+    }
+  }catch(e){console.info('Matches nicht geladen (Tabelle fehlt noch?):',e.message);}
+  return false;
+}
+
+// ── BELEGE AUS DB LADEN ────────────────────────────────────
+async function loadReceiptsFromDB(){
+  try{
+    receipts=await DB.getReceipts();
+  }catch(e){console.info('Receipts nicht geladen:',e.message);}
+}
+
 // ── INIT ───────────────────────────────────────────────────
 async function init(){
   const user=await getUser();
@@ -1172,27 +1671,33 @@ async function init(){
   catch(e){console.error(e);toast('Fehler beim Laden der Rechnungen');}
   refreshReList();
 
-  // Gespeicherte CSV-Transaktionen laden (alle des Jahres)
-  try{
-    const txs=await DB.getTransactions(curYear);
-    if(txs.length){
-      csvTransactions=txs.map(t=>({
-        id:'tx'+t.id, datum:t.datum||'', empfaenger:t.empfaenger||'',
-        verwendungszweck:t.verwendungszweck||'',
-        beschreibung:t.beschreibung||(t.empfaenger||'')+(t.verwendungszweck?' – '+t.verwendungszweck:''),
-        betrag:parseFloat(t.betrag)||0, isEinnahme:!!t.is_einnahme, quelle:'csv', _fromDB:true
-      }));
-      // CSV-Status anzeigen
-      const ein=csvTransactions.filter(t=>t.isEinnahme).length;
-      const aus=csvTransactions.filter(t=>!t.isEinnahme).length;
-      const st=$('csv-status');
-      st.style.display='block';
-      st.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} gespeicherte Buchungen</strong> aus ${curYear}: ${ein} Eingänge, ${aus} Ausgaben. <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="clearCSVData()"><i data-lucide="trash-2"></i> Löschen</button></div></div>`;
-      lucide.createIcons();
-    }
-  }catch(e){console.info('Transaktionen nicht geladen (Tabelle fehlt noch?):',e.message);}
+  // Alles parallel laden
+  await Promise.all([
+    // CSV-Transaktionen
+    (async()=>{
+      try{
+        const txs=await DB.getTransactions(curYear);
+        if(txs.length){
+          csvTransactions=txs.map(t=>({
+            id:'tx'+t.id, datum:t.datum||'', empfaenger:t.empfaenger||'',
+            verwendungszweck:t.verwendungszweck||'',
+            beschreibung:t.beschreibung||(t.empfaenger||'')+(t.verwendungszweck?' – '+t.verwendungszweck:''),
+            betrag:parseFloat(t.betrag)||0, isEinnahme:!!t.is_einnahme, quelle:'csv', _fromDB:true
+          }));
+          const ein=csvTransactions.filter(t=>t.isEinnahme).length;
+          const aus=csvTransactions.filter(t=>!t.isEinnahme).length;
+          const st=$('csv-status');
+          st.style.display='block';
+          st.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} Buchungen</strong> aus ${curYear}: ${ein} Eingänge, ${aus} Ausgaben. <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="clearCSVData()"><i data-lucide="trash-2"></i> Löschen</button></div></div>`;
+        }
+      }catch(e){console.info('CSV nicht geladen:',e.message);}
+    })(),
+    // Matches laden
+    loadMatchesFromDB(curYear,curQ),
+    // Belege laden
+    loadReceiptsFromDB(),
+  ]);
 
-  // Manuelle Einnahmen aus DB? (Falls in Zukunft persistent)
   renderManualIncomes();
   updateUploadSummary();
   updateSidebar();
