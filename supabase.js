@@ -198,10 +198,29 @@ const DB = {
     if (error) throw error;
     return data || [];
   },
+  async saveReceiptMeta(meta) {
+    const user = await getUser();
+    const { data, error } = await db.from('receipts').insert({
+      user_id:      user.id,
+      filename:     meta.filename || null,
+      storage_path: null,
+      signed_url:   null,
+      size_bytes:   meta.size_bytes || 0,
+      mime_type:    meta.mime_type || 'application/octet-stream',
+      datum:        meta.datum || null,
+      beschreibung: meta.beschreibung || meta.filename || null,
+      kategorie:    meta.kategorie || null,
+      betrag:       meta.betrag || null,
+    }).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async updateReceipt(id, changes) {
+    const { error } = await db.from('receipts').update(changes).eq('id', id);
+    if (error) throw error;
+  },
   async deleteReceipt(id, storagePath) {
-    // Datei aus Storage löschen
-    await db.storage.from('receipts').remove([storagePath]);
-    // DB-Eintrag löschen
+    if (storagePath) await db.storage.from('receipts').remove([storagePath]);
     const { error } = await db.from('receipts').delete().eq('id', id);
     if (error) throw error;
   },
@@ -210,5 +229,72 @@ const DB = {
       .from('receipts').createSignedUrl(storagePath, 60 * 60 * 24 * 365);
     if (error) throw error;
     return data.signedUrl;
+  },
+
+  // ── MATCHES (KI-Zuordnungen, persistent) ──────────────────
+  // Tabelle: matches (id, user_id, transaction_id, receipt_id,
+  //   kategorie, betrag_brutto, betrag_netto, mwst_satz, mwst_betrag,
+  //   beschreibung, datum, begruendung, konfidenz, unklar, bestaetigt,
+  //   quelle, is_einnahme, year, created_at, updated_at)
+  async saveMatches(rows) {
+    const user = await getUser();
+    if (!rows.length) return [];
+    // Upsert: per transaction_id – ein Match pro Transaktion
+    const payload = rows.map(r => ({
+      user_id:       user.id,
+      transaction_id: r.transaction_id || r.id || null,
+      receipt_id:    r.receipt_id || null,
+      kategorie:     r.kategorie || 'sonstiges',
+      betrag_brutto: r.betrag_brutto || 0,
+      betrag_netto:  r.betrag_netto  || 0,
+      mwst_satz:     r.mwst_satz    || 0,
+      mwst_betrag:   r.mwst_betrag  || 0,
+      beschreibung:  r.beschreibung || null,
+      datum:         r.datum || null,
+      begruendung:   r.begruendung  || null,
+      konfidenz:     r.konfidenz    || 'mittel',
+      unklar:        r.unklar       || false,
+      bestaetigt:    r.bestaetigt   || false,
+      quelle:        r.quelle       || 'csv',
+      is_einnahme:   r.is_einnahme  ?? (r._isEinnahme || false),
+      year:          r.datum ? parseInt(r.datum.slice(0,4)) : null,
+      updated_at:    new Date().toISOString(),
+    }));
+    const { data, error } = await db.from('matches')
+      .upsert(payload, { onConflict: 'user_id,transaction_id' })
+      .select();
+    if (error) throw error;
+    return data || [];
+  },
+  async getMatches(year, quartal) {
+    let q = db.from('matches')
+      .select('*, receipts(id,filename,thumbnail_data,signed_url,storage_path,datum,betrag,beschreibung)')
+      .order('datum', { ascending: false });
+    if (year) {
+      q = q.eq('year', year);
+    }
+    if (quartal && quartal > 0) {
+      const qMap = { 1:['01','03'], 2:['04','06'], 3:['07','09'], 4:['10','12'] };
+      const [mFrom, mTo] = qMap[quartal] || ['01','12'];
+      q = q.gte('datum', `${year}-${mFrom}-01`).lte('datum', `${year}-${mTo}-31`);
+    }
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  },
+  async updateMatch(id, changes) {
+    const payload = { ...changes, updated_at: new Date().toISOString() };
+    const { error } = await db.from('matches').update(payload).eq('id', id);
+    if (error) throw error;
+  },
+  async deleteMatch(id) {
+    const { error } = await db.from('matches').delete().eq('id', id);
+    if (error) throw error;
+  },
+  async deleteMatchesByYear(year) {
+    const user = await getUser();
+    const { error } = await db.from('matches')
+      .delete().eq('user_id', user.id).eq('year', year);
+    if (error) throw error;
   },
 };
