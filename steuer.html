@@ -543,11 +543,34 @@ function setQuartal(q){
   if(q===0)$('qjahr').classList.add('active');
   else $(`q${q}`).classList.add('active');
   refreshReList();
+  updateUploadSummary();
   updateSidebar();
 }
-function onPeriodChange(){
+async function onPeriodChange(){
   selectedYear=parseInt($('sel-year').value);
+  // CSV-Transaktionen für das neue Jahr nachladen
+  try{
+    const txs=await DB.getTransactions(selectedYear);
+    if(txs.length){
+      csvTransactions=txs.map(t=>({
+        id:'tx'+t.id, datum:t.datum||'', empfaenger:t.empfaenger||'',
+        verwendungszweck:t.verwendungszweck||'',
+        beschreibung:t.beschreibung||(t.empfaenger||'')+(t.verwendungszweck?' – '+t.verwendungszweck:''),
+        betrag:parseFloat(t.betrag)||0, isEinnahme:!!t.is_einnahme, quelle:'csv', _fromDB:true
+      }));
+      const ein=csvTransactions.filter(t=>t.isEinnahme).length;
+      const aus=csvTransactions.filter(t=>!t.isEinnahme).length;
+      const st=$('csv-status');
+      st.style.display='block';
+      st.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} gespeicherte Buchungen</strong> aus ${selectedYear}: ${ein} Eingänge, ${aus} Ausgaben. <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="clearCSVData()"><i data-lucide="trash-2"></i> Löschen</button></div></div>`;
+      lucide.createIcons();
+    } else {
+      csvTransactions=[];
+      $('csv-status').style.display='none';
+    }
+  }catch(e){console.info('Transaktionen nicht geladen:',e.message);}
   refreshReList();
+  updateUploadSummary();
   updateSidebar();
 }
 function inPeriod(datum){
@@ -556,6 +579,16 @@ function inPeriod(datum){
   if(selectedQuartal===0)return true;
   const m=parseInt(datum.slice(5,7));
   return{1:[1,2,3],2:[4,5,6],3:[7,8,9],4:[10,11,12]}[selectedQuartal].includes(m);
+}
+async function clearCSVData(){
+  if(!confirm(`Alle gespeicherten CSV-Buchungen aus ${selectedYear} löschen?`))return;
+  try{
+    await DB.deleteAllTransactions(selectedYear);
+    csvTransactions=[];
+    $('csv-status').style.display='none';
+    updateUploadSummary();
+    toast('CSV-Daten gelöscht ✓');
+  }catch(e){toast('Fehler: '+e.message);}
 }
 
 // ── SIDEBAR-STATS ──────────────────────────────────────────
@@ -734,22 +767,25 @@ function renderBelegList(){
 
 function updateUploadSummary(){
   const reCount=allDocs.filter(d=>d.typ==='rechnung'&&inPeriod(d.datum)&&reChecked[d.id]).length;
-  const csvCount=csvTransactions.length;
+  const csvCount=csvTransactions.filter(t=>inPeriod(t.datum)||!t.datum).length; // nur im Zeitraum
   const belegCount=belegFiles.length;
   const parts=[];
   if(reCount)parts.push(`${reCount} Rechnung${reCount>1?'en':''}`);
   if(csvCount)parts.push(`${csvCount} Bankbuchungen`);
   if(belegCount)parts.push(`${belegCount} Beleg${belegCount>1?'e':''}`);
   if(manualIncomes.length)parts.push(`${manualIncomes.length} manuelle Einnahmen`);
-  $('upload-summary').textContent=parts.length?parts.join(' · ') + ' bereit':'Noch nichts hochgeladen';
+  const qLabel=selectedQuartal?` (Q${selectedQuartal} ${selectedYear})`:` (${selectedYear})`;
+  $('upload-summary').textContent=parts.length?parts.join(' · ') + ' bereit'+qLabel:'Noch nichts hochgeladen';
 }
 
 // ── SEITE 2: HINTS ─────────────────────────────────────────
 function updatePage2Hints(){
-  if(csvTransactions.length){
+  const csvInPeriod=csvTransactions.filter(t=>inPeriod(t.datum)||!t.datum).length;
+  if(csvInPeriod>0){
     $('ki-hint-csv').style.display='flex';
     $('ki-hint-nocsv').style.display='none';
-    $('ki-hint-csv-text').textContent=`${csvTransactions.length} Bankbuchungen geladen. KI kann Belege direkt zuordnen.`;
+    const qLabel=selectedQuartal?`Q${selectedQuartal} ${selectedYear}`:String(selectedYear);
+    $('ki-hint-csv-text').textContent=`${csvInPeriod} Bankbuchungen für ${qLabel} geladen. KI kann Belege direkt zuordnen.`;
   } else {
     $('ki-hint-csv').style.display='none';
     $('ki-hint-nocsv').style.display='flex';
@@ -800,7 +836,7 @@ async function readBelege(){
       const data=await res.json();
       b.result=data.results||[];
       b.status='done';
-      // Beleg in Storage speichern
+      // Beleg in Storage speichern (optional – schlägt fehl wenn Policy nicht gesetzt)
       try{
         await DB.uploadReceipt(b.file,{
           beschreibung:b.result[0]?.beschreibung||b.file.name,
@@ -808,7 +844,12 @@ async function readBelege(){
           betrag:b.result[0]?.betrag_brutto||null,
           kategorie:b.result[0]?.kategorie||null,
         });
-      }catch(se){console.warn('Beleg-Storage:',se.message);}
+        b.savedToStorage=true;
+      }catch(se){
+        // Storage-Fehler: nur warnen, KI-Ergebnis ist trotzdem nutzbar
+        console.warn('Beleg-Storage (ignoriert):',se.message);
+        b.savedToStorage=false;
+      }
     }catch(e){b.status='err';b.error=e.message;toast(`Fehler bei ${b.file.name}: ${e.message}`);}
     renderBelegStatusList();renderBelegList();
   }
@@ -849,8 +890,10 @@ async function runMatching(){
   }
 
   // CSV-Einträge direkt übernehmen (kein KI-Call), Rest zur KI
-  const needsAI  =allEntries.filter(e=>!e._skipAI);
-  const skipAI   =allEntries.filter(e=> e._skipAI);
+  // Datum-Filter anwenden: nur Einträge im gewählten Zeitraum
+  const allFiltered=allEntries.filter(e=>!e.datum||inPeriod(e.datum)||e.quelle==='rechnung'||e.quelle==='manuell');
+  const needsAI  =allFiltered.filter(e=>!e._skipAI);
+  const skipAI   =allFiltered.filter(e=> e._skipAI);
 
   aiResults=[];
 
@@ -934,7 +977,8 @@ function buildAllEntries(){
     }));
   });
   // 4. CSV-Transaktionen → KEIN KI-Call, regelbasiert
-  csvTransactions.forEach(t=>entries.push({...t,_skipAI:true}));
+  // Nur Buchungen im gewählten Zeitraum
+  csvTransactions.filter(t=>inPeriod(t.datum)).forEach(t=>entries.push({...t,_skipAI:true}));
   return entries;
 }
 
@@ -946,10 +990,18 @@ function renderReview(){
     $('review-empty').style.display='none';
     return;
   }
+
+  // Sortierung nach Datum (neueste zuerst), dann nach isEinnahme
+  const sorted=[...aiResults].sort((a,b)=>{
+    const da=a.datum||'';const db2=b.datum||'';
+    if(da>db2)return-1;if(da<db2)return 1;return 0;
+  });
+  // Index-Map: sorted[i] → Index in aiResults (für onchange)
+  const idxMap=sorted.map(r=>aiResults.indexOf(r));
+
   const reviewCount=aiResults.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
   $('review-empty').style.display=reviewCount?'none':'flex';
-  const catOptions=Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
-  const displayed=filterReview?aiResults.filter(r=>r.unklar||r.konfidenz==='niedrig'):aiResults;
+  const displayed=filterReview?sorted.filter(r=>r.unklar||r.konfidenz==='niedrig'):sorted;
   list.innerHTML=displayed.map((r,i)=>{
     const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
     const isIncome=cat.type==='income';
@@ -958,6 +1010,7 @@ function renderReview(){
     return`<div class="ai-row" id="air-${realIdx}">
       <div>
         <div class="ai-desc">${r.beschreibung||'–'}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px;">${r.datum?fmtDate(r.datum):''}</div>
         <div class="ai-sub" id="air-reason-${realIdx}" style="display:${showReasons?'block':'none'};">${r.begruendung||''}</div>
         ${r.unklar?'<span style="font-size:9px;color:var(--orange);margin-top:2px;display:block;">⚠ Zur Prüfung</span>':''}
       </div>
@@ -1119,7 +1172,7 @@ async function init(){
   catch(e){console.error(e);toast('Fehler beim Laden der Rechnungen');}
   refreshReList();
 
-  // Gespeicherte CSV-Transaktionen laden
+  // Gespeicherte CSV-Transaktionen laden (alle des Jahres)
   try{
     const txs=await DB.getTransactions(curYear);
     if(txs.length){
@@ -1127,17 +1180,17 @@ async function init(){
         id:'tx'+t.id, datum:t.datum||'', empfaenger:t.empfaenger||'',
         verwendungszweck:t.verwendungszweck||'',
         beschreibung:t.beschreibung||(t.empfaenger||'')+(t.verwendungszweck?' – '+t.verwendungszweck:''),
-        betrag:t.betrag||0, isEinnahme:t.is_einnahme||false, quelle:'csv', _fromDB:true
+        betrag:parseFloat(t.betrag)||0, isEinnahme:!!t.is_einnahme, quelle:'csv', _fromDB:true
       }));
       // CSV-Status anzeigen
       const ein=csvTransactions.filter(t=>t.isEinnahme).length;
       const aus=csvTransactions.filter(t=>!t.isEinnahme).length;
       const st=$('csv-status');
       st.style.display='block';
-      st.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} gespeicherte Buchungen</strong> aus ${curYear}: ${ein} Eingänge, ${aus} Ausgaben.</div></div>`;
+      st.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} gespeicherte Buchungen</strong> aus ${curYear}: ${ein} Eingänge, ${aus} Ausgaben. <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="clearCSVData()"><i data-lucide="trash-2"></i> Löschen</button></div></div>`;
       lucide.createIcons();
     }
-  }catch(e){console.info('Transaktionen nicht geladen:',e.message);}
+  }catch(e){console.info('Transaktionen nicht geladen (Tabelle fehlt noch?):',e.message);}
 
   // Manuelle Einnahmen aus DB? (Falls in Zukunft persistent)
   renderManualIncomes();
