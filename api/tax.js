@@ -1,5 +1,5 @@
 module.exports.config = {
-  api: { bodyParser: { sizeLimit: '10mb' } }
+  api: { bodyParser: { sizeLimit: '20mb' } }
 };
 
 // Steuerkategorien für deutsche Kleinunternehmer / Regelbesteuerer
@@ -22,6 +22,7 @@ const CATEGORIES = {
   versicherung:    { label: 'Versicherungen',            type: 'expense', vat: 0 },
   steuerberatung:  { label: 'Steuerberatung & Buchhaltung', type: 'expense', vat: 0.19 },
   miete:           { label: 'Miete / Raumkosten',        type: 'expense', vat: 0.19 },
+  bankgebuehr:     { label: 'Bankgebühren',              type: 'expense', vat: 0 },
   sonstiges:       { label: 'Sonstiges',                 type: 'expense', vat: 0.19 },
   privat:          { label: 'Privat (nicht absetzbar)',  type: 'private', vat: 0 },
 };
@@ -33,14 +34,37 @@ Kategorien: ${CAT_LIST}
 Antworte NUR als JSON: {"entries":[{"id":<id>,"beschreibung":<str>,"kategorie":<key>,"betrag_netto":<num>,"betrag_brutto":<num>,"mwst_betrag":<num>,"mwst_satz":<0|0.07|0.19>,"datum":<str>,"begruendung":<max60chr>,"konfidenz":<hoch|mittel|niedrig>,"unklar":<bool>}]}
 Regeln: Betrag immer positiv. Bei Unklarheit unklar:true. Bewirtung limitFactor 0.7.`;
 
-const VISION_PROMPT = `Du bist ein deutscher Steuerexperte. Analysiere dieses Bild (Rechnung, Kontoauszug oder Beleg).
+const VISION_PROMPT = `Du bist ein deutscher Steuerexperte. Analysiere dieses Dokument (Rechnung, Kassenbon oder Beleg).
 Extrahiere ALLE erkennbaren Finanztransaktionen oder Buchungsposten.
 
 ${SYSTEM_PROMPT}
 
-Für Bilder von Rechnungen/Belegen: Erkenne Datum, Händler/Empfänger, Betrag (Brutto und Netto) und MwSt-Satz.
-Für Kontoauszüge: Extrahiere jede einzelne Buchungszeile mit Datum, Beschreibung und Betrag.
+Erkenne Datum, Händler/Empfänger, Betrag (Brutto und Netto) und MwSt-Satz.
 Antwort als JSON-Objekt: { "entries": [ ... ] }`;
+
+// Hilfsfunktion: PDF-Base64 → ersten ~3000 Zeichen Text extrahieren (heuristisch)
+// Da OpenAI kein PDF als image_url akzeptiert, konvertieren wir PDF zu einem
+// Text-Prompt mit den erkannten Rohdaten (Latin1-Dekodierung für einfache PDFs)
+function extractTextFromPdfBase64(b64) {
+  try {
+    // Einfache Heuristik: Dekodiere Base64, suche lesbare Textblöcke in PDF
+    const binary = Buffer.from(b64, 'base64').toString('latin1');
+    // PDF-Streams enthalten oft Text in Klammern (TJ/Tj-Operatoren) oder nach BT/ET
+    const matches = [];
+    // Text in runden Klammern (PDF-Strings)
+    const parenRe = /\(([^\\\)]{2,200})\)/g;
+    let m;
+    while ((m = parenRe.exec(binary)) !== null) {
+      const t = m[1].replace(/[^\x20-\x7E\xC0-\xFF]/g, '').trim();
+      if (t.length > 3) matches.push(t);
+    }
+    // Deduplizieren und zusammenführen
+    const unique = [...new Set(matches)];
+    return unique.join(' ').slice(0, 4000);
+  } catch {
+    return '';
+  }
+}
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -65,29 +89,19 @@ module.exports = async function handler(req, res) {
     const isPDF = mimeType === 'application/pdf' || (filename || '').toLowerCase().endsWith('.pdf');
 
     if (isPDF) {
-      // PDF: Text-basiert über gpt-4o mit base64-encodiertem PDF-Inhalt
-      // OpenAI unterstützt PDFs nativ als file input in gpt-4o
+      // PDFs können NICHT als image_url an OpenAI geschickt werden.
+      // Stattdessen: Text aus PDF heuristisch extrahieren und als Text-Prompt senden.
+      const extractedText = extractTextFromPdfBase64(imageData);
+      const textPrompt = extractedText.length > 20
+        ? `Analysiere dieses PDF-Dokument (${filename || 'Dokument'}) und extrahiere alle Finanztransaktionen.\n\nExtrahierter PDF-Text:\n${extractedText}`
+        : `Analysiere dieses PDF-Dokument (${filename || 'Dokument'}). Der Text konnte nicht automatisch extrahiert werden. Bitte schätze auf Basis des Dateinamens mögliche Transaktionen oder gib ein leeres entries-Array zurück.`;
+
       messages = [
         { role: 'system', content: VISION_PROMPT },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `Analysiere dieses PDF-Dokument (${filename || 'Dokument'}) und extrahiere alle Finanztransaktionen.`
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:${mimeType};base64,${imageData}`,
-                detail: 'high'
-              }
-            }
-          ]
-        }
+        { role: 'user', content: textPrompt }
       ];
     } else {
-      // Bild (PNG, JPG, HEIC, WEBP etc.)
+      // Bild (PNG, JPG, HEIC, WEBP etc.) → als image_url
       messages = [
         { role: 'system', content: VISION_PROMPT },
         {
@@ -95,7 +109,7 @@ module.exports = async function handler(req, res) {
           content: [
             {
               type: 'text',
-              text: `Analysiere dieses Bild und extrahiere alle erkennbaren Finanztransaktionen oder Buchungsposten.`
+              text: `Analysiere dieses Bild (${filename || 'Beleg'}) und extrahiere alle erkennbaren Finanztransaktionen.`
             },
             {
               type: 'image_url',
@@ -117,7 +131,7 @@ module.exports = async function handler(req, res) {
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4o',  // Vision benötigt gpt-4o, nicht mini
+          model: isPDF ? 'gpt-4o-mini' : 'gpt-4o',  // PDF als Text → mini reicht; Bild → gpt-4o
           messages,
           response_format: { type: 'json_object' },
           temperature: 0.1,
