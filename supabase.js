@@ -285,7 +285,8 @@ const DB = {
       q = q.eq('year', year);
     }
     if (quartal && quartal > 0) {
-      // Use exact start/end dates to avoid invalid dates like 06-31
+      // Exakte Quartalsgrenzen + 14 Tage Puffer für Monatswechsel-Rechnungen
+      // (Rechnung 31.03. → Transaktion 01.04. soll in Q2 sichtbar sein)
       const qDates = {
         1: [`${year}-01-01`, `${year}-03-31`],
         2: [`${year}-04-01`, `${year}-06-30`],
@@ -293,7 +294,11 @@ const DB = {
         4: [`${year}-10-01`, `${year}-12-31`],
       };
       const [dFrom, dTo] = qDates[quartal] || [`${year}-01-01`, `${year}-12-31`];
-      q = q.gte('datum', dFrom).lte('datum', dTo);
+      // 14 Tage vor Quartalsstart und nach Quartalende laden
+      const fromWithBuffer = new Date(dFrom); fromWithBuffer.setDate(fromWithBuffer.getDate() - 14);
+      const toWithBuffer   = new Date(dTo);   toWithBuffer.setDate(toWithBuffer.getDate() + 14);
+      const fmt = d => d.toISOString().slice(0, 10);
+      q = q.gte('datum', fmt(fromWithBuffer)).lte('datum', fmt(toWithBuffer));
     }
     const { data: matchData, error } = await q;
     if (error) throw error;

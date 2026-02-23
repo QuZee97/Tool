@@ -567,23 +567,30 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 
 <!-- ── BELEG-VOLLANSICHT MODAL ── -->
 <div class="modal-overlay" id="modal-beleg">
-  <div class="modal-box" style="max-width:820px;">
+  <div class="modal-box" style="max-width:940px;width:95vw;">
     <div class="modal-head">
       <h3 id="modal-beleg-title">Beleg</h3>
+      <a id="modal-beleg-extlink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm" style="display:none;margin-right:4px;"><i data-lucide="external-link"></i> Im Browser öffnen</a>
       <button class="modal-close" onclick="closeModal('modal-beleg')">×</button>
     </div>
-    <div class="modal-body" style="display:grid;grid-template-columns:1fr 260px;gap:20px;">
-      <div>
-        <img id="modal-beleg-img" src="" alt="" style="width:100%;border-radius:6px;display:none;">
-        <div id="modal-beleg-pdf" style="display:none;padding:40px;text-align:center;background:var(--surface2);border-radius:6px;">
-          <div style="font-size:32px;margin-bottom:8px;">📄</div>
+    <div class="modal-body" style="display:grid;grid-template-columns:1fr 240px;gap:0;padding:0;overflow:hidden;height:72vh;">
+      <!-- Linke Spalte: Beleg-Vorschau -->
+      <div style="border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;">
+        <img id="modal-beleg-img" src="" alt="" style="width:100%;height:100%;object-fit:contain;display:none;padding:16px;">
+        <iframe id="modal-beleg-iframe" src="" style="display:none;flex:1;width:100%;height:100%;border:none;background:#fff;"></iframe>
+        <div id="modal-beleg-pdf-fallback" style="display:none;flex:1;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:var(--surface2);">
+          <i data-lucide="file-text" style="width:40px;height:40px;color:var(--text3);stroke-width:1;"></i>
           <div style="color:var(--text3);font-size:12px;" id="modal-beleg-pdf-name"></div>
+          <a id="modal-beleg-pdf-link" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm"><i data-lucide="external-link"></i> Im Browser öffnen</a>
         </div>
       </div>
-      <div>
-        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Beleg-Details</div>
-        <div id="modal-beleg-meta" style="font-size:11px;color:var(--text2);line-height:2;"></div>
-        <div style="margin-top:16px;">
+      <!-- Rechte Spalte: Metadaten -->
+      <div style="padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:16px;">
+        <div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Beleg-Details</div>
+          <div id="modal-beleg-meta" style="font-size:11px;color:var(--text2);line-height:2.1;"></div>
+        </div>
+        <div>
           <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Verknüpfte Transaktion</div>
           <div id="modal-beleg-tx" style="font-size:11px;color:var(--text2);"></div>
         </div>
@@ -740,6 +747,29 @@ function inPeriod(datum){
   if(selectedQuartal===0)return true;
   const m=parseInt(datum.slice(5,7));
   return{1:[1,2,3],2:[4,5,6],3:[7,8,9],4:[10,11,12]}[selectedQuartal].includes(m);
+}
+
+// Wie inPeriod, aber mit ±14 Tage Puffer am Quartalsbeginn/-ende
+// (für Monatswechsel: Rechnung 31.03. → Transaktion 01.04.)
+function inPeriodLoose(datum){
+  if(!datum)return false;
+  const qDates={
+    1:[`${selectedYear}-01-01`,`${selectedYear}-03-31`],
+    2:[`${selectedYear}-04-01`,`${selectedYear}-06-30`],
+    3:[`${selectedYear}-07-01`,`${selectedYear}-09-30`],
+    4:[`${selectedYear}-10-01`,`${selectedYear}-12-31`],
+  };
+  if(datum.startsWith(String(selectedYear))&&selectedQuartal===0)return true;
+  if(selectedQuartal===0){
+    // Ganzes Jahr → auch Vorjahr Dezember / nächstes Jahr Januar mit 14 Tagen
+    return datum>=`${selectedYear-1}-12-18`&&datum<=`${selectedYear+1}-01-14`;
+  }
+  const [from,to]=qDates[selectedQuartal];
+  // 14 Tage Puffer vor und nach dem Quartal
+  const fromD=new Date(from); fromD.setDate(fromD.getDate()-14);
+  const toD=new Date(to); toD.setDate(toD.getDate()+14);
+  const d=new Date(datum);
+  return d>=fromD&&d<=toD;
 }
 async function clearCSVData(){
   if(!confirm(`Alle gespeicherten CSV-Buchungen aus ${selectedYear} löschen?`))return;
@@ -1542,8 +1572,14 @@ function openReceiptUrl(url){
 function renderReview(){
   const list=$('review-list');
 
-  // Zeige CSV-Buchungen auch ohne KI (sofort nach Upload)
-  const displayed=matches.filter(m=>inPeriod(m.datum));
+  // Zeige CSV-Buchungen: Transaktion im Quartal ODER Beleg im Quartal (±14 Tage Monatswechsel-Puffer)
+  const displayed=matches.filter(m=>{
+    if(inPeriod(m.datum))return true; // Transaktionsdatum im Quartal (Normalfall)
+    // Zusätzlich: Beleg-Datum im Quartal (Monatswechsel-Toleranz)
+    const rec=getReceiptForMatch(m);
+    if(rec?.datum&&inPeriodLoose(rec.datum))return true;
+    return false;
+  });
   if(!displayed.length){
     list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">Noch keine Buchungen im gewählten Zeitraum. Bitte CSV hochladen.</div>';
     return;
@@ -1689,20 +1725,47 @@ function openBelegModal(matchIdx){
   const rec=getReceiptForMatch(m);
   if(!rec){openPicker(matchIdx);return;}
   $('modal-beleg-title').textContent=rec.filename||'Beleg';
+
   const img=$('modal-beleg-img');
-  const pdf=$('modal-beleg-pdf');
+  const iframe=$('modal-beleg-iframe');
+  const fallback=$('modal-beleg-pdf-fallback');
+  const extLink=$('modal-beleg-extlink');
   const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
-  if(isPDF){
-    img.style.display='none';pdf.style.display='block';
-    $('modal-beleg-pdf-name').textContent=rec.filename||'PDF';
-    // Wenn signed_url vorhanden, zeige Link
-    if(rec.signed_url){
-      $('modal-beleg-pdf-name').innerHTML=`<a href="${rec.signed_url}" target="_blank" style="color:var(--accent);">${rec.filename||'PDF öffnen'}</a>`;
-    }
+
+  // Alle Viewer ausblenden
+  img.style.display='none';
+  iframe.style.display='none';
+  fallback.style.display='none';
+  extLink.style.display='none';
+
+  if(isPDF&&rec.signed_url){
+    // PDF inline im iframe anzeigen
+    // Supabase signed URLs haben Content-Disposition:attachment – wir bauen eine eigene Viewer-URL
+    const viewerUrl=`https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(rec.signed_url)}`;
+    iframe.src=viewerUrl;
+    iframe.style.display='block';
+    // Fallback-Button für direkten Download/Öffnen
+    extLink.href=rec.signed_url;
+    extLink.style.display='inline-flex';
+    // Fehler-Fallback: wenn iframe lädt nicht (CORS/CSP) → Fallback zeigen
+    iframe.onerror=()=>{
+      iframe.style.display='none';
+      fallback.style.display='flex';
+      $('modal-beleg-pdf-name').textContent=rec.filename||'PDF';
+      $('modal-beleg-pdf-link').href=rec.signed_url;
+    };
+  } else if(isPDF&&!rec.signed_url){
+    // Kein signed_url → Fallback
+    fallback.style.display='flex';
+    $('modal-beleg-pdf-name').textContent=rec.filename||'PDF (kein Link verfügbar)';
+    $('modal-beleg-pdf-link').href='#';
   } else {
-    pdf.style.display='none';img.style.display='block';
+    // Bild
+    img.style.display='block';
     img.src=rec.signed_url||rec.thumbnail_data||'';
+    if(rec.signed_url){extLink.href=rec.signed_url;extLink.style.display='inline-flex';}
   }
+
   $('modal-beleg-meta').innerHTML=`
     <div><span style="color:var(--text3);">Datum:</span> ${fmtDate(rec.datum||'')}</div>
     <div><span style="color:var(--text3);">Betrag:</span> ${rec.betrag?fmt(parseFloat(rec.betrag)):'–'}</div>
@@ -1715,7 +1778,6 @@ function openBelegModal(matchIdx){
       <div style="color:var(--text3);font-size:10px;margin-top:3px;">${fmtDate(m.datum||'')} · ${m.is_einnahme?'+':'−'}${fmt(m.betrag_brutto||0)}</div>
     </div>
   `;
-  $('modal-overlay').style.display; // trigger
   $('modal-beleg').classList.add('open');
   lucide.createIcons();
 }
@@ -1739,7 +1801,14 @@ async function unlinkReceipt(){
   toast('Verknüpfung gelöst ✓');
 }
 
-function closeModal(id){$(`${id}`).classList.remove('open');}
+function closeModal(id){
+  $(`${id}`).classList.remove('open');
+  // iframe src leeren um PDF-Laden zu stoppen
+  if(id==='modal-beleg'){
+    const f=$('modal-beleg-iframe');
+    if(f){f.src='about:blank';}
+  }
+}
 
 // ── BELEG-PICKER ───────────────────────────────────────────
 // Gibt {desc, datum} aus Beleg-Metadaten zurück
