@@ -329,4 +329,32 @@ const DB = {
       .delete().eq('user_id', user.id).eq('year', year);
     if (error) throw error;
   },
+
+  // ── TX-REGELN (wiederkehrende Kategorisierungen) ──────────
+  async getRules() {
+    const user = await getUser();
+    const { data, error } = await db.from('tx_rules')
+      .select('*').eq('user_id', user.id);
+    if (error) throw error;
+    return data || [];
+  },
+  async saveRule(empfaenger, kategorie, beschreibung) {
+    const user = await getUser();
+    // Upsert per empfaenger_key (normalisierter Empfänger)
+    const empfaengerKey = (empfaenger || '').toLowerCase().trim().replace(/\s+/g, ' ');
+    const { data, error } = await db.from('tx_rules').upsert({
+      user_id:        user.id,
+      empfaenger_key: empfaengerKey,
+      empfaenger_raw: empfaenger || '',
+      kategorie:      kategorie,
+      beschreibung:   beschreibung || null,
+      updated_at:     new Date().toISOString(),
+    }, { onConflict: 'user_id,empfaenger_key' }).select().single();
+    if (error) throw error;
+    return data;
+  },
+  async deleteRule(id) {
+    const { error } = await db.from('tx_rules').delete().eq('id', id);
+    if (error) throw error;
+  },
 };

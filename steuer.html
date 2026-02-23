@@ -140,11 +140,11 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 .tx-tag.manual{background:var(--blue-bg);color:var(--blue);}
 
 /* LEXOFFICE-STYLE REVIEW TABLE */
-.lx-row{display:grid;grid-template-columns:68px minmax(0,1fr) 88px 56px 150px 70px 28px;align-items:center;gap:6px;padding:7px 14px;border-bottom:1px solid var(--border);font-size:11px;transition:background .1s;min-height:52px;}
+.lx-row{display:grid;grid-template-columns:68px minmax(0,1fr) 88px 56px 150px 70px 76px;align-items:center;gap:6px;padding:7px 14px;border-bottom:1px solid var(--border);font-size:11px;transition:background .1s;min-height:52px;}
 .lx-row:hover{background:var(--surface2);}
 .lx-row.unsicher{box-shadow:inset 3px 0 0 var(--orange);}
 .lx-row.bestaetigt{box-shadow:inset 3px 0 0 var(--green);}
-.lx-header{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);padding:6px 14px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:68px minmax(0,1fr) 88px 56px 150px 70px 28px;gap:6px;}
+.lx-header{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);padding:6px 14px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:68px minmax(0,1fr) 88px 56px 150px 70px 76px;gap:6px;}
 .lx-date{color:var(--text3);font-size:10px;white-space:nowrap;}
 .lx-desc{min-width:0;overflow:hidden;}
 .lx-desc-main{color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -256,9 +256,19 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 .entry-table th{padding:7px 10px;text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);}
 .entry-table td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text2);}
 .entry-table tr:last-child td{border-bottom:none;}
-.entry-del{width:20px;height:20px;border:none;background:none;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.entry-del:hover{color:var(--red);}
+.entry-del{width:22px;height:22px;border:none;background:none;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:4px;transition:background .12s,color .12s;flex-shrink:0;}
+.entry-del:hover{background:var(--surface3);color:var(--text);}
 .entry-del svg{width:12px;height:12px;}
+/* Spezifische Action-Buttons */
+.row-action-ok{color:var(--text3);}
+.row-action-ok:hover{background:var(--green-bg)!important;color:var(--green)!important;}
+.row-action-ok.ok-active{color:var(--green);background:var(--green-bg);}
+.row-action-ok.ok-active:hover{background:var(--green-bg)!important;color:var(--green)!important;}
+.row-action-unlink{color:var(--text3);}
+.row-action-unlink:hover{background:var(--orange-bg)!important;color:var(--orange)!important;}
+.row-action-info{color:var(--text3);}
+.row-action-info.has-grund{color:var(--text2);}
+.row-action-info:hover{background:var(--surface3)!important;color:var(--text)!important;}
 </style>
 </head>
 <body>
@@ -644,6 +654,7 @@ let belegFiles      = [];   // {file, status, result, thumbnail} – Session-onl
 let receipts        = [];   // Aus DB geladene Belege (mit thumbnail_data)
 let matches         = [];   // Aus DB geladene Matches (persistent) – ersetzt aiResults
 let aiResults       = [];   // Legacy-Alias → zeigt auf matches
+let txRules         = [];   // Kategorisierungs-Regeln: [{empfaenger_key, kategorie, ...}]
 let filterReview    = false;
 // Modal-State
 let modalMatchIdx   = null; // welcher Match ist gerade im Modal
@@ -1202,13 +1213,15 @@ function matchBelegToTransactions(belegResult,belegReceiptId,txList){
     // Richtung: Beleg-Kategorie mit TX-Typ abgleichen (wenn bekannt)
     if(bIsIncome&&!tx.isEinnahme)return;
     if(!bIsIncome&&belegResult.kategorie&&CATEGORIES[belegResult.kategorie]?.type==='expense'&&tx.isEinnahme)return;
-    // Datum-Match: ±7 Tage (etwas großzügiger)
+    // Datum-Match: ±14 Tage (Rechnungsdatum ≠ Buchungsdatum, Wochenenden, Zahlungsziel)
     let datumScore=0.5;
     if(bDate&&tDate){
       const diffDays=Math.abs((bDate-tDate)/(1000*60*60*24));
       if(diffDays<=1)datumScore=1;
-      else if(diffDays<=3)datumScore=0.85;
-      else if(diffDays<=7)datumScore=0.65;
+      else if(diffDays<=3)datumScore=0.9;
+      else if(diffDays<=7)datumScore=0.75;
+      else if(diffDays<=10)datumScore=0.6;
+      else if(diffDays<=14)datumScore=0.45;
       else return; // zu weit entfernt
     }
     // Empfänger-Match (optional, Bonus)
@@ -1239,22 +1252,28 @@ function buildMatchesFromCSV(){
   matches=[...seen.values()];
 
   const existing=new Set(matches.map(m=>m.transaction_id));
-  const newM=csvTransactions.filter(t=>!existing.has(t.id)).map(t=>({
-    transaction_id:t.id,
-    receipt_id:null,
-    beschreibung:t.beschreibung||t.empfaenger||'',
-    datum:t.datum||null,
-    betrag_brutto:Math.abs(t.betrag),
-    betrag_netto:Math.abs(t.betrag),
-    mwst_satz:0,mwst_betrag:0,
-    kategorie:t.isEinnahme?'einnahmen_19':'sonstiges',
-    konfidenz:null,
-    unklar:false,bestaetigt:false,
-    quelle:'csv',
-    is_einnahme:t.isEinnahme,
-    begruendung:null,
-    receipts:null,
-  }));
+  const newM=csvTransactions.filter(t=>!existing.has(t.id)).map(t=>{
+    // Regel direkt beim Erstellen anwenden
+    const empfKey=normalizeEmpf(t.empfaenger||t.beschreibung||'');
+    const rule=txRules.find(r=>r.empfaenger_key&&(empfKey===r.empfaenger_key||(r.empfaenger_key.length>=5&&empfKey.includes(r.empfaenger_key))));
+    return{
+      transaction_id:t.id,
+      receipt_id:null,
+      beschreibung:t.beschreibung||t.empfaenger||'',
+      empfaenger:t.empfaenger||'',
+      datum:t.datum||null,
+      betrag_brutto:Math.abs(t.betrag),
+      betrag_netto:Math.abs(t.betrag),
+      mwst_satz:0,mwst_betrag:0,
+      kategorie:rule?rule.kategorie:(t.isEinnahme?'einnahmen_19':'sonstiges'),
+      konfidenz:rule?'hoch':null,
+      unklar:false,bestaetigt:false,
+      quelle:'csv',
+      is_einnahme:t.isEinnahme,
+      begruendung:rule?`Regel: ${rule.empfaenger_raw||rule.empfaenger_key} → ${CATEGORIES[rule.kategorie]?.label||rule.kategorie}`:null,
+      receipts:null,
+    };
+  });
   if(!newM.length)return;
   matches=[...matches,...newM];
   // Im Hintergrund in DB speichern (upsert → kein Duplikat möglich)
@@ -1327,8 +1346,56 @@ function autoMatchBelege(){
   return changed;
 }
 
+// ── KATEGORISIERUNGS-REGELN ─────────────────────────────────
+// Normalisiert einen Empfänger-String für Regelvergleich
+function normalizeEmpf(s){return(s||'').toLowerCase().trim().replace(/\s+/g,' ');}
+
+// Findet die passende Regel für eine Transaktion (Empfänger-Match)
+function findRuleForMatch(m){
+  if(!txRules.length)return null;
+  const empf=normalizeEmpf(m.empfaenger||m.beschreibung||'');
+  if(!empf)return null;
+  // Exakter Key-Match zuerst
+  let rule=txRules.find(r=>r.empfaenger_key&&empf===r.empfaenger_key);
+  if(rule)return rule;
+  // Teilstring-Match (Regel-Key kommt im Empfänger vor, mind. 5 Zeichen)
+  rule=txRules.find(r=>r.empfaenger_key&&r.empfaenger_key.length>=5&&empf.includes(r.empfaenger_key));
+  return rule||null;
+}
+
+// Wendet Regeln auf alle Matches an die noch keine Kategorie haben
+// Gibt Anzahl der angewendeten Regeln zurück
+function applyRulesToMatches(){
+  if(!txRules.length)return 0;
+  let count=0;
+  matches.forEach(m=>{
+    if(m.konfidenz||m.bestaetigt)return; // bereits kategorisiert/bestätigt
+    const rule=findRuleForMatch(m);
+    if(!rule)return;
+    if(CATEGORIES[rule.kategorie]){
+      m.kategorie=rule.kategorie;
+      m.kategorie_info=CATEGORIES[rule.kategorie];
+      m.konfidenz='hoch'; // Regel = höchste Konfidenz
+      m.begruendung=`Regel: ${rule.empfaenger_raw||rule.empfaenger_key} → ${CATEGORIES[rule.kategorie].label}`;
+      count++;
+      if(m.id){
+        DB.updateMatch(m.id,{
+          kategorie:rule.kategorie,
+          konfidenz:'hoch',
+          begruendung:m.begruendung,
+        }).catch(()=>{});
+      }
+    }
+  });
+  return count;
+}
+
 // ── KI KATEGORISIERUNG (Review-Button) ─────────────────────
 async function runKIKategorisierung(){
+  // Zuerst Regeln anwenden (schnell, kein KI-Call)
+  const rulesApplied=applyRulesToMatches();
+  if(rulesApplied>0)console.log('[Regeln]',rulesApplied,'Einträge per Regel kategorisiert');
+
   // Nur Einträge die noch keine KI-Kategorie haben
   const toKI=matches.filter(m=>!m.konfidenz&&inPeriod(m.datum));
   if(!toKI.length){toast('Alle Einträge bereits analysiert.');return;}
@@ -1364,31 +1431,46 @@ async function runKIKategorisierung(){
       (data.results||[]).forEach(ki=>{
         const match=matches.find(m=>m.transaction_id===ki.id);
         if(!match)return;
+        // Konflikt-Check: Hat diese Transaktion eine gespeicherte Regel?
+        const rule=findRuleForMatch(match);
         const defaultCatKey=match.is_einnahme?'einnahmen_19':'sonstiges';
         const catKey=ki.kategorie&&CATEGORIES[ki.kategorie]?ki.kategorie:defaultCatKey;
         const cat=CATEGORIES[catKey];
         const brutto=ki.betrag_brutto||match.betrag_brutto||0;
         const netto=ki.betrag_netto||(cat.vat?Math.round(brutto/(1+cat.vat)*100)/100:brutto);
         const mwst=ki.mwst_betrag||Math.round((brutto-netto)*100)/100;
-        match.kategorie=catKey;
-        match.kategorie_info=cat;
-        match.betrag_brutto=brutto;
-        match.betrag_netto=netto;
-        match.mwst_satz=ki.mwst_satz??cat.vat;
-        match.mwst_betrag=mwst;
-        match.konfidenz=ki.konfidenz||'mittel';
-        match.unklar=!!ki.unklar;
-        match.is_einnahme=cat.type==='income'||(match.is_einnahme||false);
-        // Begründung: KI-Text anhängen (Beleg-Begründung behalten falls vorhanden)
-        const kiGrund=ki.begruendung||'';
-        match.begruendung=match.begruendung
-          ?(match.begruendung+(kiGrund?' – '+kiGrund:''))
-          :kiGrund;
+
+        if(rule&&rule.kategorie!==catKey){
+          // Konflikt: KI schlägt andere Kategorie vor als gespeicherte Regel
+          // → Regel-Kategorie bleibt aktiv, aber als Konflikt zur Prüfung markieren
+          match.kategorie=rule.kategorie; // Regel hat Vorrang
+          match.kategorie_info=CATEGORIES[rule.kategorie];
+          match.konfidenz='niedrig';
+          match.unklar=true;
+          const kiGrund=ki.begruendung||'';
+          match.begruendung=`⚠ Konflikt: Regel → ${CATEGORIES[rule.kategorie]?.label}, KI → ${CATEGORIES[catKey]?.label||catKey}${kiGrund?' ('+kiGrund+')':''}. Bitte prüfen.`;
+        } else {
+          // Kein Konflikt – KI-Ergebnis übernehmen (oder Regel bestätigt)
+          match.kategorie=rule?rule.kategorie:catKey;
+          match.kategorie_info=CATEGORIES[match.kategorie]||cat;
+          match.betrag_brutto=brutto;
+          match.betrag_netto=netto;
+          match.mwst_satz=ki.mwst_satz??cat.vat;
+          match.mwst_betrag=mwst;
+          match.konfidenz=rule?'hoch':(ki.konfidenz||'mittel');
+          match.unklar=!!ki.unklar;
+          match.is_einnahme=cat.type==='income'||(match.is_einnahme||false);
+          const kiGrund=ki.begruendung||'';
+          const regelHinweis=rule?` [Regel bestätigt: ${rule.empfaenger_raw||rule.empfaenger_key}]`:'';
+          match.begruendung=match.begruendung
+            ?(match.begruendung+(kiGrund?' – '+kiGrund:'')+regelHinweis)
+            :kiGrund+regelHinweis||null;
+        }
         // In DB speichern
         if(match.id){
           DB.updateMatch(match.id,{
-            kategorie:catKey,betrag_brutto:brutto,betrag_netto:netto,
-            mwst_satz:match.mwst_satz,mwst_betrag:mwst,
+            kategorie:match.kategorie,betrag_brutto:match.betrag_brutto,betrag_netto:match.betrag_netto,
+            mwst_satz:match.mwst_satz,mwst_betrag:match.mwst_betrag,
             konfidenz:match.konfidenz,unklar:match.unklar,
             begruendung:match.begruendung,is_einnahme:match.is_einnahme,
           }).catch(()=>{});
@@ -1424,21 +1506,25 @@ function renderThumb(m,idx){
   if(rec){
     const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
     const confDot=m.unklar?'niedrig':(m.konfidenz||'hoch');
+    // Klick-Aktion: signed_url → direkt im neuen Tab öffnen; sonst Modal
+    const clickAction=rec.signed_url
+      ?`openReceiptUrl('${rec.signed_url.replace(/'/g,"\\'")}')`
+      :`openBelegModal(${idx})`;
     if(isPDF){
-      return`<div class="thumb-slot has-thumb" onclick="openBelegModal(${idx})" title="${rec.filename||'PDF'}">
-        <div class="pdf-lbl">PDF<br>${(rec.filename||'').slice(0,8)}</div>
+      return`<div class="thumb-slot has-thumb" onclick="${clickAction}" title="${rec.filename||'PDF'} – Klick zum Öffnen">
+        <div class="pdf-lbl"><i data-lucide="file-text" style="width:14px;height:14px;margin-bottom:2px;"></i><br>${(rec.filename||'').replace(/\.[^.]+$/,'').slice(0,7)}</div>
         <div class="conf-dot ${confDot}"></div>
       </div>`;
     }
     if(rec.thumbnail_data){
-      return`<div class="thumb-slot has-thumb" onclick="openBelegModal(${idx})" title="${rec.filename||'Beleg'}">
+      return`<div class="thumb-slot has-thumb" onclick="${clickAction}" title="${rec.filename||'Beleg'} – Klick zum Öffnen">
         <img src="${rec.thumbnail_data}" alt="Beleg">
         <div class="conf-dot ${confDot}"></div>
       </div>`;
     }
-    // Hat Receipt aber kein Thumbnail
-    return`<div class="thumb-slot has-thumb" onclick="openBelegModal(${idx})" title="${rec.filename||'Beleg'}">
-      <div class="pdf-lbl">📎<br>${(rec.filename||'').slice(0,8)}</div>
+    // Hat Receipt aber kein Thumbnail (z.B. nur Metadaten)
+    return`<div class="thumb-slot has-thumb" onclick="${clickAction}" title="${rec.filename||'Beleg'} – Klick zum Öffnen">
+      <div class="pdf-lbl"><i data-lucide="paperclip" style="width:14px;height:14px;margin-bottom:2px;"></i><br>${(rec.filename||'').slice(0,7)}</div>
       <div class="conf-dot ${confDot}"></div>
     </div>`;
   }
@@ -1446,6 +1532,11 @@ function renderThumb(m,idx){
   return`<div class="thumb-slot" onclick="openPicker(${idx})" title="Beleg zuordnen">
     <div class="add-lbl">+</div>
   </div>`;
+}
+
+function openReceiptUrl(url){
+  if(!url)return;
+  window.open(url,'_blank','noopener,noreferrer');
 }
 
 function renderReview(){
@@ -1503,13 +1594,13 @@ function renderReview(){
           </select>
           <div>${statusLbl}</div>
           <div style="display:flex;align-items:center;gap:2px;justify-content:flex-end;">
-            <button class="entry-del${r.bestaetigt?' ok-active':''}" onclick="onConfirmToggle(${realIdx})" title="${r.bestaetigt?'Bestätigung aufheben':'Als OK markieren'}" style="color:${r.bestaetigt?'var(--green)':'var(--text3)'};">
+            <button class="entry-del row-action-ok${r.bestaetigt?' ok-active':''}" onclick="onConfirmToggle(${realIdx})" title="${r.bestaetigt?'Bestätigung aufheben':'Als OK markieren'}">
               <i data-lucide="${r.bestaetigt?'check-circle':'check'}"></i>
             </button>
-            ${hasReceipt?`<button class="entry-del" onclick="onUnlinkReceipt(${realIdx})" title="Beleg-Zuordnung aufheben" style="color:var(--text3);">
-              <i data-lucide="unlink"></i>
-            </button>`:`<span style="width:24px;display:inline-block;"></span>`}
-            <button class="entry-del reason-btn${hasGrund?' has-grund':''}" onclick="toggleReason(${realIdx})" title="${hasGrund?'Begründung anzeigen':'Keine Begründung vorhanden'}" style="color:${hasGrund?'var(--text2)':'var(--text3)'};">
+            ${hasReceipt
+              ?`<button class="entry-del row-action-unlink" onclick="onUnlinkReceipt(${realIdx})" title="Beleg-Zuordnung aufheben"><i data-lucide="unlink"></i></button>`
+              :`<span style="width:22px;display:inline-block;"></span>`}
+            <button class="entry-del row-action-info${hasGrund?' has-grund':''}" onclick="toggleReason(${realIdx})" title="${hasGrund?'Begründung anzeigen':'Keine Begründung'}">
               <i data-lucide="chevron-down"></i>
             </button>
           </div>
@@ -1540,11 +1631,33 @@ async function onCatChange(idx,newCat){
 }
 
 async function onConfirmToggle(idx){
-  matches[idx].bestaetigt=!matches[idx].bestaetigt;
-  if(matches[idx].id){
-    try{await DB.updateMatch(matches[idx].id,{bestaetigt:matches[idx].bestaetigt});}
+  const m=matches[idx];
+  m.bestaetigt=!m.bestaetigt;
+  m.unklar=false; // Konflikt aufgelöst durch manuelle Bestätigung
+
+  if(m.id){
+    try{await DB.updateMatch(m.id,{bestaetigt:m.bestaetigt,unklar:false});}
     catch(e){console.warn('Bestätigung fehlgeschlagen:',e.message);}
   }
+
+  // Beim Bestätigen: Kategorie als Regel für diesen Empfänger speichern
+  if(m.bestaetigt&&m.kategorie&&m.empfaenger){
+    const empfKey=normalizeEmpf(m.empfaenger);
+    const existingRule=txRules.find(r=>r.empfaenger_key===empfKey);
+    if(!existingRule||existingRule.kategorie!==m.kategorie){
+      try{
+        const saved=await DB.saveRule(m.empfaenger,m.kategorie,m.beschreibung);
+        if(existingRule){
+          // Bestehende Regel aktualisieren
+          Object.assign(existingRule,saved);
+        } else {
+          txRules.push(saved);
+        }
+        console.log('[Regel] Gespeichert:',m.empfaenger,'→',m.kategorie);
+      }catch(e){console.warn('Regel-Speicherung fehlgeschlagen:',e.message);}
+    }
+  }
+
   renderReview();
 }
 
@@ -1908,7 +2021,7 @@ async function init(){
   catch(e){console.error(e);}
   refreshReList();
 
-  // CSV + Matches + Belege parallel laden
+  // CSV + Matches + Belege + Regeln parallel laden
   await Promise.all([
     (async()=>{
       try{
@@ -1932,6 +2045,7 @@ async function init(){
     })(),
     loadMatchesFromDB(savedYear,savedQ),
     loadReceiptsFromDB(),
+    (async()=>{try{txRules=await DB.getRules();}catch(e){console.info('Regeln nicht geladen:',e.message);txRules=[];}}()),
   ]);
 
   // ERST nach beiden Loads: neue CSV-Buchungen ohne Match hinzufügen (kein Doppeleintrag)
