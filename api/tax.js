@@ -1,5 +1,5 @@
 module.exports.config = {
-  api: { bodyParser: { sizeLimit: '20mb' } }
+  api: { bodyParser: { sizeLimit: '10mb' } }
 };
 
 // Steuerkategorien für deutsche Kleinunternehmer / Regelbesteuerer
@@ -7,62 +7,98 @@ const CATEGORIES = {
   // EINNAHMEN
   einnahmen_19: { label: 'Einnahmen 19% MwSt.', type: 'income', vat: 0.19 },
   einnahmen_7:  { label: 'Einnahmen 7% MwSt.',  type: 'income', vat: 0.07 },
-  einnahmen_0:  { label: 'Einnahmen steuerfrei / Ausland', type: 'income', vat: 0 },
+  einnahmen_0:  { label: 'Einnahmen steuerfrei / EU-Ausland', type: 'income', vat: 0 },
 
   // AUSGABEN – Betriebsausgaben (Vorsteuerabzug möglich)
-  software:        { label: 'Software & Tools',         type: 'expense', vat: 0.19 },
-  hardware:        { label: 'Hardware & Technik',        type: 'expense', vat: 0.19 },
-  buero:           { label: 'Büro & Arbeitsmittel',      type: 'expense', vat: 0.19 },
-  marketing:       { label: 'Marketing & Werbung',       type: 'expense', vat: 0.19 },
-  reise:           { label: 'Reise & Fahrtkosten',       type: 'expense', vat: 0.07 },
-  bewirtung:       { label: 'Bewirtung (70% absetzbar)', type: 'expense', vat: 0.19, limitFactor: 0.7 },
-  telefon:         { label: 'Telefon & Internet',        type: 'expense', vat: 0.19 },
-  weiterbildung:   { label: 'Weiterbildung & Kurse',     type: 'expense', vat: 0.19 },
-  freelancer:      { label: 'Fremdleistungen / Freelancer', type: 'expense', vat: 0.19 },
-  versicherung:    { label: 'Versicherungen',            type: 'expense', vat: 0 },
-  steuerberatung:  { label: 'Steuerberatung & Buchhaltung', type: 'expense', vat: 0.19 },
-  miete:           { label: 'Miete / Raumkosten',        type: 'expense', vat: 0.19 },
-  bankgebuehr:     { label: 'Bankgebühren',              type: 'expense', vat: 0 },
-  sonstiges:       { label: 'Sonstiges',                 type: 'expense', vat: 0.19 },
-  privat:          { label: 'Privat (nicht absetzbar)',  type: 'private', vat: 0 },
+  software:        { label: 'Software & Tools',             type: 'expense', vat: 0.19 },
+  hardware:        { label: 'Hardware & Technik',            type: 'expense', vat: 0.19 },
+  buero:           { label: 'Büro & Arbeitsmittel',          type: 'expense', vat: 0.19 },
+  marketing:       { label: 'Marketing & Werbung',           type: 'expense', vat: 0.19 },
+  reise:           { label: 'Reise & Fahrtkosten',           type: 'expense', vat: 0.07 },
+  bewirtung:       { label: 'Bewirtung (70% absetzbar)',     type: 'expense', vat: 0.19, limitFactor: 0.7 },
+  telefon:         { label: 'Telefon & Internet',            type: 'expense', vat: 0.19 },
+  weiterbildung:   { label: 'Weiterbildung & Kurse',         type: 'expense', vat: 0.19 },
+  freelancer:      { label: 'Fremdleistungen / Freelancer',  type: 'expense', vat: 0.19 },
+  versicherung:    { label: 'Versicherungen',                type: 'expense', vat: 0 },
+  steuerberatung:  { label: 'Steuerberatung & Buchhaltung',  type: 'expense', vat: 0.19 },
+  miete:           { label: 'Miete / Raumkosten',            type: 'expense', vat: 0.19 },
+  bankgebuehr:     { label: 'Bankgebühren & Zinsen',         type: 'expense', vat: 0 },
+  sonstiges:       { label: 'Sonstiges',                     type: 'expense', vat: 0.19 },
+  privat:          { label: 'Privat (nicht absetzbar)',       type: 'private', vat: 0 },
 };
 
-// Kompaktes System-Prompt – weniger Token = schnellere Antwort
-const CAT_LIST = Object.entries(CATEGORIES).map(([k,v]) => `${k}:${v.label}`).join('|');
-const SYSTEM_PROMPT = `Steuerexperte DE. Kategorisiere Finanztransaktionen für UStVA/EÜR.
-Kategorien: ${CAT_LIST}
-Antworte NUR als JSON: {"entries":[{"id":<id>,"beschreibung":<str>,"kategorie":<key>,"betrag_netto":<num>,"betrag_brutto":<num>,"mwst_betrag":<num>,"mwst_satz":<0|0.07|0.19>,"datum":<str>,"begruendung":<max60chr>,"konfidenz":<hoch|mittel|niedrig>,"unklar":<bool>}]}
-Regeln: Betrag immer positiv. Bei Unklarheit unklar:true. Bewirtung limitFactor 0.7.`;
+const CAT_LIST = Object.entries(CATEGORIES).map(([k,v]) => `${k} = ${v.label}`).join('\n');
 
-const VISION_PROMPT = `Du bist ein deutscher Steuerexperte. Analysiere dieses Dokument (Rechnung, Kassenbon oder Beleg).
-Extrahiere ALLE erkennbaren Finanztransaktionen oder Buchungsposten.
+// Verbessertes System-Prompt: klare Regeln, keine 60-Zeichen-Beschränkung für Begründungen
+const SYSTEM_PROMPT = `Du bist ein erfahrener Steuerberater für deutsche Selbstständige und GmbHs.
+Deine Aufgabe: Kategorisiere Finanztransaktionen für die deutsche UStVA und EÜR.
 
-${SYSTEM_PROMPT}
+VERFÜGBARE KATEGORIEN:
+${CAT_LIST}
 
-Erkenne Datum, Händler/Empfänger, Betrag (Brutto und Netto) und MwSt-Satz.
-Antwort als JSON-Objekt: { "entries": [ ... ] }`;
-
-// Hilfsfunktion: PDF-Base64 → ersten ~3000 Zeichen Text extrahieren (heuristisch)
-// Da OpenAI kein PDF als image_url akzeptiert, konvertieren wir PDF zu einem
-// Text-Prompt mit den erkannten Rohdaten (Latin1-Dekodierung für einfache PDFs)
-function extractTextFromPdfBase64(b64) {
-  try {
-    // Einfache Heuristik: Dekodiere Base64, suche lesbare Textblöcke in PDF
-    const binary = Buffer.from(b64, 'base64').toString('latin1');
-    // PDF-Streams enthalten oft Text in Klammern (TJ/Tj-Operatoren) oder nach BT/ET
-    const matches = [];
-    // Text in runden Klammern (PDF-Strings)
-    const parenRe = /\(([^\\\)]{2,200})\)/g;
-    let m;
-    while ((m = parenRe.exec(binary)) !== null) {
-      const t = m[1].replace(/[^\x20-\x7E\xC0-\xFF]/g, '').trim();
-      if (t.length > 3) matches.push(t);
+AUSGABE-FORMAT (strikt als JSON-Objekt):
+{
+  "entries": [
+    {
+      "id": "<exakt gleiche ID wie in der Eingabe>",
+      "beschreibung": "<präzise Buchungsbeschreibung, max 100 Zeichen>",
+      "kategorie": "<einer der Kategorie-Schlüssel oben>",
+      "betrag_brutto": <Zahl, immer positiv>,
+      "betrag_netto": <Zahl, immer positiv>,
+      "mwst_betrag": <Zahl>,
+      "mwst_satz": <0 | 0.07 | 0.19>,
+      "datum": "<YYYY-MM-DD oder leer>",
+      "begruendung": "<Begründung warum diese Kategorie, 1-2 Sätze, z.B. ob Reverse Charge, EU-Leistung, private Abgrenzung etc.>",
+      "konfidenz": "<hoch | mittel | niedrig>",
+      "unklar": <true | false>
     }
-    // Deduplizieren und zusammenführen
-    const unique = [...new Set(matches)];
-    return unique.join(' ').slice(0, 4000);
+  ]
+}
+
+REGELN:
+- IDs MÜSSEN exakt mit der Eingabe übereinstimmen (wichtig fürs Matching!)
+- Beträge immer positiv (Vorzeichen wird vom System bestimmt)
+- Wenn Buchung eindeutig privat ist: kategorie = "privat"
+- Bankgebühren, Kontoführung, Zinsen: kategorie = "bankgebuehr" (MwSt = 0)
+- EU-Ausland Dienstleistungen (z.B. Stripe, Adobe, GitHub): einnahmen_0 bei Einnahmen, unklar=true bei Ausgaben falls Reverse Charge möglich
+- Software-Abos (Figma, Notion, Slack, Adobe, GitHub etc.): kategorie = "software"
+- Bewirtungsbeleg: limitFactor 0.7 beachten (nur 70% absetzbar)
+- Bei Unklarheit: unklar=true und erkläre in begruendung warum
+- konfidenz="niedrig" wenn Buchungstext sehr vage ist`;
+
+// Vision-Prompt für Belege (Bilder/PDFs)
+const VISION_SYSTEM = `Du bist ein erfahrener Steuerberater für deutsche Selbstständige.
+Analysiere dieses Dokument (Rechnung, Quittung oder Beleg) und extrahiere die Finanzdaten.
+
+Extrahiere:
+- datum: Rechnungsdatum (Format YYYY-MM-DD)
+- beschreibung: Händler/Lieferant + kurze Leistungsbeschreibung (max 80 Zeichen)
+- betrag_brutto: Gesamtbetrag inkl. MwSt (positiv)
+- betrag_netto: Nettobetrag ohne MwSt (positiv)
+- mwst_betrag: MwSt-Betrag
+- mwst_satz: MwSt-Satz (0, 0.07 oder 0.19)
+- kategorie: Kategorie-Schlüssel (siehe unten)
+- begruendung: Warum diese Kategorie? Besonderheiten? (1-2 Sätze)
+- konfidenz: hoch/mittel/niedrig
+
+KATEGORIEN:
+${CAT_LIST}
+
+Antworte als JSON: { "entries": [ { ... } ] }`;
+
+// Hilfsfunktion: Extrahiere lesbaren Text aus PDF-base64 (Fallback wenn Vision nicht klappt)
+function extractPDFText(base64) {
+  try {
+    const binary = Buffer.from(base64, 'base64').toString('latin1');
+    const textMatches = binary.match(/\(([^\)]{2,200})\)/g) || [];
+    const text = textMatches
+      .map(m => m.slice(1, -1))
+      .filter(t => /[a-zA-ZäöüÄÖÜß0-9]/.test(t))
+      .join(' ')
+      .slice(0, 3000);
+    return text || null;
   } catch {
-    return '';
+    return null;
   }
 }
 
@@ -73,51 +109,56 @@ module.exports = async function handler(req, res) {
   if (!apiKey) return res.status(500).json({ error: 'OPENAI_API_KEY nicht konfiguriert' });
 
   const { entries, mode, imageData, imageType, filename } = req.body;
-  // mode: 'categorize' | 'freitext' | 'vision' | 'categories'
 
-  // Nur Kategorien zurückgeben (für Client-Init)
+  // Nur Kategorien zurückgeben
   if (mode === 'categories') {
     return res.status(200).json({ categories: CATEGORIES });
   }
 
-  // ── VISION MODE: Bild oder PDF als base64 ──────────────────
+  // ── VISION MODE ────────────────────────────────────────────
   if (mode === 'vision') {
     if (!imageData) return res.status(400).json({ error: 'Kein Bildinhalt übermittelt' });
 
-    let messages;
     const mimeType = imageType || 'image/jpeg';
     const isPDF = mimeType === 'application/pdf' || (filename || '').toLowerCase().endsWith('.pdf');
 
-    if (isPDF) {
-      // PDFs können NICHT als image_url an OpenAI geschickt werden.
-      // Stattdessen: Text aus PDF heuristisch extrahieren und als Text-Prompt senden.
-      const extractedText = extractTextFromPdfBase64(imageData);
-      const textPrompt = extractedText.length > 20
-        ? `Analysiere dieses PDF-Dokument (${filename || 'Dokument'}) und extrahiere alle Finanztransaktionen.\n\nExtrahierter PDF-Text:\n${extractedText}`
-        : `Analysiere dieses PDF-Dokument (${filename || 'Dokument'}). Der Text konnte nicht automatisch extrahiert werden. Bitte schätze auf Basis des Dateinamens mögliche Transaktionen oder gib ein leeres entries-Array zurück.`;
+    let messages;
 
-      messages = [
-        { role: 'system', content: VISION_PROMPT },
-        { role: 'user', content: textPrompt }
-      ];
+    if (isPDF) {
+      // PDFs: Text aus Binary extrahieren, dann als Text an GPT schicken
+      const pdfText = extractPDFText(imageData);
+      if (pdfText && pdfText.length > 50) {
+        // Guter Text gefunden → Text-Modus
+        messages = [
+          { role: 'system', content: VISION_SYSTEM },
+          {
+            role: 'user',
+            content: `Analysiere diesen Beleg/diese Rechnung (aus PDF extrahiert, Datei: ${filename || 'Dokument'}):\n\n${pdfText}`
+          }
+        ];
+      } else {
+        // Kein extrahierbarer Text → als Bild versuchen (manche PDFs sind Scan-Bilder)
+        // Sende als JPEG simuliert – bei Fehler graceful degradation
+        messages = [
+          { role: 'system', content: VISION_SYSTEM },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: `Analysiere dieses gescannte Dokument (${filename || 'Dokument'}). Extrahiere alle Finanzdaten.` },
+              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageData}`, detail: 'high' } }
+            ]
+          }
+        ];
+      }
     } else {
-      // Bild (PNG, JPG, HEIC, WEBP etc.) → als image_url
+      // Bild (PNG, JPG, HEIC, WEBP)
       messages = [
-        { role: 'system', content: VISION_PROMPT },
+        { role: 'system', content: VISION_SYSTEM },
         {
           role: 'user',
           content: [
-            {
-              type: 'text',
-              text: `Analysiere dieses Bild (${filename || 'Beleg'}) und extrahiere alle erkennbaren Finanztransaktionen.`
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:${mimeType};base64,${imageData}`,
-                detail: 'high'
-              }
-            }
+            { type: 'text', text: `Analysiere diesen Beleg/diese Rechnung (${filename || 'Bild'}). Extrahiere alle Finanzdaten.` },
+            { type: 'image_url', image_url: { url: `data:${mimeType};base64,${imageData}`, detail: 'high' } }
           ]
         }
       ];
@@ -126,16 +167,13 @@ module.exports = async function handler(req, res) {
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
         body: JSON.stringify({
-          model: isPDF ? 'gpt-4o-mini' : 'gpt-4o',  // PDF als Text → mini reicht; Bild → gpt-4o
+          model: 'gpt-4o',
           messages,
           response_format: { type: 'json_object' },
           temperature: 0.1,
-          max_tokens: 4000,
+          max_tokens: 2000,
         }),
       });
 
@@ -146,6 +184,7 @@ module.exports = async function handler(req, res) {
 
       const data = await response.json();
       const raw = data.choices[0].message.content;
+      console.log('[tax/vision] response raw:', raw.slice(0, 500));
 
       let parsed;
       try {
@@ -159,6 +198,7 @@ module.exports = async function handler(req, res) {
       const enriched = parsed.map((item, i) => ({
         ...item,
         id: item.id || ('v' + i),
+        kategorie: CATEGORIES[item.kategorie] ? item.kategorie : 'sonstiges',
         kategorie_info: CATEGORIES[item.kategorie] || CATEGORIES.sonstiges,
       }));
 
@@ -169,26 +209,27 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // ── TEXT MODES (categorize / freitext) ────────────────────
+  // ── CATEGORIZE MODE ────────────────────────────────────────
   if (!entries || !entries.length) return res.status(400).json({ error: 'Keine Einträge' });
 
   const userContent = mode === 'freitext'
     ? `Extrahiere alle Finanztransaktionen aus folgendem Text und kategorisiere sie:\n\n${entries[0].text}`
-    : `Kategorisiere diese ${entries.length} Transaktionen:\n\n${JSON.stringify(entries.map(e => ({
-        id: e.id,
-        beschreibung: e.beschreibung || e.text || '',
-        betrag: e.betrag,
-        datum: e.datum || '',
-        quelle: e.quelle || '',
-      })), null, 2)}`;
+    : `Kategorisiere diese ${entries.length} Transaktionen. Gib für JEDE Transaktion einen Eintrag zurück, mit exakt derselben ID:\n\n${
+        JSON.stringify(entries.map(e => ({
+          id: e.id,
+          beschreibung: e.beschreibung || e.text || '',
+          betrag: e.betrag,
+          datum: e.datum || '',
+          quelle: e.quelle || '',
+        })), null, 2)
+      }`;
+
+  console.log('[tax/categorize] sending', entries.length, 'entries, first:', entries[0]?.id, entries[0]?.beschreibung?.slice(0,60));
 
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
@@ -197,7 +238,7 @@ module.exports = async function handler(req, res) {
         ],
         response_format: { type: 'json_object' },
         temperature: 0.1,
-        max_tokens: 2000,
+        max_tokens: 3000,
       }),
     });
 
@@ -208,6 +249,7 @@ module.exports = async function handler(req, res) {
 
     const data = await response.json();
     const raw = data.choices[0].message.content;
+    console.log('[tax/categorize] raw response:', raw.slice(0, 800));
 
     let parsed;
     try {
@@ -218,8 +260,12 @@ module.exports = async function handler(req, res) {
       return res.status(500).json({ error: 'KI-Antwort nicht parsebar', raw });
     }
 
+    console.log('[tax/categorize] parsed', parsed.length, 'results, first:', parsed[0]?.id, parsed[0]?.kategorie);
+
+    // Validiere: Kategorie-Schlüssel muss in CATEGORIES existieren
     const enriched = parsed.map(item => ({
       ...item,
+      kategorie: CATEGORIES[item.kategorie] ? item.kategorie : (item.kategorie ? 'sonstiges' : null),
       kategorie_info: CATEGORIES[item.kategorie] || CATEGORIES.sonstiges,
     }));
 
