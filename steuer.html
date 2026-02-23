@@ -205,7 +205,9 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 .picker-pdf{height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:var(--surface2);color:var(--text3);font-size:10px;font-weight:700;}
 .picker-pdf svg{color:var(--text3);}
 .picker-used{opacity:.5;cursor:not-allowed!important;}
-.picker-name{padding:5px 7px;font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.picker-name{padding:5px 7px 6px;font-size:10px;color:var(--text3);line-height:1.4;}
+.picker-name-desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);}
+.picker-name-date{font-size:9px;color:var(--text3);margin-top:1px;}
 
 /* AI RESULT ROW (legacy, wird noch für nicht-CSV Einträge verwendet) */
 .ai-row{display:grid;grid-template-columns:1fr auto 140px auto;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;}
@@ -300,7 +302,7 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
     <span class="step-num">1</span> Upload
   </button>
   <button class="step-btn" id="step-btn-2" onclick="goPage(2)">
-    <span class="step-num">2</span> KI-Verarbeitung
+    <span class="step-num">2</span> Belege prüfen
   </button>
   <button class="step-btn" id="step-btn-3" onclick="goPage(3)">
     <span class="step-num">3</span> Review
@@ -353,13 +355,19 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
   <!-- Belege Upload -->
   <div class="card">
     <div class="card-title">Belege & Rechnungen</div>
-    <div class="card-sub">Alle Belege des Zeitraums – Fotos von Kassenbons, PDFs von Online-Rechnungen, E-Mail-Anhänge. Die KI liest Datum, Betrag und Händler automatisch aus.</div>
+    <div class="card-sub">Alle Belege des Zeitraums – Fotos von Kassenbons, PDFs von Online-Rechnungen, E-Mail-Anhänge.</div>
     <div class="upload-zone" id="beleg-zone" ondragover="onBelegDrag(event,true)" ondragleave="onBelegDrag(event,false)" ondrop="onBelegDrop(event)">
       <input type="file" id="beleg-input" multiple accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp" onchange="onBelegSelect(this.files)">
       <i data-lucide="upload-cloud" class="upload-icon"></i>
       <p><strong>Dateien hier ablegen</strong> oder klicken<br>PDF · JPG · PNG · HEIC – mehrere auf einmal möglich</p>
     </div>
     <div class="file-list" id="beleg-list" style="display:none;"></div>
+    <!-- KI Belege auslesen – direkt hier in Schritt 1 -->
+    <div id="beleg-ki-wrap" style="margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary" id="btn-read-belege" onclick="readBelege()" style="display:none;"><i data-lucide="sparkles"></i> Belege mit KI auslesen</button>
+      <span id="beleg-skip-hint" style="font-size:11px;color:var(--text3);display:none;">Keine neuen Belege zum Auslesen.</span>
+      <div class="loading-bar" id="beleg-loading" style="margin:0;"><div class="spinner"></div><div><div id="beleg-loading-text">KI liest Belege aus …</div><div class="progress-wrap" style="width:180px;"><div class="progress-bar" id="beleg-progress-bar" style="width:0%"></div></div></div></div>
+    </div>
   </div>
 
   <!-- Rechnungen aus dem Tool -->
@@ -390,38 +398,69 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
     </div>
   </div>
 
-  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-    <button class="btn btn-primary btn-lg" onclick="goPage(2)"><i data-lucide="arrow-right"></i> Weiter zur KI-Verarbeitung</button>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px;">
+    <button class="btn btn-primary btn-lg" onclick="goPage(2)"><i data-lucide="arrow-right"></i> Belege prüfen</button>
+    <button class="btn btn-ghost btn-lg" onclick="goPage(3)"><i data-lucide="list"></i> Direkt zum Review</button>
     <span style="font-size:11px;color:var(--text3);" id="upload-summary"></span>
   </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════
-     SEITE 2: KI-VERARBEITUNG
+     SEITE 2: BELEGE PRÜFEN
      ═══════════════════════════════════════════════════════ -->
 <div class="page" id="page-2">
-  <div class="page-title">Belege auslesen</div>
-  <div class="page-sub">KI extrahiert Datum, Betrag und Händler aus jedem Beleg. Danach werden Belege automatisch den Bankbewegungen zugeordnet – ohne weiteren KI-Call.</div>
+  <div class="page-title">Belege prüfen</div>
+  <div class="page-sub">Alle gespeicherten Belege im gewählten Zeitraum. Fehlende Daten ergänzen oder Belege löschen.</div>
 
-  <div class="hinweis" id="ki-hint-csv" style="display:none;"><i data-lucide="check-circle"></i>
-    <div id="ki-hint-csv-text">CSV geladen – Belege werden nach dem Auslesen automatisch zugeordnet.</div>
-  </div>
-  <div class="hinweis warn" id="ki-hint-nocsv" style="display:none;"><i data-lucide="alert-triangle"></i>
-    <div>Kein CSV hochgeladen. Belege werden trotzdem ausgelesen und gespeichert.</div>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+      <span style="font-size:12px;font-weight:600;">Gespeicherte Belege</span>
+      <span style="flex:1;"></span>
+      <span id="beleg-uebersicht-count" style="font-size:11px;color:var(--text3);"></span>
+    </div>
+    <div id="beleg-uebersicht-list">
+      <div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">Lade …</div>
+    </div>
   </div>
 
-  <div class="card">
-    <div class="card-sub" id="beleg-status-list" style="margin-bottom:10px;"></div>
-    <div class="loading-bar" id="beleg-loading"><div class="spinner"></div><div><div id="beleg-loading-text">KI liest Belege aus …</div><div class="progress-wrap" style="width:180px;"><div class="progress-bar" id="beleg-progress-bar" style="width:0%"></div></div></div></div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <button class="btn btn-primary" id="btn-read-belege" onclick="readBelege()"><i data-lucide="sparkles"></i> Belege auslesen</button>
-      <span id="beleg-skip-hint" style="font-size:11px;color:var(--text3);display:none;">Keine Belege hochgeladen</span>
+  <!-- Edit-Modal für einzelnen Beleg -->
+  <div class="modal-overlay" id="modal-beleg-edit">
+    <div class="modal-box" style="max-width:420px;">
+      <div class="modal-head">
+        <h3>Beleg bearbeiten</h3>
+        <button class="modal-close" onclick="closeModal('modal-beleg-edit')">×</button>
+      </div>
+      <div class="modal-body" style="display:flex;flex-direction:column;gap:12px;">
+        <input type="hidden" id="edit-beleg-id">
+        <div>
+          <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;">Beschreibung / Händler</label>
+          <input id="edit-beleg-desc" type="text" placeholder="z.B. Adobe Creative Cloud" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:7px 10px;outline:none;font-family:var(--font);">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;">Datum</label>
+            <input id="edit-beleg-datum" type="date" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:7px 10px;outline:none;font-family:var(--font);">
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;">Betrag Brutto €</label>
+            <input id="edit-beleg-betrag" type="number" step="0.01" min="0" placeholder="0.00" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:7px 10px;outline:none;font-family:var(--font);">
+          </div>
+        </div>
+        <div>
+          <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;">Kategorie</label>
+          <select id="edit-beleg-kat" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:7px 10px;outline:none;font-family:var(--font);appearance:none;"></select>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-beleg-edit')">Abbrechen</button>
+        <button class="btn btn-primary btn-sm" onclick="saveBelegEdit()"><i data-lucide="save"></i> Speichern</button>
+      </div>
     </div>
   </div>
 
   <div style="display:flex;gap:8px;margin-top:4px;">
     <button class="btn btn-ghost" onclick="goPage(1)"><i data-lucide="arrow-left"></i> Zurück</button>
-    <button class="btn btn-ghost" id="btn-skip-to-review" onclick="goPage(3)"><i data-lucide="arrow-right"></i> Weiter zum Review</button>
+    <button class="btn btn-primary" onclick="goPage(3)"><i data-lucide="arrow-right"></i> Weiter zum Review</button>
   </div>
 </div>
 
@@ -626,7 +665,7 @@ function goPage(n){
   document.querySelectorAll('.step-btn').forEach((b,i)=>b.classList.toggle('active',i+1===n));
   currentPage=n;
   if(n===1) updateUploadSummary();
-  if(n===2) updatePage2Hints();
+  if(n===2) renderBelegUebersicht();
   if(n===3) renderReview();
   if(n===4) buildUStVA();
   lucide.createIcons();
@@ -640,8 +679,9 @@ async function setQuartal(q){
   else $(`q${q}`).classList.add('active');
   refreshReList();
   updateUploadSummary();
-  // Matches für neues Quartal laden
+  // Matches für neues Quartal laden, dann neue CSV-Einträge ergänzen
   await loadMatchesFromDB(selectedYear,q);
+  if(csvTransactions.length) buildMatchesFromCSV();
   updateSidebar();
   if(currentPage===3)renderReview();
 }
@@ -673,6 +713,8 @@ async function onPeriodChange(){
     })(),
     loadMatchesFromDB(selectedYear,selectedQuartal),
   ]);
+  // ERST nach beiden Loads: neue CSV-Buchungen ohne Match hinzufügen
+  if(csvTransactions.length) buildMatchesFromCSV();
   refreshReList();
   updateUploadSummary();
   updateSidebar();
@@ -868,7 +910,14 @@ function onBelegSelect(files){
 function removeBelegFile(i){belegFiles.splice(i,1);renderBelegList();updateUploadSummary();}
 function renderBelegList(){
   const wrap=$('beleg-list');
-  if(!belegFiles.length){wrap.style.display='none';return;}
+  const kiBtn=$('btn-read-belege');
+  const skipHint=$('beleg-skip-hint');
+  if(!belegFiles.length){
+    wrap.style.display='none';
+    if(kiBtn)kiBtn.style.display='none';
+    if(skipHint)skipHint.style.display='none';
+    return;
+  }
   wrap.style.display='flex';
   wrap.innerHTML=belegFiles.map((b,i)=>{
     const ext=b.file.name.split('.').pop().toLowerCase();
@@ -886,6 +935,10 @@ function renderBelegList(){
     </div>`;
   }).join('');
   lucide.createIcons();
+  // KI-Button: zeige wenn ausstehende Belege vorhanden
+  const hasPending=belegFiles.some(b=>b.status==='pending');
+  if(kiBtn){kiBtn.style.display=hasPending?'inline-flex':'none';}
+  if(skipHint){skipHint.style.display=(!hasPending&&belegFiles.length)?'inline':'none';}
 }
 
 function updateUploadSummary(){
@@ -901,39 +954,97 @@ function updateUploadSummary(){
   $('upload-summary').textContent=parts.length?parts.join(' · ') + ' bereit'+qLabel:'Noch nichts hochgeladen';
 }
 
-// ── SEITE 2: HINTS ─────────────────────────────────────────
-function updatePage2Hints(){
-  const csvInPeriod=csvTransactions.filter(t=>inPeriod(t.datum)||!t.datum).length;
-  if(csvInPeriod>0){
-    $('ki-hint-csv').style.display='flex';
-    $('ki-hint-nocsv').style.display='none';
-    const qLabel=selectedQuartal?`Q${selectedQuartal} ${selectedYear}`:String(selectedYear);
-    $('ki-hint-csv-text').textContent=`${csvInPeriod} Bankbuchungen für ${qLabel} geladen. KI kann Belege direkt zuordnen.`;
-  } else {
-    $('ki-hint-csv').style.display='none';
-    $('ki-hint-nocsv').style.display='flex';
+// ── SEITE 2: BELEGE ÜBERSICHT ──────────────────────────────
+function renderBelegUebersicht(){
+  const el=$('beleg-uebersicht-list');
+  const cnt=$('beleg-uebersicht-count');
+  // Belege aus DB + nicht-gespeicherte Session-Belege
+  const allRecs=[...receipts];
+  belegFiles.filter(b=>b.receiptRecord&&!receipts.find(r=>r.id===b.receiptRecord.id))
+    .forEach(b=>allRecs.push({...b.receiptRecord,thumbnail_data:b.thumbnail||null}));
+  // Thumbnail aus Session einmergen
+  allRecs.forEach(r=>{
+    if(!r.thumbnail_data){const bf=belegFiles.find(b=>b.receiptId===r.id&&b.thumbnail);if(bf)r.thumbnail_data=bf.thumbnail;}
+  });
+  // Nur Belege im gewählten Zeitraum (kein Datum → immer anzeigen)
+  const filtered=allRecs.filter(r=>!r.datum||inPeriod(r.datum));
+  cnt.textContent=filtered.length?`${filtered.length} Beleg${filtered.length>1?'e':''}` :'';
+  if(!filtered.length){
+    el.innerHTML=`<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">${allRecs.length?'Keine Belege im gewählten Zeitraum.':'Keine Belege vorhanden. Lade Belege in Schritt 1 hoch und lasse sie von der KI auslesen.'}</div>`;
+    return;
   }
-  const pending=belegFiles.filter(b=>b.status==='pending');
-  if(!pending.length){
-    $('btn-read-belege').style.display='none';
-    $('beleg-skip-hint').style.display='inline';
-  } else {
-    $('btn-read-belege').style.display='inline-flex';
-    $('beleg-skip-hint').style.display='none';
-  }
-  renderBelegStatusList();
+  // Sortieren: neueste zuerst
+  filtered.sort((a,b)=>((b.datum||'') < (a.datum||'') ? -1 : 1));
+  el.innerHTML=filtered.map((rec,i)=>{
+    const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
+    const thumbHtml=rec.thumbnail_data
+      ?`<img src="${rec.thumbnail_data}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0;">`
+      :`<div style="width:36px;height:36px;border-radius:4px;background:var(--surface3);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;font-weight:700;color:var(--text3);">${isPDF?'PDF':'IMG'}</div>`;
+    const missingData=!rec.datum||!rec.betrag||!rec.beschreibung;
+    return`<div style="display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:11px;" class="${missingData?'lx-row unsicher':''}">
+      ${thumbHtml}
+      <div>
+        <div style="color:var(--text2);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${rec.beschreibung||rec.filename||'–'}</div>
+        <div style="color:var(--text3);font-size:10px;margin-top:2px;">
+          ${rec.datum?fmtDate(rec.datum):'<span style="color:var(--orange);">Datum fehlt</span>'}
+          ${rec.betrag?' · '+fmt(parseFloat(rec.betrag)):'<span style="color:var(--orange);"> · Betrag fehlt</span>'}
+          ${rec.kategorie?' · '+(CATEGORIES[rec.kategorie]?.label||rec.kategorie):''}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-sm" onclick="openBelegEdit('${rec.id}')" title="Bearbeiten"><i data-lucide="pencil"></i></button>
+        <button class="btn btn-red btn-sm" onclick="deleteBelegEntry('${rec.id}')" title="Löschen"><i data-lucide="trash-2"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+  lucide.createIcons();
 }
 
-function renderBelegStatusList(){
-  const el=$('beleg-status-list');
-  if(!belegFiles.length){el.innerHTML='<div style="font-size:11px;color:var(--text3);">Keine Belege hochgeladen – du kannst Schritt 1 überspringen.</div>';return;}
-  el.innerHTML=belegFiles.map(b=>`<div style="display:flex;align-items:center;gap:8px;font-size:11px;padding:4px 0;">
-    <span style="color:${b.status==='done'?'var(--green)':b.status==='err'?'var(--red)':'var(--text3)'};">
-      ${b.status==='done'?'✓':b.status==='err'?'✗':'○'}
-    </span>
-    <span style="color:var(--text2);flex:1;">${b.file.name}</span>
-    <span style="color:var(--text3);">${fmtSize(b.file.size)}</span>
-  </div>`).join('');
+function openBelegEdit(id){
+  // Beleg aus receipts oder Session suchen
+  const rec=receipts.find(r=>r.id===id)||belegFiles.map(b=>b.receiptRecord).find(r=>r?.id===id);
+  if(!rec)return;
+  $('edit-beleg-id').value=id;
+  $('edit-beleg-desc').value=rec.beschreibung||'';
+  $('edit-beleg-datum').value=rec.datum||'';
+  $('edit-beleg-betrag').value=rec.betrag||'';
+  // Kategorie-Select befüllen
+  const sel=$('edit-beleg-kat');
+  sel.innerHTML=Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}"${rec.kategorie===k?' selected':''}>${v.label}</option>`).join('');
+  $('modal-beleg-edit').classList.add('open');
+  lucide.createIcons();
+}
+
+async function saveBelegEdit(){
+  const id=$('edit-beleg-id').value;
+  const changes={
+    beschreibung:$('edit-beleg-desc').value.trim()||null,
+    datum:$('edit-beleg-datum').value||null,
+    betrag:parseFloat($('edit-beleg-betrag').value)||null,
+    kategorie:$('edit-beleg-kat').value||null,
+  };
+  try{
+    await DB.updateReceipt(id,changes);
+    // Lokal aktualisieren
+    const rec=receipts.find(r=>r.id===id);
+    if(rec)Object.assign(rec,changes);
+    closeModal('modal-beleg-edit');
+    renderBelegUebersicht();
+    toast('Beleg gespeichert ✓');
+  }catch(e){toast('Fehler: '+e.message);}
+}
+
+async function deleteBelegEntry(id){
+  if(!confirm('Beleg wirklich löschen?'))return;
+  try{
+    const rec=receipts.find(r=>r.id===id);
+    await DB.deleteReceipt(id,rec?.storage_path||null);
+    receipts=receipts.filter(r=>r.id!==id);
+    // Aus matches entfernen
+    matches.forEach(m=>{if(m.receipt_id===id){m.receipt_id=null;m.receipts=null;}});
+    renderBelegUebersicht();
+    toast('Beleg gelöscht ✓');
+  }catch(e){toast('Fehler: '+e.message);}
 }
 
 // ── THUMBNAIL ERZEUGUNG ────────────────────────────────────
@@ -969,7 +1080,7 @@ async function readBelege(){
     const b=belegFiles[i];
     if(b.status!=='pending')continue;
     b.status='loading';
-    renderBelegStatusList();renderBelegList();
+    renderBelegList();
     $('beleg-loading-text').textContent=`Lese ${b.file.name} …`;
     $('beleg-progress-bar').style.width=Math.round(i/belegFiles.length*100)+'%';
     try{
@@ -1038,16 +1149,21 @@ async function readBelege(){
         b.savedToStorage=false;
       }
     }catch(e){b.status='err';b.error=e.message;toast(`Fehler bei ${b.file.name}: ${e.message}`);}
-    renderBelegStatusList();renderBelegList();
+    renderBelegList();
   }
   $('beleg-progress-bar').style.width='100%';
   $('beleg-loading').classList.remove('show');
   $('btn-read-belege').disabled=false;
+  renderBelegList(); // KI-Button ausblenden (nichts mehr pending)
   // Client-seitiges Matching (kein API-Call): Beleg → Transaktion
-  autoMatchBelege();
-  renderReview();
-  // Weiter-Button einblenden
-  $('btn-skip-to-review').style.display='inline-flex';
+  const matched=autoMatchBelege();
+  if(matched){
+    const matchedCount=belegFiles.filter(b=>b.status==='done'&&b.receiptId&&matches.some(m=>m.receipt_id===b.receiptId)).length;
+    toast(`✓ Belege ausgelesen · ${matchedCount} automatisch zugeordnet`);
+  } else {
+    toast('✓ Belege ausgelesen');
+  }
+  if(currentPage===3)renderReview();
 }
 
 
@@ -1065,49 +1181,61 @@ function matchBelegToTransactions(belegResult,belegReceiptId,txList){
   // Gibt {transaction_id, score, konfidenz} zurück oder null
   if(!belegResult)return null;
   const bBetrag=parseFloat(belegResult.betrag_brutto)||0;
+  if(!bBetrag)return null; // kein Betrag → kein Match möglich
   const bDatum=belegResult.datum||'';
   const bDate=bDatum?new Date(bDatum):null;
+  // Kategorie-Hinweis: Einnahme oder Ausgabe?
+  const bIsIncome=belegResult.kategorie&&CATEGORIES[belegResult.kategorie]?.type==='income';
   let best=null,bestScore=0;
   txList.forEach(tx=>{
-    if(!tx.isEinnahme){ // Belege sind meist Ausgaben
-      const tBetrag=parseFloat(tx.betrag)||0;
-      const tDate=tx.datum?new Date(tx.datum):null;
-      // Betrag-Match: ±max(2%, 0.50€)
-      const betragstoleranz=Math.max(tBetrag*0.02,0.5);
-      const betragsMatch=Math.abs(bBetrag-tBetrag)<=betragstoleranz;
-      if(!betragsMatch)return;
-      // Datum-Match: ±5 Tage
-      let datumScore=0.5;
-      if(bDate&&tDate){
-        const diffDays=Math.abs((bDate-tDate)/(1000*60*60*24));
-        if(diffDays<=1)datumScore=1;
-        else if(diffDays<=3)datumScore=0.8;
-        else if(diffDays<=5)datumScore=0.6;
-        else return; // zu weit entfernt
-      }
-      // Empfänger-Match (optional, Bonus)
-      let empfScore=0;
-      if(belegResult.beschreibung&&tx.empfaenger){
-        const bDesc=(belegResult.beschreibung||'').toLowerCase();
-        const tEmpf=(tx.empfaenger||'').toLowerCase();
-        // Einfache Teilstring-Übereinstimmung
-        const words=tEmpf.split(/\s+/).filter(w=>w.length>3);
-        const matchWords=words.filter(w=>bDesc.includes(w));
-        empfScore=words.length?matchWords.length/words.length*0.3:0;
-      }
-      const score=datumScore*0.7+empfScore;
-      if(score>bestScore){bestScore=score;best=tx;}
+    // Belege können Ausgaben ODER Einnahmen (Rechnungen) sein
+    const tBetrag=parseFloat(tx.betrag)||0;
+    const tDate=tx.datum?new Date(tx.datum):null;
+    // Betrag-Match: ±max(2%, 0.50€)
+    const betragstoleranz=Math.max(tBetrag*0.02,0.5);
+    const betragsMatch=Math.abs(bBetrag-tBetrag)<=betragstoleranz;
+    if(!betragsMatch)return;
+    // Richtung: Beleg-Kategorie mit TX-Typ abgleichen (wenn bekannt)
+    if(bIsIncome&&!tx.isEinnahme)return;
+    if(!bIsIncome&&belegResult.kategorie&&CATEGORIES[belegResult.kategorie]?.type==='expense'&&tx.isEinnahme)return;
+    // Datum-Match: ±7 Tage (etwas großzügiger)
+    let datumScore=0.5;
+    if(bDate&&tDate){
+      const diffDays=Math.abs((bDate-tDate)/(1000*60*60*24));
+      if(diffDays<=1)datumScore=1;
+      else if(diffDays<=3)datumScore=0.85;
+      else if(diffDays<=7)datumScore=0.65;
+      else return; // zu weit entfernt
     }
+    // Empfänger-Match (optional, Bonus)
+    let empfScore=0;
+    if(belegResult.beschreibung&&tx.empfaenger){
+      const bDesc=(belegResult.beschreibung||'').toLowerCase();
+      const tEmpf=(tx.empfaenger||'').toLowerCase();
+      const words=tEmpf.split(/\s+/).filter(w=>w.length>3);
+      const matchWords=words.filter(w=>bDesc.includes(w));
+      empfScore=words.length?matchWords.length/words.length*0.3:0;
+    }
+    const score=datumScore*0.7+empfScore;
+    if(score>bestScore){bestScore=score;best=tx;}
   });
   if(!best)return null;
-  const konfidenz=bestScore>=0.85?'hoch':bestScore>=0.6?'mittel':'niedrig';
+  const konfidenz=bestScore>=0.85?'hoch':bestScore>=0.65?'mittel':'niedrig';
+  console.log('[Matching]',belegResult.beschreibung||'?','→',best.empfaenger||best.beschreibung||best.id,'Score:',bestScore.toFixed(2),'Konfidenz:',konfidenz);
   return{transaction_id:best.id,score:bestScore,konfidenz};
 }
 
 // ── MATCHES AUS CSV AUFBAUEN (kein KI-Call) ────────────────
 function buildMatchesFromCSV(){
+  // Dedupliziere matches zuerst (falls Race condition doppelte Einträge hinterlassen hat)
+  const seen=new Map();
+  matches.forEach(m=>{
+    if(!seen.has(m.transaction_id)||m.id)seen.set(m.transaction_id,m);
+  });
+  matches=[...seen.values()];
+
   const existing=new Set(matches.map(m=>m.transaction_id));
-  const newM=csvTransactions.filter(t=>inPeriod(t.datum)&&!existing.has(t.id)).map(t=>({
+  const newM=csvTransactions.filter(t=>!existing.has(t.id)).map(t=>({
     transaction_id:t.id,
     receipt_id:null,
     beschreibung:t.beschreibung||t.empfaenger||'',
@@ -1125,7 +1253,7 @@ function buildMatchesFromCSV(){
   }));
   if(!newM.length)return;
   matches=[...matches,...newM];
-  // Im Hintergrund in DB speichern
+  // Im Hintergrund in DB speichern (upsert → kein Duplikat möglich)
   DB.saveMatches(newM.map(m=>({...m}))).then(saved=>{
     saved.forEach(s=>{
       const l=matches.find(m=>m.transaction_id===s.transaction_id);
@@ -1430,18 +1558,20 @@ async function unlinkReceipt(){
 function closeModal(id){$(`${id}`).classList.remove('open');}
 
 // ── BELEG-PICKER ───────────────────────────────────────────
-// Formatiert Dateinamen als "Empfänger DD.MM.YY" aus Beleg-Metadaten
-function fmtBelegLabel(rec){
-  // Versuche Empfänger aus beschreibung zu extrahieren
-  const desc=(rec.beschreibung||rec.filename||'').replace(/\.[^.]+$/,''); // Endung entfernen
-  // Datum formatieren: YYYY-MM-DD → DD.MM.YY
+// Gibt {desc, datum} aus Beleg-Metadaten zurück
+function fmtBelegParts(rec){
+  const raw=(rec.beschreibung||rec.filename||'').replace(/\.[^.]+$/,'');
+  const desc=raw.slice(0,22).replace(/[_-]/g,' ').trim()||'Beleg';
   let datumStr='';
   if(rec.datum){
     try{const[y,m,d]=rec.datum.split('-');datumStr=`${d}.${m}.${y.slice(2)}`;}catch{}
   }
-  // Kürze desc auf max 18 Zeichen
-  const shortDesc=desc.slice(0,18).replace(/[_-]/g,' ').trim();
-  return datumStr?`${shortDesc} · ${datumStr}`:shortDesc||'Beleg';
+  return{desc,datumStr};
+}
+// Compat: immer noch gebraucht in confirmPicker etc.
+function fmtBelegLabel(rec){
+  const{desc,datumStr}=fmtBelegParts(rec);
+  return datumStr?`${desc} · ${datumStr}`:desc;
 }
 
 function openPicker(matchIdx){
@@ -1474,11 +1604,11 @@ function openPicker(matchIdx){
   grid.innerHTML=allReceipts.map(rec=>{
     const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
     const used=usedIds.has(rec.id);
-    const label=fmtBelegLabel(rec);
+    const{desc,datumStr}=fmtBelegParts(rec);
     // Thumbnail-Bereich: Bild, PDF-Label oder "kein Thumbnail"-Platzhalter
     let thumbHtml;
     if(rec.thumbnail_data){
-      thumbHtml=`<img class="picker-thumb" src="${rec.thumbnail_data}" alt="${label}">`;
+      thumbHtml=`<img class="picker-thumb" src="${rec.thumbnail_data}" alt="${desc}">`;
     } else if(isPDF){
       thumbHtml=`<div class="picker-pdf"><i data-lucide="file-text" style="width:22px;height:22px;margin-bottom:3px;"></i><span>PDF</span></div>`;
     } else {
@@ -1490,7 +1620,10 @@ function openPicker(matchIdx){
         title="${rec.filename||''}"
         ${used?'style="opacity:.45;cursor:not-allowed;"':''}>
       ${thumbHtml}
-      <div class="picker-name">${label}</div>
+      <div class="picker-name">
+        <div class="picker-name-desc">${desc}</div>
+        ${datumStr?`<div class="picker-name-date">${datumStr}</div>`:''}
+      </div>
     </div>`;
   }).join('');
   $('modal-picker').classList.add('open');
@@ -1656,16 +1789,15 @@ async function loadMatchesFromDB(year,quartal){
       receipts:m.receipts||null,
     }));
     aiResults=matches;
-    // CSV-Einträge ohne Match ergänzen (falls CSV schon geladen)
-    if(csvTransactions.length)buildMatchesFromCSV();
+    // Hinweis: buildMatchesFromCSV() wird NICHT hier aufgerufen.
+    // Es wird nach dem parallelen Laden von Transactions + Matches separat aufgerufen,
+    // um Race conditions zu vermeiden (csvTransactions muss bereits befüllt sein).
     const reviewCount=matches.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
     $('badge-review').textContent=reviewCount;
     $('badge-review').classList.toggle('show',reviewCount>0);
     updateSidebar();
   }catch(e){
     console.info('Matches nicht geladen (Tabelle fehlt noch?):',e.message);
-    // Auch ohne DB: CSV-Einträge lokal anzeigen
-    if(csvTransactions.length)buildMatchesFromCSV();
   }
 }
 
@@ -1731,6 +1863,9 @@ async function init(){
     loadMatchesFromDB(curYear,curQ),
     loadReceiptsFromDB(),
   ]);
+
+  // ERST nach beiden Loads: neue CSV-Buchungen ohne Match hinzufügen (kein Doppeleintrag)
+  if(csvTransactions.length) buildMatchesFromCSV();
 
   renderManualIncomes();
   updateUploadSummary();
