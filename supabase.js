@@ -252,7 +252,7 @@ const DB = {
       beschreibung:  r.beschreibung || null,
       datum:         r.datum || null,
       begruendung:   r.begruendung  || null,
-      konfidenz:     r.konfidenz    || 'mittel',
+      konfidenz:     r.konfidenz    ?? null,   // null = noch nicht KI-analysiert
       unklar:        r.unklar       || false,
       bestaetigt:    r.bestaetigt   || false,
       quelle:        r.quelle       || 'csv',
@@ -267,9 +267,8 @@ const DB = {
     return data || [];
   },
   async getMatches(year, quartal) {
-    let q = db.from('matches')
-      .select('*, receipts(id,filename,thumbnail_data,signed_url,storage_path,datum,betrag,beschreibung)')
-      .order('datum', { ascending: false });
+    // Kein FK-JOIN (FK fehlt in Schema) → zwei separate Queries + client-seitiges Mergen
+    let q = db.from('matches').select('*').order('datum', { ascending: false });
     if (year) {
       q = q.eq('year', year);
     }
@@ -278,9 +277,24 @@ const DB = {
       const [mFrom, mTo] = qMap[quartal] || ['01','12'];
       q = q.gte('datum', `${year}-${mFrom}-01`).lte('datum', `${year}-${mTo}-31`);
     }
-    const { data, error } = await q;
+    const { data: matchData, error } = await q;
     if (error) throw error;
-    return data || [];
+    if (!matchData || !matchData.length) return [];
+
+    // Hole alle referenzierten Belege in einem Query
+    const receiptIds = [...new Set(matchData.filter(m => m.receipt_id).map(m => m.receipt_id))];
+    let receiptMap = {};
+    if (receiptIds.length) {
+      const { data: recs } = await db.from('receipts')
+        .select('id,filename,thumbnail_data,signed_url,storage_path,datum,betrag,beschreibung')
+        .in('id', receiptIds);
+      (recs || []).forEach(r => { receiptMap[r.id] = r; });
+    }
+
+    return matchData.map(m => ({
+      ...m,
+      receipts: m.receipt_id ? (receiptMap[m.receipt_id] || null) : null,
+    }));
   },
   async updateMatch(id, changes) {
     const payload = { ...changes, updated_at: new Date().toISOString() };
