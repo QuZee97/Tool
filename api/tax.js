@@ -86,20 +86,43 @@ ${CAT_LIST}
 
 Antworte als JSON: { "entries": [ { ... } ] }`;
 
-// Hilfsfunktion: Extrahiere lesbaren Text aus PDF-base64 (Fallback wenn Vision nicht klappt)
-function extractPDFText(base64) {
-  try {
-    const binary = Buffer.from(base64, 'base64').toString('latin1');
-    const textMatches = binary.match(/\(([^\)]{2,200})\)/g) || [];
-    const text = textMatches
-      .map(m => m.slice(1, -1))
-      .filter(t => /[a-zA-ZäöüÄÖÜß0-9]/.test(t))
-      .join(' ')
-      .slice(0, 3000);
-    return text || null;
-  } catch {
-    return null;
+// Upload PDF to OpenAI Files API, then use file_id in message
+async function uploadPDFToOpenAI(base64, filename, apiKey) {
+  const { Readable } = require('stream');
+  const FormData = require('form-data');
+
+  const buffer = Buffer.from(base64, 'base64');
+  const form = new FormData();
+  form.append('purpose', 'assistants');
+  form.append('file', buffer, {
+    filename: filename || 'document.pdf',
+    contentType: 'application/pdf',
+  });
+
+  const response = await fetch('https://api.openai.com/v1/files', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      ...form.getHeaders(),
+    },
+    body: form,
+  });
+  if (!response.ok) {
+    const err = await response.json();
+    throw new Error('File upload fehlgeschlagen: ' + (err.error?.message || response.statusText));
   }
+  const data = await response.json();
+  return data.id; // file_id
+}
+
+// Lösche eine Datei von OpenAI Files API (nach Verwendung)
+async function deletePDFFromOpenAI(fileId, apiKey) {
+  try {
+    await fetch(`https://api.openai.com/v1/files/${fileId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+  } catch {} // ignoriere Fehler beim Aufräumen
 }
 
 module.exports = async function handler(req, res) {
@@ -125,30 +148,77 @@ module.exports = async function handler(req, res) {
     let messages;
 
     if (isPDF) {
-      // PDFs: Text aus Binary extrahieren, dann als Text an GPT schicken
-      const pdfText = extractPDFText(imageData);
-      if (pdfText && pdfText.length > 50) {
-        // Guter Text gefunden → Text-Modus
-        messages = [
-          { role: 'system', content: VISION_SYSTEM },
-          {
-            role: 'user',
-            content: `Analysiere diesen Beleg/diese Rechnung (aus PDF extrahiert, Datei: ${filename || 'Dokument'}):\n\n${pdfText}`
-          }
-        ];
-      } else {
-        // Kein extrahierbarer Text → als Bild versuchen (manche PDFs sind Scan-Bilder)
-        // Sende als JPEG simuliert – bei Fehler graceful degradation
-        messages = [
-          { role: 'system', content: VISION_SYSTEM },
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: `Analysiere dieses gescannte Dokument (${filename || 'Dokument'}). Extrahiere alle Finanzdaten.` },
-              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageData}`, detail: 'high' } }
-            ]
-          }
-        ];
+      // PDFs: OpenAI Responses API mit nativem input_file (gpt-4o unterstützt PDFs nativ)
+      // Chat Completions unterstützt PDFs NICHT als image_url → wir nutzen /v1/responses
+      console.log('[tax/vision] PDF erkannt, nutze Responses API mit input_file:', filename);
+      try {
+        const responsesBody = {
+          model: 'gpt-4o',
+          input: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'input_file',
+                  filename: filename || 'document.pdf',
+                  file_data: `data:application/pdf;base64,${imageData}`,
+                },
+                {
+                  type: 'input_text',
+                  text: `Analysiere diese Rechnung/diesen Beleg (PDF: ${filename || 'Dokument'}). Extrahiere alle Finanzdaten: Datum, Empfänger/Händler, Brutto/Netto-Betrag, MwSt-Satz und Kategorie.\n\n${VISION_SYSTEM}`,
+                },
+              ],
+            },
+          ],
+          text: { format: { type: 'json_object' } },
+          temperature: 0.1,
+          max_output_tokens: 2000,
+        };
+
+        const responsesResp = await fetch('https://api.openai.com/v1/responses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify(responsesBody),
+        });
+
+        if (!responsesResp.ok) {
+          const err = await responsesResp.json();
+          console.error('[tax/vision] Responses API Fehler:', JSON.stringify(err).slice(0, 400));
+          return res.status(502).json({ error: 'OpenAI Vision Fehler (PDF): ' + (err.error?.message || responsesResp.statusText) });
+        }
+
+        const responsesData = await responsesResp.json();
+        console.log('[tax/vision] Responses API usage:', JSON.stringify(responsesData.usage));
+
+        // Responses API gibt output[].content[].text zurück
+        const rawContent = responsesData.output?.find(o => o.type === 'message')
+          ?.content?.find(c => c.type === 'output_text')?.text
+          || responsesData.output_text
+          || '';
+
+        console.log('[tax/vision] PDF raw response:', rawContent.slice(0, 500));
+
+        let parsed;
+        try {
+          const obj = JSON.parse(rawContent);
+          parsed = Array.isArray(obj) ? obj : (obj.entries || obj.transactions || obj.items || Object.values(obj)[0]);
+          if (!Array.isArray(parsed)) parsed = [];
+        } catch {
+          return res.status(500).json({ error: 'KI-Antwort (PDF) nicht parsebar', raw: rawContent });
+        }
+
+        const enriched = parsed.map((item, i) => ({
+          ...item,
+          id: item.id || ('v' + i),
+          kategorie: CATEGORIES[item.kategorie] ? item.kategorie : 'sonstiges',
+          kategorie_info: CATEGORIES[item.kategorie] || CATEGORIES.sonstiges,
+        }));
+
+        return res.status(200).json({ results: enriched, usage: responsesData.usage, categories: CATEGORIES });
+
+      } catch (e) {
+        console.error('[tax/vision] PDF Fehler:', e.message);
+        return res.status(500).json({ error: 'PDF-Verarbeitung fehlgeschlagen: ' + e.message });
       }
     } else {
       // Bild (PNG, JPG, HEIC, WEBP)
