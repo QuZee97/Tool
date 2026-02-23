@@ -202,7 +202,9 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 .picker-item:hover{border-color:var(--accent);}
 .picker-item.selected{border-color:var(--accent);background:var(--accent-bg);}
 .picker-thumb{width:100%;height:72px;object-fit:cover;display:block;background:var(--surface2);}
-.picker-pdf{height:72px;display:flex;align-items:center;justify-content:center;background:var(--surface2);color:var(--text3);font-size:11px;font-weight:700;}
+.picker-pdf{height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:var(--surface2);color:var(--text3);font-size:10px;font-weight:700;}
+.picker-pdf svg{color:var(--text3);}
+.picker-used{opacity:.5;cursor:not-allowed!important;}
 .picker-name{padding:5px 7px;font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
 /* AI RESULT ROW (legacy, wird noch für nicht-CSV Einträge verwendet) */
@@ -981,10 +983,12 @@ async function readBelege(){
       const data=await res.json();
       b.result=data.results||[];
       b.status='done';
+      console.log('[Vision] Ergebnis für',b.file.name,':',JSON.stringify(b.result).slice(0,300));
 
       // Beleg in DB speichern – Duplikat-Check: gleicher Dateiname + Größe
       try{
         const r0=b.result[0]||{};
+        console.log('[Vision] r0 (erstes Ergebnis):', JSON.stringify(r0).slice(0,200));
         // Existiert schon ein Beleg mit gleichem Namen und Größe?
         let uploadedReceipt=receipts.find(r=>r.filename===b.file.name&&r.size_bytes===b.file.size)||null;
         if(uploadedReceipt){
@@ -1017,11 +1021,14 @@ async function readBelege(){
           }
           // Thumbnail speichern
           if(uploadedReceipt&&b.thumbnail){
-            try{await DB.updateReceipt(uploadedReceipt.id,{thumbnail_data:b.thumbnail});
-              uploadedReceipt.thumbnail_data=b.thumbnail;}catch(_){}
+            try{
+              await DB.updateReceipt(uploadedReceipt.id,{thumbnail_data:b.thumbnail});
+              uploadedReceipt.thumbnail_data=b.thumbnail;
+              console.log('[Beleg] Thumbnail gespeichert für',b.file.name,'ID:',uploadedReceipt.id);
+            }catch(te){console.warn('[Beleg] Thumbnail-Speicherung fehlgeschlagen:',te.message);}
           }
-          // Lokal aufnehmen
-          if(uploadedReceipt)receipts.push({...uploadedReceipt,thumbnail_data:b.thumbnail});
+          // Lokal aufnehmen (mit Thumbnail auch wenn DB-Update fehlschlug)
+          if(uploadedReceipt)receipts.push({...uploadedReceipt,thumbnail_data:b.thumbnail||uploadedReceipt.thumbnail_data||null});
         }
         b.receiptId=uploadedReceipt?.id||null;
         b.receiptRecord=uploadedReceipt;
@@ -1173,11 +1180,13 @@ async function runKIKategorisierung(){
       betrag:e.betrag_brutto,datum:e.datum,quelle:e.quelle||'csv',
     }));
     $('ki-review-loading-text').textContent=`KI analysiert ${Math.min(i+batchSize,toKI.length)}/${toKI.length} …`;
+    console.log('[KI] Sende Batch', i/batchSize+1, '– Einträge:', batch.map(e=>e.id+'|'+e.beschreibung.slice(0,40)));
     try{
       const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({entries:batch,mode:'categorize'})});
       if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'API '+res.status);}
       const data=await res.json();
+      console.log('[KI] Ergebnis:', (data.results||[]).map(r=>r.id+'→'+r.kategorie+'|'+r.konfidenz+'|'+(r.begruendung||'').slice(0,50)));
       (data.results||[]).forEach(ki=>{
         const match=matches.find(m=>m.transaction_id===ki.id);
         if(!match)return;
@@ -1421,36 +1430,67 @@ async function unlinkReceipt(){
 function closeModal(id){$(`${id}`).classList.remove('open');}
 
 // ── BELEG-PICKER ───────────────────────────────────────────
+// Formatiert Dateinamen als "Empfänger DD.MM.YY" aus Beleg-Metadaten
+function fmtBelegLabel(rec){
+  // Versuche Empfänger aus beschreibung zu extrahieren
+  const desc=(rec.beschreibung||rec.filename||'').replace(/\.[^.]+$/,''); // Endung entfernen
+  // Datum formatieren: YYYY-MM-DD → DD.MM.YY
+  let datumStr='';
+  if(rec.datum){
+    try{const[y,m,d]=rec.datum.split('-');datumStr=`${d}.${m}.${y.slice(2)}`;}catch{}
+  }
+  // Kürze desc auf max 18 Zeichen
+  const shortDesc=desc.slice(0,18).replace(/[_-]/g,' ').trim();
+  return datumStr?`${shortDesc} · ${datumStr}`:shortDesc||'Beleg';
+}
+
 function openPicker(matchIdx){
   modalMatchIdx=matchIdx;
   pickerSelected=null;
   $('picker-confirm').disabled=true;
-  // Alle verfügbaren Belege anzeigen (aus DB geladene + aus Session)
+  // Alle verfügbaren Belege: aus DB + Session (mit Thumbnail mergen)
   const allReceipts=[...receipts];
-  // Session-Belege die noch nicht in receipts-Array sind
   belegFiles.filter(b=>b.status==='done'&&b.receiptRecord&&!receipts.find(r=>r.id===b.receiptRecord.id))
-    .forEach(b=>allReceipts.push({...b.receiptRecord,thumbnail_data:b.thumbnail}));
+    .forEach(b=>allReceipts.push({...b.receiptRecord,thumbnail_data:b.thumbnail||b.receiptRecord?.thumbnail_data||null}));
+  // Thumbnail aus Session über receipts einmergen falls DB-Record kein Thumbnail hat
+  allReceipts.forEach(rec=>{
+    if(!rec.thumbnail_data){
+      const bf=belegFiles.find(b=>b.receiptId===rec.id&&b.thumbnail);
+      if(bf)rec.thumbnail_data=bf.thumbnail;
+    }
+  });
 
   const grid=$('picker-grid');
   const empty=$('picker-empty');
-  if(!allReceipts.length){grid.innerHTML='';empty.style.display='block';$('modal-picker').classList.add('open');lucide.createIcons();return;}
+  if(!allReceipts.length){
+    grid.innerHTML='';empty.style.display='block';
+    $('modal-picker').classList.add('open');lucide.createIcons();return;
+  }
   empty.style.display='none';
 
-  // Bereits zugeordnete receipt_ids
+  // Bereits zugeordnete receipt_ids (außer dem aktuellen Match)
   const usedIds=new Set(matches.filter((m,i)=>i!==matchIdx&&m.receipt_id).map(m=>m.receipt_id));
 
   grid.innerHTML=allReceipts.map(rec=>{
     const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
     const used=usedIds.has(rec.id);
-    const thumb=isPDF
-      ?`<div class="picker-pdf">${used?'✓ ':''}PDF</div>`
-      :rec.thumbnail_data
-        ?`<img class="picker-thumb" src="${rec.thumbnail_data}" alt="">`
-        :`<div class="picker-pdf">IMG</div>`;
-    return`<div class="picker-item ${used?'style="opacity:.45;cursor:not-allowed;"':''}" onclick="${used?'':'pickReceipt(this,\''+rec.id+'\')'}" data-id="${rec.id}">
-      ${thumb}
-      <div class="picker-name" title="${rec.filename||''}">${rec.filename||'Beleg'}</div>
-      ${rec.datum?`<div class="picker-name" style="color:var(--text3);">${fmtDate(rec.datum)}</div>`:''}
+    const label=fmtBelegLabel(rec);
+    // Thumbnail-Bereich: Bild, PDF-Label oder "kein Thumbnail"-Platzhalter
+    let thumbHtml;
+    if(rec.thumbnail_data){
+      thumbHtml=`<img class="picker-thumb" src="${rec.thumbnail_data}" alt="${label}">`;
+    } else if(isPDF){
+      thumbHtml=`<div class="picker-pdf"><i data-lucide="file-text" style="width:22px;height:22px;margin-bottom:3px;"></i><span>PDF</span></div>`;
+    } else {
+      thumbHtml=`<div class="picker-pdf"><i data-lucide="image" style="width:22px;height:22px;margin-bottom:3px;"></i><span>Bild</span></div>`;
+    }
+    return`<div class="picker-item${used?' picker-used':''}"
+        onclick="${used?'':'pickReceipt(this,\''+rec.id+'\')'}"
+        data-id="${rec.id}"
+        title="${rec.filename||''}"
+        ${used?'style="opacity:.45;cursor:not-allowed;"':''}>
+      ${thumbHtml}
+      <div class="picker-name">${label}</div>
     </div>`;
   }).join('');
   $('modal-picker').classList.add('open');
