@@ -153,6 +153,14 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 .lx-amt.in{color:var(--green);}
 .lx-amt.out{color:var(--red);}
 .lx-thumb{display:flex;align-items:center;justify-content:center;width:56px;}
+.lx-row-wrap{border-bottom:1px solid var(--border);}
+.lx-row-wrap .lx-row{border-bottom:none;}
+.reason-row{display:flex;align-items:flex-start;gap:8px;padding:6px 14px 8px 14px;background:var(--surface2);font-size:11px;color:var(--text3);line-height:1.5;}
+.reason-btn{color:var(--text3);}
+.reason-btn.has-grund{color:var(--text2);}
+.reason-btn svg{transition:transform .15s;}
+.ki-loading-inline{display:none;align-items:center;gap:8px;font-size:11px;color:var(--text3);padding:6px 0;}
+.ki-loading-inline.show{display:flex;}
 
 /* BELEG-THUMBNAIL */
 .thumb-slot{width:40px;height:40px;border-radius:5px;border:2px dashed var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;transition:.15s;position:relative;background:var(--surface2);}
@@ -390,36 +398,28 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
      SEITE 2: KI-VERARBEITUNG
      ═══════════════════════════════════════════════════════ -->
 <div class="page" id="page-2">
-  <div class="page-title">KI-Verarbeitung</div>
-  <div class="page-sub">Die KI liest alle hochgeladenen Belege aus und matcht sie mit den Bankbewegungen. Klare Treffer werden direkt übernommen, unsichere kommen in den Review.</div>
+  <div class="page-title">Belege auslesen</div>
+  <div class="page-sub">KI extrahiert Datum, Betrag und Händler aus jedem Beleg. Danach werden Belege automatisch den Bankbewegungen zugeordnet – ohne weiteren KI-Call.</div>
 
   <div class="hinweis" id="ki-hint-csv" style="display:none;"><i data-lucide="check-circle"></i>
-    <div id="ki-hint-csv-text">CSV geladen.</div>
+    <div id="ki-hint-csv-text">CSV geladen – Belege werden nach dem Auslesen automatisch zugeordnet.</div>
   </div>
   <div class="hinweis warn" id="ki-hint-nocsv" style="display:none;"><i data-lucide="alert-triangle"></i>
-    <div>Kein CSV hochgeladen. Die KI kann keine Bankbewegungen matchen. Du kannst trotzdem Belege auslesen lassen.</div>
+    <div>Kein CSV hochgeladen. Belege werden trotzdem ausgelesen und gespeichert.</div>
   </div>
 
   <div class="card">
-    <div class="card-title">Schritt 1 – Belege auslesen</div>
-    <div class="card-sub">KI extrahiert Datum, Betrag, Händler und Steuersatz aus jedem Beleg.</div>
-    <div id="beleg-status-list" style="margin-bottom:10px;"></div>
+    <div class="card-sub" id="beleg-status-list" style="margin-bottom:10px;"></div>
     <div class="loading-bar" id="beleg-loading"><div class="spinner"></div><div><div id="beleg-loading-text">KI liest Belege aus …</div><div class="progress-wrap" style="width:180px;"><div class="progress-bar" id="beleg-progress-bar" style="width:0%"></div></div></div></div>
-    <button class="btn btn-primary" id="btn-read-belege" onclick="readBelege()"><i data-lucide="sparkles"></i> Belege auslesen</button>
-    <span id="beleg-skip-hint" style="font-size:11px;color:var(--text3);margin-left:10px;display:none;">Keine Belege hochgeladen</span>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Schritt 2 – Matching & Kategorisierung</div>
-    <div class="card-sub">KI matcht Belege mit Bankbewegungen und schlägt Kategorien vor. Funktioniert auch ohne Belege (dann nur Bankbewegungen kategorisieren).</div>
-    <div class="loading-bar" id="match-loading"><div class="spinner"></div><div><div id="match-loading-text">KI matcht und kategorisiert …</div><div class="progress-wrap" style="width:180px;"><div class="progress-bar" id="match-progress-bar" style="width:0%"></div></div></div></div>
-    <button class="btn btn-primary" id="btn-match" onclick="runMatching()" disabled><i data-lucide="git-merge"></i> Matching & Kategorisierung starten</button>
-    <div id="match-hint" style="font-size:11px;color:var(--text3);margin-top:8px;">Erst Belege auslesen (oder überspringen) um fortzufahren.</div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-primary" id="btn-read-belege" onclick="readBelege()"><i data-lucide="sparkles"></i> Belege auslesen</button>
+      <span id="beleg-skip-hint" style="font-size:11px;color:var(--text3);display:none;">Keine Belege hochgeladen</span>
+    </div>
   </div>
 
   <div style="display:flex;gap:8px;margin-top:4px;">
     <button class="btn btn-ghost" onclick="goPage(1)"><i data-lucide="arrow-left"></i> Zurück</button>
-    <button class="btn btn-ghost" id="btn-skip-to-review" onclick="goPage(3)" style="display:none;"><i data-lucide="arrow-right"></i> Weiter zum Review</button>
+    <button class="btn btn-ghost" id="btn-skip-to-review" onclick="goPage(3)"><i data-lucide="arrow-right"></i> Weiter zum Review</button>
   </div>
 </div>
 
@@ -428,18 +428,18 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
      ═══════════════════════════════════════════════════════ -->
 <div class="page" id="page-3">
   <div class="page-title">Review</div>
-  <div class="page-sub">Nur die Einträge die Aufmerksamkeit brauchen. Bestätige Matches oder korrigiere Kategorien.</div>
+  <div class="page-sub">Alle Bankbewegungen im Überblick. Belege werden automatisch zugeordnet. KI kategorisiert auf Knopfdruck und fügt Begründungen hinzu.</div>
 
-  <div id="review-empty" class="hinweis ok" style="display:none;"><i data-lucide="check-circle"></i>
-    <div>Alles klar! Die KI hat alle Einträge zugeordnet. Direkt zum Ergebnis.</div>
-  </div>
-
-  <!-- Alle kategorisierten Einträge (editierbar) -->
+  <!-- Alle Buchungen (auch ohne KI sofort sichtbar) -->
   <div class="card" style="padding:0;overflow:hidden;">
-    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
-      <span style="font-size:12px;font-weight:600;">Alle Einträge</span>
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <span style="font-size:12px;font-weight:600;">Buchungen</span>
       <span style="flex:1;"></span>
-      <button class="btn btn-ghost btn-sm" onclick="toggleReasons()"><i data-lucide="eye"></i> Begründungen</button>
+      <div class="ki-loading-inline" id="ki-review-loading">
+        <div class="spinner" style="width:14px;height:14px;border-width:2px;"></div>
+        <span id="ki-review-loading-text">KI analysiert …</span>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btn-ki-review" onclick="runKIKategorisierung()"><i data-lucide="sparkles"></i> KI kategorisieren</button>
       <button class="btn btn-ghost btn-sm" id="btn-filter-review" onclick="toggleFilterReview()"><i data-lucide="alert-triangle"></i> Nur unsichere</button>
     </div>
     <div id="review-list"></div>
@@ -603,7 +603,6 @@ let belegFiles      = [];   // {file, status, result, thumbnail} – Session-onl
 let receipts        = [];   // Aus DB geladene Belege (mit thumbnail_data)
 let matches         = [];   // Aus DB geladene Matches (persistent) – ersetzt aiResults
 let aiResults       = [];   // Legacy-Alias → zeigt auf matches
-let showReasons     = false;
 let filterReview    = false;
 // Modal-State
 let modalMatchIdx   = null; // welcher Match ist gerade im Modal
@@ -797,6 +796,9 @@ async function parseAndSaveCSV(file){
     status.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} Buchungen</strong> aus ${file.name}: ${ein} Eingänge, ${aus} Ausgaben. <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="clearCSVData()"><i data-lucide="trash-2"></i> Löschen</button></div></div>`;
     lucide.createIcons();
     updateUploadSummary();
+    // Sofort Match-Objekte erstellen → Review zeigt Buchungen ohne KI-Klick
+    buildMatchesFromCSV();
+    if(currentPage===3)renderReview();
   }catch(e){
     status.innerHTML=`<div class="hinweis warn"><i data-lucide="alert-triangle"></i><div>Fehler: ${e.message}</div></div>`;
     lucide.createIcons();
@@ -913,8 +915,6 @@ function updatePage2Hints(){
   if(!pending.length){
     $('btn-read-belege').style.display='none';
     $('beleg-skip-hint').style.display='inline';
-    $('btn-match').disabled=false;
-    $('match-hint').style.display='none';
   } else {
     $('btn-read-belege').style.display='inline-flex';
     $('beleg-skip-hint').style.display='none';
@@ -960,7 +960,7 @@ async function createThumbnail(file){
 // ── BELEGE AUSLESEN (KI) ───────────────────────────────────
 async function readBelege(){
   const pending=belegFiles.filter(b=>b.status==='pending');
-  if(!pending.length){toast('Alle Belege bereits ausgelesen.');enableMatching();return;}
+  if(!pending.length){toast('Alle Belege bereits ausgelesen.');return;}
   $('beleg-loading').classList.add('show');
   $('btn-read-belege').disabled=true;
   for(let i=0;i<belegFiles.length;i++){
@@ -1036,15 +1036,13 @@ async function readBelege(){
   $('beleg-progress-bar').style.width='100%';
   $('beleg-loading').classList.remove('show');
   $('btn-read-belege').disabled=false;
-  enableMatching();
+  // Client-seitiges Matching (kein API-Call): Beleg → Transaktion
+  autoMatchBelege();
+  renderReview();
+  // Weiter-Button einblenden
+  $('btn-skip-to-review').style.display='inline-flex';
 }
 
-function enableMatching(){
-  $('btn-match').disabled=false;
-  $('match-hint').style.display='none';
-  $('btn-read-belege').style.display='none';
-  $('beleg-skip-hint').style.display='none';
-}
 
 function readFileAsBase64(file){
   return new Promise((res,rej)=>{
@@ -1099,211 +1097,136 @@ function matchBelegToTransactions(belegResult,belegReceiptId,txList){
   return{transaction_id:best.id,score:bestScore,konfidenz};
 }
 
-// ── MATCHING & KATEGORISIERUNG ─────────────────────────────
-async function runMatching(){
-  $('match-loading').classList.add('show');
-  $('btn-match').disabled=true;
+// ── MATCHES AUS CSV AUFBAUEN (kein KI-Call) ────────────────
+function buildMatchesFromCSV(){
+  const existing=new Set(matches.map(m=>m.transaction_id));
+  const newM=csvTransactions.filter(t=>inPeriod(t.datum)&&!existing.has(t.id)).map(t=>({
+    transaction_id:t.id,
+    receipt_id:null,
+    beschreibung:t.beschreibung||t.empfaenger||'',
+    datum:t.datum||null,
+    betrag_brutto:Math.abs(t.betrag),
+    betrag_netto:Math.abs(t.betrag),
+    mwst_satz:0,mwst_betrag:0,
+    kategorie:t.isEinnahme?'einnahmen_19':'sonstiges',
+    konfidenz:null,
+    unklar:false,bestaetigt:false,
+    quelle:'csv',
+    is_einnahme:t.isEinnahme,
+    begruendung:null,
+    receipts:null,
+  }));
+  if(!newM.length)return;
+  matches=[...matches,...newM];
+  // Im Hintergrund in DB speichern
+  DB.saveMatches(newM.map(m=>({...m}))).then(saved=>{
+    saved.forEach(s=>{
+      const l=matches.find(m=>m.transaction_id===s.transaction_id);
+      if(l){l.id=s.id;l.kategorie_info=CATEGORIES[l.kategorie]||CATEGORIES.sonstiges;}
+    });
+  }).catch(e=>console.warn('Match-Speicherung (CSV):',e.message));
+}
 
-  // ── Schritt 1: Beleg ↔ Transaktion matchen (Client-seitig) ──
-  $('match-loading-text').textContent='Ordne Belege den Bankbewegungen zu …';
-  $('match-progress-bar').style.width='10%';
-
-  // Map: transaction_id → {receipt_id, receiptRecord, belegName, matchKonfidenz}
-  const belegZuordnung=new Map();
+// ── BELEGE AUTOMATISCH MATCHEN (kein KI-Call) ─────────────
+function autoMatchBelege(){
   const belegsDone=belegFiles.filter(b=>b.status==='done'&&b.receiptId);
+  let changed=false;
   belegsDone.forEach(b=>{
     if(!b.result?.length)return;
     b.result.forEach(r=>{
       const m=matchBelegToTransactions(r,b.receiptId,csvTransactions);
-      if(m&&!belegZuordnung.has(m.transaction_id)){
-        belegZuordnung.set(m.transaction_id,{
-          receipt_id:b.receiptId,
-          receiptRecord:b.receiptRecord,
-          belegName:b.file.name,
-          matchKonfidenz:m.konfidenz,
-        });
+      if(!m)return;
+      const existing=matches.find(mx=>mx.transaction_id===m.transaction_id);
+      if(existing&&!existing.receipt_id){
+        existing.receipt_id=b.receiptId;
+        existing.receipts=b.receiptRecord||receipts.find(rx=>rx.id===b.receiptId)||null;
+        existing.konfidenz=m.konfidenz;
+        existing.begruendung=`Beleg "${b.file.name}" automatisch gematcht (${m.konfidenz}).`;
+        changed=true;
+        if(existing.id){
+          DB.updateMatch(existing.id,{
+            receipt_id:b.receiptId,
+            konfidenz:m.konfidenz,
+            begruendung:existing.begruendung,
+          }).catch(()=>{});
+        }
       }
     });
   });
+  return changed;
+}
 
-  // ── Schritt 2: Alle Einträge für KI vorbereiten ──
-  // CSV-Transaktionen im Zeitraum + Rechnungen + manuelle Einnahmen + Beleg-Ergebnisse
-  const csvImPeriod=csvTransactions.filter(t=>inPeriod(t.datum));
-  const rechnungen=allDocs.filter(d=>d.typ==='rechnung'&&inPeriod(d.datum)&&reChecked[d.id]);
-  const allKIEntries=[];
+// ── KI KATEGORISIERUNG (Review-Button) ─────────────────────
+async function runKIKategorisierung(){
+  // Nur Einträge die noch keine KI-Kategorie haben
+  const toKI=matches.filter(m=>!m.konfidenz&&inPeriod(m.datum));
+  if(!toKI.length){toast('Alle Einträge bereits analysiert.');return;}
 
-  // CSV-Transaktionen (per KI kategorisieren – auch wenn Einnahme/Ausgabe schon klar ist,
-  // soll die KI die genaue Kategorie bestimmen, z.B. "software" statt nur "sonstiges")
-  csvImPeriod.forEach(t=>{
-    allKIEntries.push({
-      id:t.id,
-      beschreibung:(t.beschreibung||'').slice(0,120),
-      betrag:t.betrag,
-      datum:t.datum||'',
-      quelle:'csv',
-      isEinnahme:t.isEinnahme, // Hinweis für KI
-      _txRef:t,
-    });
-  });
-  // Rechnungen
-  rechnungen.forEach(d=>{
-    const netto=d.positionen?.reduce((s,p)=>s+parseFloat(p.menge||1)*parseFloat(p.preis||0),0)||0;
-    const brutto=d.tax==='de'?netto*1.19:netto;
-    allKIEntries.push({id:d.id,beschreibung:`Rechnung ${d.nr||''} – ${d.firma||d.kunde||''}`,betrag:brutto,datum:d.datum||'',quelle:'rechnung'});
-  });
-  // Manuelle Einnahmen
-  manualIncomes.forEach(x=>{
-    allKIEntries.push({id:x.id,beschreibung:x.desc,betrag:x.brutto,datum:x.datum||'',quelle:'manuell'});
-  });
-  // Belege die KEINER Transaktion zugeordnet werden konnten (eigenständige Ausgaben)
-  belegsDone.forEach(b=>{
-    b.result?.forEach(r=>{
-      const alleenTx=csvTransactions.find(t=>belegZuordnung.get(t.id)?.receipt_id===b.receiptId);
-      if(!alleenTx){
-        allKIEntries.push({
-          id:'beleg_'+b.receiptId+'_'+(r.id||0),
-          beschreibung:(r.beschreibung||b.file.name).slice(0,120),
-          betrag:r.betrag_brutto||0,datum:r.datum||'',quelle:'beleg',
-          _receiptId:b.receiptId,_receiptRecord:b.receiptRecord,
-        });
-      }
-    });
-  });
+  $('ki-review-loading').classList.add('show');
+  $('btn-ki-review').disabled=true;
 
-  if(!allKIEntries.length){
-    $('match-loading').classList.remove('show');
-    $('btn-match').disabled=false;
-    toast('Keine Einträge vorhanden.');
-    return;
-  }
-
-  // ── Schritt 3: KI-Kategorisierung in Batches ──
-  $('match-loading-text').textContent=`KI analysiert ${allKIEntries.length} Einträge …`;
-  $('match-progress-bar').style.width='20%';
-  const kiErgebnisse=new Map(); // id → KI-Result
   const batchSize=10;
-  for(let i=0;i<allKIEntries.length;i+=batchSize){
-    const batch=allKIEntries.slice(i,i+batchSize).map(e=>({
-      id:e.id,
-      beschreibung:e.beschreibung+(e.isEinnahme!=null?` [${e.isEinnahme?'Gutschrift':'Lastschrift'}]`:''),
-      betrag:e.betrag,datum:e.datum,quelle:e.quelle,
+  for(let i=0;i<toKI.length;i+=batchSize){
+    const batch=toKI.slice(i,i+batchSize).map(e=>({
+      id:e.transaction_id,
+      beschreibung:(e.beschreibung||'').slice(0,120)+(e.is_einnahme!=null?` [${e.is_einnahme?'Gutschrift':'Lastschrift'}]`:''),
+      betrag:e.betrag_brutto,datum:e.datum,quelle:e.quelle||'csv',
     }));
-    const pct=Math.round(20+(i/allKIEntries.length)*65);
-    $('match-progress-bar').style.width=pct+'%';
-    $('match-loading-text').textContent=`KI analysiert ${Math.min(i+batchSize,allKIEntries.length)}/${allKIEntries.length} Einträge …`;
+    $('ki-review-loading-text').textContent=`KI analysiert ${Math.min(i+batchSize,toKI.length)}/${toKI.length} …`;
     try{
       const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({entries:batch,mode:'categorize'})});
-      if(!res.ok){const err=await res.json();throw new Error(err.error||'API '+res.status);}
+      if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'API '+res.status);}
       const data=await res.json();
-      (data.results||[]).forEach(r=>kiErgebnisse.set(r.id,r));
+      (data.results||[]).forEach(ki=>{
+        const match=matches.find(m=>m.transaction_id===ki.id);
+        if(!match)return;
+        const defaultCatKey=match.is_einnahme?'einnahmen_19':'sonstiges';
+        const catKey=ki.kategorie&&CATEGORIES[ki.kategorie]?ki.kategorie:defaultCatKey;
+        const cat=CATEGORIES[catKey];
+        const brutto=ki.betrag_brutto||match.betrag_brutto||0;
+        const netto=ki.betrag_netto||(cat.vat?Math.round(brutto/(1+cat.vat)*100)/100:brutto);
+        const mwst=ki.mwst_betrag||Math.round((brutto-netto)*100)/100;
+        match.kategorie=catKey;
+        match.kategorie_info=cat;
+        match.betrag_brutto=brutto;
+        match.betrag_netto=netto;
+        match.mwst_satz=ki.mwst_satz??cat.vat;
+        match.mwst_betrag=mwst;
+        match.konfidenz=ki.konfidenz||'mittel';
+        match.unklar=!!ki.unklar;
+        match.is_einnahme=cat.type==='income'||(match.is_einnahme||false);
+        // Begründung: KI-Text anhängen (Beleg-Begründung behalten falls vorhanden)
+        const kiGrund=ki.begruendung||'';
+        match.begruendung=match.begruendung
+          ?(match.begruendung+(kiGrund?' – '+kiGrund:''))
+          :kiGrund;
+        // In DB speichern
+        if(match.id){
+          DB.updateMatch(match.id,{
+            kategorie:catKey,betrag_brutto:brutto,betrag_netto:netto,
+            mwst_satz:match.mwst_satz,mwst_betrag:mwst,
+            konfidenz:match.konfidenz,unklar:match.unklar,
+            begruendung:match.begruendung,is_einnahme:match.is_einnahme,
+          }).catch(()=>{});
+        }
+      });
     }catch(e){
       toast('KI-Fehler: '+e.message);
-      $('match-loading').classList.remove('show');
-      $('btn-match').disabled=false;
-      return;
+      break;
     }
   }
 
-  // ── Schritt 4: Matches zusammenbauen ──
-  $('match-loading-text').textContent='Verknüpfungen erstellen …';
-  $('match-progress-bar').style.width='88%';
-  const newMatches=[];
-
-  allKIEntries.forEach(e=>{
-    const ki=kiErgebnisse.get(e.id)||{};
-    const belegInfo=belegZuordnung.get(e.id)||null;
-    const defaultCatKey=e.isEinnahme?'einnahmen_19':'sonstiges';
-    const catKey=ki.kategorie&&CATEGORIES[ki.kategorie]?ki.kategorie:defaultCatKey;
-    const cat=CATEGORIES[catKey];
-    const betrag=ki.betrag_brutto||e.betrag||0;
-    const netto=ki.betrag_netto||(cat.vat?Math.round(betrag/(1+cat.vat)*100)/100:betrag);
-    const mwst=ki.mwst_betrag||Math.round((betrag-netto)*100)/100;
-    newMatches.push({
-      transaction_id:e.id,
-      receipt_id:belegInfo?.receipt_id||e._receiptId||null,
-      beschreibung:ki.beschreibung||e.beschreibung,
-      datum:ki.datum||e.datum||null,
-      kategorie:catKey,
-      betrag_brutto:betrag,
-      betrag_netto:netto,
-      mwst_satz:ki.mwst_satz??cat.vat,
-      mwst_betrag:mwst,
-      begruendung:belegInfo
-        ?`Beleg "${belegInfo.belegName}" zugeordnet (${belegInfo.matchKonfidenz}). ${ki.begruendung||''}`
-        :(ki.begruendung||'Aus KI-Analyse'),
-      konfidenz:belegInfo?belegInfo.matchKonfidenz:(ki.konfidenz||'mittel'),
-      unklar:ki.unklar||false,
-      bestaetigt:false,
-      quelle:e.quelle||'csv',
-      is_einnahme:cat.type==='income'||(e.isEinnahme||false),
-      // Lokale Referenzen für sofortige Darstellung (nicht in DB)
-      _receipt:belegInfo?.receiptRecord||e._receiptRecord||null,
-    });
-  });
-
-  // ── Schritt 5: In DB speichern ──
-  $('match-loading-text').textContent='Speichere Ergebnisse …';
-  $('match-progress-bar').style.width='92%';
-  try{
-    const saved=await DB.saveMatches(newMatches.map(m=>({...m,_receipt:undefined})));
-    saved.forEach(s=>{
-      const local=newMatches.find(m=>m.transaction_id===s.transaction_id);
-      if(local)local.id=s.id;
-    });
-  }catch(e){
-    console.warn('Match-Speicherung fehlgeschlagen:',e.message);
-    toast('Warnung: Ergebnisse nicht gespeichert – nach Reload weg.');
-  }
-
-  // State
-  matches=newMatches.map(m=>({
-    ...m,
-    kategorie_info:CATEGORIES[m.kategorie]||CATEGORIES.sonstiges,
-    receipts:m._receipt||null,
-  }));
-  aiResults=matches;
-
-  $('match-progress-bar').style.width='100%';
-  $('match-loading').classList.remove('show');
-  $('btn-match').disabled=false;
-  $('btn-skip-to-review').style.display='inline-flex';
-
+  $('ki-review-loading').classList.remove('show');
+  $('btn-ki-review').disabled=false;
   const reviewCount=matches.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
-  const belegMatches=matches.filter(r=>r.receipt_id).length;
   $('badge-review').textContent=reviewCount;
   $('badge-review').classList.toggle('show',reviewCount>0);
   updateSidebar();
-  toast(`✓ ${matches.length} Einträge analysiert · ${belegMatches} Belege zugeordnet · ${reviewCount} zur Prüfung`);
+  renderReview();
+  toast(`✓ KI-Analyse abgeschlossen · ${toKI.length} Einträge kategorisiert`);
 }
 
-function buildAllEntries(){
-  const entries=[];
-  // 1. Rechnungen aus dem Tool → zur KI für MwSt-Bestätigung
-  allDocs.filter(d=>d.typ==='rechnung'&&inPeriod(d.datum)&&reChecked[d.id]).forEach(d=>{
-    const netto=d.positionen?.reduce((s,p)=>s+parseFloat(p.menge||1)*parseFloat(p.preis||0),0)||0;
-    const brutto=d.tax==='de'?netto*1.19:netto;
-    entries.push({id:d.id,beschreibung:`Rechnung ${d.nr||''} – ${d.firma||d.kunde||''}`,
-      betrag:brutto,datum:d.datum,quelle:'rechnung',_skipAI:false});
-  });
-  // 2. Manuelle Einnahmen → zur KI
-  manualIncomes.forEach(x=>entries.push({
-    id:x.id,beschreibung:x.desc,betrag:x.brutto,datum:x.datum,quelle:'manuell',_skipAI:false
-  }));
-  // 3. Beleg-Ergebnisse (KI hat schon ausgelesen) → trotzdem zur KI für Kategorie
-  belegFiles.filter(b=>b.status==='done'&&b.result?.length).forEach(b=>{
-    b.result.forEach(r=>entries.push({
-      id:'beleg_'+b.file.name+'_'+r.id,
-      beschreibung:r.beschreibung||b.file.name,
-      betrag:r.betrag_brutto||0,datum:r.datum||'',
-      quelle:'beleg',_skipAI:false
-    }));
-  });
-  // 4. CSV-Transaktionen → KEIN KI-Call, regelbasiert
-  // Nur Buchungen im gewählten Zeitraum
-  csvTransactions.filter(t=>inPeriod(t.datum)).forEach(t=>entries.push({...t,_skipAI:true}));
-  return entries;
-}
 
 // ── REVIEW – LEXOFFICE-STIL ────────────────────────────────
 function getReceiptForMatch(m){
@@ -1344,61 +1267,76 @@ function renderThumb(m,idx){
 
 function renderReview(){
   const list=$('review-list');
-  if(!matches.length){
-    list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">Noch keine Analyse durchgeführt. Bitte zuerst Schritt 2 abschließen.</div>';
-    $('review-empty').style.display='none';
+
+  // Zeige CSV-Buchungen auch ohne KI (sofort nach Upload)
+  const displayed=matches.filter(m=>inPeriod(m.datum));
+  if(!displayed.length){
+    list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">Noch keine Buchungen im gewählten Zeitraum. Bitte CSV hochladen.</div>';
     return;
   }
 
-  // Sortierung nach Datum (älteste zuerst für Buchungsübersicht)
-  const sorted=[...matches].sort((a,b)=>{
-    const da=a.datum||'';const db2=b.datum||'';
-    if(da<db2)return-1;if(da>db2)return 1;return 0;
+  // Sortierung: älteste zuerst
+  displayed.sort((a,b)=>{
+    const da=a.datum||'',db2=b.datum||'';
+    return da<db2?-1:da>db2?1:0;
   });
 
-  const reviewCount=matches.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
-  $('review-empty').style.display=reviewCount===0&&matches.length>0?'flex':'none';
-
-  const displayed=filterReview?sorted.filter(r=>r.unklar||r.konfidenz==='niedrig'):sorted;
-
-  // Update Badge
+  const reviewCount=matches.filter(r=>inPeriod(r.datum)&&(r.unklar||r.konfidenz==='niedrig')).length;
   $('badge-review').textContent=reviewCount;
   $('badge-review').classList.toggle('show',reviewCount>0);
 
-  // Sorted-Indexe rückführen auf matches-Array für DOM-IDs
-  const catOptions=Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
+  const filtered=filterReview?displayed.filter(r=>r.unklar||r.konfidenz==='niedrig'):displayed;
 
   list.innerHTML=`
     <div class="lx-header">
-      <span>Datum</span><span>Buchung</span><span style="text-align:right;">Betrag</span>
-      <span style="text-align:center;">Beleg</span><span>Kategorie</span><span>Status</span><span></span>
+      <span>Datum</span><span>Buchung</span><span style="text-align:right">Betrag</span>
+      <span style="text-align:center">Beleg</span><span>Kategorie</span><span>Status</span><span style="width:24px"></span>
     </div>
-    ${displayed.map(r=>{
+    ${filtered.map(r=>{
       const realIdx=matches.indexOf(r);
       const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
       const isIncome=r.is_einnahme||(cat.type==='income');
       const rowCls=r.bestaetigt?'bestaetigt':r.unklar?'unsicher':'';
-      const statusLbl=r.bestaetigt?'<span class="konfidenz bestaetigt">✓ OK</span>':
-                      r.unklar?`<span class="konfidenz unklar">⚠ Prüfen</span>`:
-                      `<span class="konfidenz ${r.konfidenz||'mittel'}">${r.konfidenz||'–'}</span>`;
-      return`<div class="lx-row ${rowCls}" id="lxr-${realIdx}">
-        <div class="lx-date">${r.datum?fmtDate(r.datum):'–'}</div>
-        <div class="lx-desc">
-          <div class="lx-desc-main" title="${r.beschreibung||''}">${r.beschreibung||'–'}</div>
-          ${showReasons&&r.begruendung?`<div class="lx-desc-sub" title="${r.begruendung}">${r.begruendung}</div>`:''}
+      // Status-Badge: leer wenn noch keine KI, sonst konfidenz
+      const statusLbl=r.bestaetigt
+        ?'<span class="konfidenz bestaetigt">✓ OK</span>'
+        :r.unklar
+          ?'<span class="konfidenz unklar">⚠ Prüfen</span>'
+          :r.konfidenz
+            ?`<span class="konfidenz ${r.konfidenz}">${r.konfidenz}</span>`
+            :'<span class="konfidenz" style="color:var(--text3)">–</span>';
+      const hasGrund=!!r.begruendung;
+      return`<div class="lx-row-wrap">
+        <div class="lx-row ${rowCls}" id="lxr-${realIdx}">
+          <div class="lx-date">${r.datum?fmtDate(r.datum):'–'}</div>
+          <div class="lx-desc">
+            <div class="lx-desc-main" title="${(r.beschreibung||'').replace(/"/g,'&quot;')}">${r.beschreibung||'–'}</div>
+          </div>
+          <div class="lx-amt ${isIncome?'in':'out'}">${isIncome?'+':'−'}${fmt(r.betrag_brutto||0)}</div>
+          <div class="lx-thumb">${renderThumb(r,realIdx)}</div>
+          <select class="cat-select" onchange="onCatChange(${realIdx},this.value)">
+            ${Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}"${r.kategorie===k?' selected':''}>${v.label}</option>`).join('')}
+          </select>
+          <div>${statusLbl}</div>
+          <button class="entry-del reason-btn${hasGrund?' has-grund':''}" onclick="toggleReason(${realIdx})" title="${hasGrund?'Begründung anzeigen':'Keine Begründung vorhanden'}">
+            <i data-lucide="chevron-down"></i>
+          </button>
         </div>
-        <div class="lx-amt ${isIncome?'in':'out'}">${isIncome?'+':'−'}${fmt(r.betrag_brutto||0)}</div>
-        <div class="lx-thumb">${renderThumb(r,realIdx)}</div>
-        <select class="cat-select" onchange="onCatChange(${realIdx},this.value)">
-          ${Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}" ${r.kategorie===k?'selected':''}>${v.label}</option>`).join('')}
-        </select>
-        <div>${statusLbl}</div>
-        <button class="entry-del" onclick="onConfirmToggle(${realIdx})" title="${r.bestaetigt?'Bestätigung aufheben':'Als OK markieren'}">
-          <i data-lucide="${r.bestaetigt?'check-circle':'circle'}"></i>
-        </button>
+        ${hasGrund?`<div class="reason-row" id="reason-${realIdx}" style="display:none;">
+          <i data-lucide="info" style="width:13px;height:13px;flex-shrink:0;color:var(--text3)"></i>
+          <span>${r.begruendung}</span>
+          <button class="entry-del" onclick="onConfirmToggle(${realIdx})" title="${r.bestaetigt?'Bestätigung aufheben':'Als OK markieren'}" style="margin-left:auto;flex-shrink:0;">
+            <i data-lucide="${r.bestaetigt?'check-circle':'circle'}"></i>
+          </button>
+        </div>`:''}
       </div>`;
     }).join('')}`;
   lucide.createIcons();
+}
+
+function toggleReason(idx){
+  const el=$(`reason-${idx}`);
+  if(el)el.style.display=el.style.display==='none'?'flex':'none';
 }
 
 async function onCatChange(idx,newCat){
@@ -1421,7 +1359,6 @@ async function onConfirmToggle(idx){
   renderReview();
 }
 
-function toggleReasons(){showReasons=!showReasons;renderReview();}
 function toggleFilterReview(){filterReview=!filterReview;$('btn-filter-review').classList.toggle('active',filterReview);renderReview();}
 
 // ── BELEG-MODAL ────────────────────────────────────────────
@@ -1669,27 +1606,27 @@ function exportElsterXML(){
 async function loadMatchesFromDB(year,quartal){
   try{
     const dbMatches=await DB.getMatches(year,quartal||0);
-    if(dbMatches.length){
-      matches=dbMatches.map(m=>({
-        ...m,
-        id:m.id,
-        is_einnahme:!!m.is_einnahme,
-        unklar:!!m.unklar,
-        bestaetigt:!!m.bestaetigt,
-        kategorie_info:CATEGORIES[m.kategorie]||CATEGORIES.sonstiges,
-        // receipts kommt aus dem JOIN (DB.getMatches selektiert *, receipts(...))
-        receipts:m.receipts||null,
-      }));
-      aiResults=matches; // legacy-Alias
-      // Review-Badge
-      const reviewCount=matches.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
-      $('badge-review').textContent=reviewCount;
-      $('badge-review').classList.toggle('show',reviewCount>0);
-      updateSidebar();
-      return true;
-    }
-  }catch(e){console.info('Matches nicht geladen (Tabelle fehlt noch?):',e.message);}
-  return false;
+    matches=dbMatches.map(m=>({
+      ...m,
+      id:m.id,
+      is_einnahme:!!m.is_einnahme,
+      unklar:!!m.unklar,
+      bestaetigt:!!m.bestaetigt,
+      kategorie_info:CATEGORIES[m.kategorie]||CATEGORIES.sonstiges,
+      receipts:m.receipts||null,
+    }));
+    aiResults=matches;
+    // CSV-Einträge ohne Match ergänzen (falls CSV schon geladen)
+    if(csvTransactions.length)buildMatchesFromCSV();
+    const reviewCount=matches.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
+    $('badge-review').textContent=reviewCount;
+    $('badge-review').classList.toggle('show',reviewCount>0);
+    updateSidebar();
+  }catch(e){
+    console.info('Matches nicht geladen (Tabelle fehlt noch?):',e.message);
+    // Auch ohne DB: CSV-Einträge lokal anzeigen
+    if(csvTransactions.length)buildMatchesFromCSV();
+  }
 }
 
 // ── BELEGE AUS DB LADEN ────────────────────────────────────
