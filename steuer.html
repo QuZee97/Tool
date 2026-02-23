@@ -674,6 +674,7 @@ function goPage(n){
 // ── ZEITRAUM ───────────────────────────────────────────────
 async function setQuartal(q){
   selectedQuartal=q;
+  localStorage.setItem('steuer_quartal',q);
   document.querySelectorAll('.q-btn').forEach(b=>b.classList.remove('active'));
   if(q===0)$('qjahr').classList.add('active');
   else $(`q${q}`).classList.add('active');
@@ -683,10 +684,12 @@ async function setQuartal(q){
   await loadMatchesFromDB(selectedYear,q);
   if(csvTransactions.length) buildMatchesFromCSV();
   updateSidebar();
+  if(currentPage===2)renderBelegUebersicht();
   if(currentPage===3)renderReview();
 }
 async function onPeriodChange(){
   selectedYear=parseInt($('sel-year').value);
+  localStorage.setItem('steuer_year',selectedYear);
   // CSV + Matches für das neue Jahr nachladen
   await Promise.all([
     (async()=>{
@@ -1099,50 +1102,51 @@ async function readBelege(){
       // Beleg in DB speichern – Duplikat-Check: gleicher Dateiname + Größe
       try{
         const r0=b.result[0]||{};
-        console.log('[Vision] r0 (erstes Ergebnis):', JSON.stringify(r0).slice(0,200));
+        console.log('[Vision] r0:', JSON.stringify(r0).slice(0,300));
+        // KI-Metadaten die wir in den Beleg-Record schreiben wollen
+        const receiptMeta={
+          beschreibung: r0.beschreibung||b.file.name,
+          datum:        r0.datum||null,
+          betrag:       r0.betrag_brutto||null,
+          betrag_netto: r0.betrag_netto||null,
+          mwst_satz:    r0.mwst_satz??null,
+          mwst_betrag:  r0.mwst_betrag||null,
+          kategorie:    r0.kategorie||null,
+          thumbnail_data: b.thumbnail||null,  // direkt im Insert
+        };
         // Existiert schon ein Beleg mit gleichem Namen und Größe?
         let uploadedReceipt=receipts.find(r=>r.filename===b.file.name&&r.size_bytes===b.file.size)||null;
         if(uploadedReceipt){
-          console.info('Beleg bereits in DB vorhanden, überspringe Upload:',b.file.name);
-          // Thumbnail aktualisieren falls noch nicht vorhanden
-          if(!uploadedReceipt.thumbnail_data&&b.thumbnail){
-            try{await DB.updateReceipt(uploadedReceipt.id,{thumbnail_data:b.thumbnail});
-              uploadedReceipt.thumbnail_data=b.thumbnail;}catch(_){}
-          }
+          console.info('Beleg bereits in DB, aktualisiere Metadaten:',b.file.name);
+          // KI-Daten + Thumbnail nachträglich updaten
+          const updates={...receiptMeta};
+          if(uploadedReceipt.thumbnail_data)delete updates.thumbnail_data; // nicht überschreiben
+          try{
+            await DB.updateReceipt(uploadedReceipt.id,updates);
+            Object.assign(uploadedReceipt,updates);
+          }catch(_){}
         } else {
           // Noch nicht in DB: speichern (Storage-Upload versuchen, Fallback auf Meta-only)
           try{
-            uploadedReceipt=await DB.uploadReceipt(b.file,{
-              beschreibung:r0.beschreibung||b.file.name,
-              datum:r0.datum||null,
-              betrag:r0.betrag_brutto||null,
-              kategorie:r0.kategorie||null,
-            });
+            uploadedReceipt=await DB.uploadReceipt(b.file,receiptMeta);
           }catch(se){
             console.warn('Storage-Upload fehlgeschlagen, speichere nur Metadaten:',se.message);
             uploadedReceipt=await DB.saveReceiptMeta({
-              filename:b.file.name,
-              size_bytes:b.file.size,
-              mime_type:b.file.type||'application/octet-stream',
-              datum:r0.datum||null,
-              beschreibung:r0.beschreibung||b.file.name,
-              kategorie:r0.kategorie||null,
-              betrag:r0.betrag_brutto||null,
+              filename:   b.file.name,
+              size_bytes: b.file.size,
+              mime_type:  b.file.type||'application/octet-stream',
+              ...receiptMeta,
             });
           }
-          // Thumbnail speichern
-          if(uploadedReceipt&&b.thumbnail){
-            try{
-              await DB.updateReceipt(uploadedReceipt.id,{thumbnail_data:b.thumbnail});
-              uploadedReceipt.thumbnail_data=b.thumbnail;
-              console.log('[Beleg] Thumbnail gespeichert für',b.file.name,'ID:',uploadedReceipt.id);
-            }catch(te){console.warn('[Beleg] Thumbnail-Speicherung fehlgeschlagen:',te.message);}
+          // Lokal aufnehmen (thumbnail_data ist bereits im Record)
+          if(uploadedReceipt){
+            uploadedReceipt.thumbnail_data=uploadedReceipt.thumbnail_data||b.thumbnail||null;
+            receipts.push({...uploadedReceipt});
+            console.log('[Beleg] Gespeichert:',b.file.name,'ID:',uploadedReceipt.id,'thumb:',!!uploadedReceipt.thumbnail_data);
           }
-          // Lokal aufnehmen (mit Thumbnail auch wenn DB-Update fehlschlug)
-          if(uploadedReceipt)receipts.push({...uploadedReceipt,thumbnail_data:b.thumbnail||uploadedReceipt.thumbnail_data||null});
         }
         b.receiptId=uploadedReceipt?.id||null;
-        b.receiptRecord=uploadedReceipt;
+        b.receiptRecord=uploadedReceipt?{...uploadedReceipt,thumbnail_data:uploadedReceipt.thumbnail_data||b.thumbnail||null}:null;
         b.savedToStorage=true;
       }catch(se){
         console.warn('Beleg-Speicherung fehlgeschlagen:',se.message);
@@ -1276,13 +1280,45 @@ function autoMatchBelege(){
         existing.receipt_id=b.receiptId;
         existing.receipts=b.receiptRecord||receipts.find(rx=>rx.id===b.receiptId)||null;
         existing.konfidenz=m.konfidenz;
-        existing.begruendung=`Beleg "${b.file.name}" automatisch gematcht (${m.konfidenz}).`;
+
+        // KI-Daten vom Beleg in den Match integrieren
+        // Betrag: Belegwert hat Vorrang (vom Bild extrahiert), CSV-Wert als Fallback
+        const r0=b.result[0]||{};
+        if(r0.betrag_brutto){existing.betrag_brutto=r0.betrag_brutto;}
+        if(r0.betrag_netto){existing.betrag_netto=r0.betrag_netto;}
+        else if(r0.betrag_brutto&&r0.mwst_satz){
+          existing.betrag_netto=Math.round(r0.betrag_brutto/(1+r0.mwst_satz)*100)/100;
+        }
+        if(r0.mwst_satz!=null){existing.mwst_satz=r0.mwst_satz;}
+        if(r0.mwst_betrag){existing.mwst_betrag=r0.mwst_betrag;}
+        else if(existing.betrag_brutto&&existing.betrag_netto){
+          existing.mwst_betrag=Math.round((existing.betrag_brutto-existing.betrag_netto)*100)/100;
+        }
+        // Kategorie vom Beleg übernehmen falls KI eine erkannt hat (und noch kein KI-Match besteht)
+        if(r0.kategorie&&CATEGORIES[r0.kategorie]&&!existing.konfidenz){
+          existing.kategorie=r0.kategorie;
+          existing.kategorie_info=CATEGORIES[r0.kategorie];
+        }
+
+        // Begründung: Match-Grund + KI-Begründung vom Beleg zusammenführen
+        const matchGrund=`Beleg "${b.file.name}" automatisch gematcht (${m.konfidenz})`;
+        const kiGrund=r0.begruendung?` – ${r0.begruendung}`:'';
+        const reverseCharge=r0.unklar?` ⚠ Reverse Charge/Unklar: bitte prüfen.`:'';
+        existing.begruendung=matchGrund+kiGrund+reverseCharge;
+        existing.unklar=!!r0.unklar;
+
         changed=true;
         if(existing.id){
           DB.updateMatch(existing.id,{
-            receipt_id:b.receiptId,
-            konfidenz:m.konfidenz,
-            begruendung:existing.begruendung,
+            receipt_id:   b.receiptId,
+            konfidenz:    existing.konfidenz,
+            betrag_brutto:existing.betrag_brutto,
+            betrag_netto: existing.betrag_netto,
+            mwst_satz:    existing.mwst_satz,
+            mwst_betrag:  existing.mwst_betrag,
+            kategorie:    existing.kategorie,
+            begruendung:  existing.begruendung,
+            unklar:       existing.unklar,
           }).catch(()=>{});
         }
       }
@@ -1300,7 +1336,7 @@ async function runKIKategorisierung(){
   $('ki-review-loading').classList.add('show');
   $('btn-ki-review').disabled=true;
 
-  const batchSize=10;
+  const batchSize=5;
   for(let i=0;i<toKI.length;i+=batchSize){
     const batch=toKI.slice(i,i+batchSize).map(e=>({
       id:e.transaction_id,
@@ -1309,8 +1345,18 @@ async function runKIKategorisierung(){
     }));
     $('ki-review-loading-text').textContent=`KI analysiert ${Math.min(i+batchSize,toKI.length)}/${toKI.length} …`;
     console.log('[KI] Sende Batch', i/batchSize+1, '– Einträge:', batch.map(e=>e.id+'|'+e.beschreibung.slice(0,40)));
+    // Fetch-Hilfsfunktion mit einmaligem Retry bei 504
+    const fetchWithRetry=async(url,opts)=>{
+      let res=await fetch(url,opts);
+      if(res.status===504||res.status===502){
+        console.warn('[KI] Timeout/Bad Gateway – warte 3s und versuche nochmal...');
+        await new Promise(r=>setTimeout(r,3000));
+        res=await fetch(url,opts);
+      }
+      return res;
+    };
     try{
-      const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
+      const res=await fetchWithRetry('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({entries:batch,mode:'categorize'})});
       if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'API '+res.status);}
       const data=await res.json();
@@ -1427,7 +1473,7 @@ function renderReview(){
   list.innerHTML=`
     <div class="lx-header">
       <span>Datum</span><span>Buchung</span><span style="text-align:right">Betrag</span>
-      <span style="text-align:center">Beleg</span><span>Kategorie</span><span>Status</span><span style="width:24px"></span>
+      <span style="text-align:center">Beleg</span><span>Kategorie</span><span>Status</span><span style="width:72px"></span>
     </div>
     ${filtered.map(r=>{
       const realIdx=matches.indexOf(r);
@@ -1443,6 +1489,7 @@ function renderReview(){
             ?`<span class="konfidenz ${r.konfidenz}">${r.konfidenz}</span>`
             :'<span class="konfidenz" style="color:var(--text3)">–</span>';
       const hasGrund=!!r.begruendung;
+      const hasReceipt=!!r.receipt_id;
       return`<div class="lx-row-wrap">
         <div class="lx-row ${rowCls}" id="lxr-${realIdx}">
           <div class="lx-date">${r.datum?fmtDate(r.datum):'–'}</div>
@@ -1455,16 +1502,21 @@ function renderReview(){
             ${Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}"${r.kategorie===k?' selected':''}>${v.label}</option>`).join('')}
           </select>
           <div>${statusLbl}</div>
-          <button class="entry-del reason-btn${hasGrund?' has-grund':''}" onclick="toggleReason(${realIdx})" title="${hasGrund?'Begründung anzeigen':'Keine Begründung vorhanden'}">
-            <i data-lucide="chevron-down"></i>
-          </button>
+          <div style="display:flex;align-items:center;gap:2px;justify-content:flex-end;">
+            <button class="entry-del${r.bestaetigt?' ok-active':''}" onclick="onConfirmToggle(${realIdx})" title="${r.bestaetigt?'Bestätigung aufheben':'Als OK markieren'}" style="color:${r.bestaetigt?'var(--green)':'var(--text3)'};">
+              <i data-lucide="${r.bestaetigt?'check-circle':'check'}"></i>
+            </button>
+            ${hasReceipt?`<button class="entry-del" onclick="onUnlinkReceipt(${realIdx})" title="Beleg-Zuordnung aufheben" style="color:var(--text3);">
+              <i data-lucide="unlink"></i>
+            </button>`:`<span style="width:24px;display:inline-block;"></span>`}
+            <button class="entry-del reason-btn${hasGrund?' has-grund':''}" onclick="toggleReason(${realIdx})" title="${hasGrund?'Begründung anzeigen':'Keine Begründung vorhanden'}" style="color:${hasGrund?'var(--text2)':'var(--text3)'};">
+              <i data-lucide="chevron-down"></i>
+            </button>
+          </div>
         </div>
         ${hasGrund?`<div class="reason-row" id="reason-${realIdx}" style="display:none;">
           <i data-lucide="info" style="width:13px;height:13px;flex-shrink:0;color:var(--text3)"></i>
           <span>${r.begruendung}</span>
-          <button class="entry-del" onclick="onConfirmToggle(${realIdx})" title="${r.bestaetigt?'Bestätigung aufheben':'Als OK markieren'}" style="margin-left:auto;flex-shrink:0;">
-            <i data-lucide="${r.bestaetigt?'check-circle':'circle'}"></i>
-          </button>
         </div>`:''}
       </div>`;
     }).join('')}`;
@@ -1494,6 +1546,25 @@ async function onConfirmToggle(idx){
     catch(e){console.warn('Bestätigung fehlgeschlagen:',e.message);}
   }
   renderReview();
+}
+
+async function onUnlinkReceipt(idx){
+  const m=matches[idx];
+  if(!m.receipt_id)return;
+  m.receipt_id=null;
+  m.receipts=null;
+  // Konfidenz auf null zurücksetzen damit KI neu kategorisieren kann
+  // (aber Begründung zum Kontext behalten)
+  if(m.id){
+    try{await DB.updateMatch(m.id,{receipt_id:null,begruendung:null,konfidenz:null,unklar:false,bestaetigt:false});}
+    catch(e){console.warn('Unlink fehlgeschlagen:',e.message);}
+  }
+  m.begruendung=null;
+  m.konfidenz=null;
+  m.unklar=false;
+  m.bestaetigt=false;
+  renderReview();
+  toast('Beleg-Zuordnung aufgehoben');
 }
 
 function toggleFilterReview(){filterReview=!filterReview;$('btn-filter-review').classList.toggle('active',filterReview);renderReview();}
@@ -1814,23 +1885,23 @@ async function init(){
   if(!user){window.location.href='/';return;}
   $('nav-user').textContent=user.email||'';
 
-  // Jahr-Select – ohne setQuartal aufzurufen (das passiert am Ende)
+  // Jahr-Select – Vorauswahl aus localStorage (Zeitraum beim Reload beibehalten)
+  const savedYear=parseInt(localStorage.getItem('steuer_year'))||new Date().getFullYear();
+  const savedQ=parseInt(localStorage.getItem('steuer_quartal')||'0');
   const ySel=$('sel-year');
   const curYear=new Date().getFullYear();
   ySel.innerHTML='';
   [curYear,curYear-1,curYear-2].forEach(y=>{
     const o=document.createElement('option');o.value=y;o.textContent=y;
-    if(y===curYear)o.selected=true;ySel.appendChild(o);
+    if(y===savedYear)o.selected=true;ySel.appendChild(o);
   });
-  selectedYear=curYear;
+  selectedYear=savedYear;
+  selectedQuartal=savedQ;
 
-  // Quartal bestimmen aber NICHT setQuartal aufrufen (das würde loadMatchesFromDB triggern bevor CSV geladen)
-  const curQ=Math.ceil((new Date().getMonth()+1)/3);
-  selectedQuartal=curQ;
-  // Quartal-Buttons manuell setzen
+  // Quartal-Buttons setzen
   document.querySelectorAll('.q-btn').forEach(b=>b.classList.remove('active'));
-  if(curQ===0)$('qjahr').classList.add('active');
-  else $(`q${curQ}`)?.classList.add('active');
+  if(savedQ===0)$('qjahr').classList.add('active');
+  else $(`q${savedQ}`)?.classList.add('active');
 
   // Rechnungen laden
   try{allDocs=await DB.getDocuments();}
@@ -1841,12 +1912,11 @@ async function init(){
   await Promise.all([
     (async()=>{
       try{
-        const txs=await DB.getTransactions(curYear);
+        const txs=await DB.getTransactions(savedYear);
         if(txs.length){
           csvTransactions=txs.map(t=>({
-            // WICHTIG: ID als 'tx'+t.id damit Matching-Algorithmus IDs konsistent findet
             id:'tx'+t.id,
-            _dbId: t.id,  // Original-UUID aus DB
+            _dbId: t.id,
             datum:t.datum||'', empfaenger:t.empfaenger||'',
             verwendungszweck:t.verwendungszweck||'',
             beschreibung:t.beschreibung||(t.empfaenger||'')+(t.verwendungszweck?' – '+t.verwendungszweck:''),
@@ -1856,11 +1926,11 @@ async function init(){
           const aus=csvTransactions.filter(t=>!t.isEinnahme).length;
           const st=$('csv-status');
           st.style.display='block';
-          st.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} Buchungen</strong> aus ${curYear}: ${ein} Eingänge, ${aus} Ausgaben. <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="clearCSVData()"><i data-lucide="trash-2"></i> Löschen</button></div></div>`;
+          st.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} Buchungen</strong> aus ${savedYear}: ${ein} Eingänge, ${aus} Ausgaben. <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="clearCSVData()"><i data-lucide="trash-2"></i> Löschen</button></div></div>`;
         }
       }catch(e){console.info('CSV nicht geladen:',e.message);}
     })(),
-    loadMatchesFromDB(curYear,curQ),
+    loadMatchesFromDB(savedYear,savedQ),
     loadReceiptsFromDB(),
   ]);
 

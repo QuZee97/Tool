@@ -136,9 +136,14 @@ const DB = {
       q = q.gte('datum', `${year}-01-01`).lte('datum', `${year}-12-31`);
     }
     if (quartal && quartal > 0) {
-      const qMap = { 1: ['01','03'], 2: ['04','06'], 3: ['07','09'], 4: ['10','12'] };
-      const [mFrom, mTo] = qMap[quartal] || ['01','12'];
-      q = q.gte('datum', `${year}-${mFrom}-01`).lte('datum', `${year}-${mTo}-31`);
+      const qDates = {
+        1: [`${year}-01-01`, `${year}-03-31`],
+        2: [`${year}-04-01`, `${year}-06-30`],
+        3: [`${year}-07-01`, `${year}-09-30`],
+        4: [`${year}-10-01`, `${year}-12-31`],
+      };
+      const [dFrom, dTo] = qDates[quartal] || [`${year}-01-01`, `${year}-12-31`];
+      q = q.gte('datum', dFrom).lte('datum', dTo);
     }
     const { data, error } = await q;
     if (error) throw error;
@@ -163,7 +168,6 @@ const DB = {
     const user = await getUser();
     const ts  = Date.now();
     const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 80);
-    // Pfad: user_id als Präfix mit Doppelstrich-Trenner (kein Unterordner-Problem)
     const path = `${user.id}__${ts}_${safeName}`;
     // 1) Datei in Storage hochladen
     const { error: upErr } = await db.storage.from('receipts').upload(path, file, {
@@ -172,22 +176,26 @@ const DB = {
       contentType: file.type || 'application/octet-stream',
     });
     if (upErr) throw new Error(`Storage-Upload fehlgeschlagen: ${upErr.message}`);
-    // 2) Signed URL für späteren Zugriff (1 Jahr gültig)
+    // 2) Signed URL
     const { data: urlData, error: urlErr } = await db.storage
       .from('receipts').createSignedUrl(path, 60 * 60 * 24 * 365);
     if (urlErr) throw urlErr;
-    // 3) Metadaten in DB-Tabelle "receipts" speichern
+    // 3) Metadaten inkl. Thumbnail in einem Insert
     const { data, error } = await db.from('receipts').insert({
-      user_id: user.id,
-      filename: file.name,
-      storage_path: path,
-      signed_url: urlData.signedUrl,
-      size_bytes: file.size,
-      mime_type: file.type || 'application/octet-stream',
-      datum: meta.datum || null,
-      beschreibung: meta.beschreibung || file.name,
-      kategorie: meta.kategorie || null,
-      betrag: meta.betrag || null,
+      user_id:        user.id,
+      filename:       file.name,
+      storage_path:   path,
+      signed_url:     urlData.signedUrl,
+      size_bytes:     file.size,
+      mime_type:      file.type || 'application/octet-stream',
+      datum:          meta.datum || null,
+      beschreibung:   meta.beschreibung || file.name,
+      kategorie:      meta.kategorie || null,
+      betrag:         meta.betrag || null,
+      mwst_satz:      meta.mwst_satz ?? null,
+      betrag_netto:   meta.betrag_netto || null,
+      mwst_betrag:    meta.mwst_betrag || null,
+      thumbnail_data: meta.thumbnail_data || null,
     }).select().single();
     if (error) throw error;
     return data;
@@ -201,16 +209,20 @@ const DB = {
   async saveReceiptMeta(meta) {
     const user = await getUser();
     const { data, error } = await db.from('receipts').insert({
-      user_id:      user.id,
-      filename:     meta.filename || null,
-      storage_path: null,
-      signed_url:   null,
-      size_bytes:   meta.size_bytes || 0,
-      mime_type:    meta.mime_type || 'application/octet-stream',
-      datum:        meta.datum || null,
-      beschreibung: meta.beschreibung || meta.filename || null,
-      kategorie:    meta.kategorie || null,
-      betrag:       meta.betrag || null,
+      user_id:        user.id,
+      filename:       meta.filename || null,
+      storage_path:   null,
+      signed_url:     null,
+      size_bytes:     meta.size_bytes || 0,
+      mime_type:      meta.mime_type || 'application/octet-stream',
+      datum:          meta.datum || null,
+      beschreibung:   meta.beschreibung || meta.filename || null,
+      kategorie:      meta.kategorie || null,
+      betrag:         meta.betrag || null,
+      mwst_satz:      meta.mwst_satz ?? null,
+      betrag_netto:   meta.betrag_netto || null,
+      mwst_betrag:    meta.mwst_betrag || null,
+      thumbnail_data: meta.thumbnail_data || null,
     }).select().single();
     if (error) throw error;
     return data;
@@ -273,9 +285,15 @@ const DB = {
       q = q.eq('year', year);
     }
     if (quartal && quartal > 0) {
-      const qMap = { 1:['01','03'], 2:['04','06'], 3:['07','09'], 4:['10','12'] };
-      const [mFrom, mTo] = qMap[quartal] || ['01','12'];
-      q = q.gte('datum', `${year}-${mFrom}-01`).lte('datum', `${year}-${mTo}-31`);
+      // Use exact start/end dates to avoid invalid dates like 06-31
+      const qDates = {
+        1: [`${year}-01-01`, `${year}-03-31`],
+        2: [`${year}-04-01`, `${year}-06-30`],
+        3: [`${year}-07-01`, `${year}-09-30`],
+        4: [`${year}-10-01`, `${year}-12-31`],
+      };
+      const [dFrom, dTo] = qDates[quartal] || [`${year}-01-01`, `${year}-12-31`];
+      q = q.gte('datum', dFrom).lte('datum', dTo);
     }
     const { data: matchData, error } = await q;
     if (error) throw error;
