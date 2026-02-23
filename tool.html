@@ -3,1868 +3,1695 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Steuertool – VISO Media</title>
+<title>Angebote & Rechnungen – VISO Media</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23d4cc2e'/><text x='16' y='23' text-anchor='middle' font-size='20' font-family='Helvetica Neue,Arial,sans-serif' font-weight='700' fill='%23111'>V</text></svg>">
+<!-- Lucide Icons -->
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <style>
+/* ── TOKENS ─────────────────────────────────────────── */
 :root{
-  --bg:#1e1f22;--surface:#27282c;--surface2:#2f3035;--surface3:#383a40;
-  --border:#3d3f45;--border2:#4a4c54;
-  --text:#e2e3e8;--text2:#9a9ca5;--text3:#5c5f6b;
-  --accent:#d4cc2e;--accent-bg:rgba(212,204,46,0.08);
-  --red:#e05555;--red-bg:rgba(224,85,85,0.1);
-  --green:#4ade80;--green-bg:rgba(74,222,128,0.1);
-  --blue:#60a5fa;--blue-bg:rgba(96,165,250,0.1);
-  --orange:#fb923c;--orange-bg:rgba(251,146,60,0.1);
-  --radius:8px;--radius-sm:5px;--font:'Helvetica Neue',Arial,sans-serif;
+  /* Backgrounds: warm grays statt reines Schwarz */
+  --bg:#1e1f22;
+  --surface:#27282c;
+  --surface2:#2f3035;
+  --surface3:#383a40;
+  --border:#3d3f45;
+  --border2:#4a4c54;
+  --text:#e2e3e8;
+  --text2:#9a9ca5;
+  --text3:#5c5f6b;
+  /* Weniger saturiertes Gelb */
+  --accent:#d4cc2e;
+  --accent-dim:#a8a325;
+  --accent-bg:rgba(212,204,46,0.08);
+  --red:#e05555;
+  --green:#4ade80;
+  --blue:#60a5fa;
+  --radius:8px;
+  --radius-sm:5px;
+  --sidebar-w:300px;
+  --font:'Helvetica Neue',Arial,sans-serif;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);min-height:100vh;display:flex;flex-direction:column;}
+body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);display:flex;flex-direction:column;height:100vh;overflow:hidden;}
 
-/* NAV */
-#nav{height:52px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:4px;position:sticky;top:0;z-index:50;flex-shrink:0;}
+/* ── SHARED TOPNAV ──────────────────────────────────── */
+#nav{
+  height:52px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:4px;
+  position:sticky;top:0;z-index:50;flex-shrink:0;
+}
 .nav-logo{font-size:14px;font-weight:700;color:var(--text);letter-spacing:-.2px;margin-right:8px;}
 .nav-logo span{color:var(--text2);font-weight:300;}
 .nav-sep{width:1px;height:20px;background:var(--border);margin:0 6px;}
-.nav-btn{height:32px;padding:0 10px;border:none;background:none;color:var(--text3);cursor:pointer;border-radius:var(--radius-sm);display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;font-family:var(--font);transition:background .15s,color .15s;white-space:nowrap;text-decoration:none;}
+.nav-btn{
+  height:32px;padding:0 10px;border:none;background:none;
+  color:var(--text3);cursor:pointer;border-radius:var(--radius-sm);
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:500;font-family:var(--font);
+  transition:background .15s,color .15s;white-space:nowrap;text-decoration:none;
+}
 .nav-btn:hover{background:var(--surface3);color:var(--text);}
 .nav-btn.active{background:var(--accent-bg);color:var(--accent);}
 .nav-btn svg{width:14px;height:14px;stroke-width:1.8;flex-shrink:0;}
 .nav-spacer{flex:1;}
-.nav-icon-btn{width:32px;height:32px;padding:0;border:none;background:none;color:var(--text3);cursor:pointer;border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;transition:background .15s,color .15s;}
+/* Schmale Icon-only Buttons (Speichern, PDF, Logout) */
+.nav-icon-btn{
+  width:32px;height:32px;padding:0;border:none;background:none;
+  color:var(--text3);cursor:pointer;border-radius:var(--radius-sm);
+  display:inline-flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s;text-decoration:none;
+}
 .nav-icon-btn:hover{background:var(--surface3);color:var(--text);}
 .nav-icon-btn svg{width:15px;height:15px;stroke-width:1.8;}
+/* Tool-Sidebar-Trennlinie entfällt, vertikale Sep bleibt */
 
-/* LAYOUT */
-#app{display:flex;flex:1;overflow:hidden;}
-#sidebar{width:240px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;padding:20px 16px;}
-#main{flex:1;overflow-y:auto;padding:28px 32px;}
-#main>*{max-width:760px;}
-#main::-webkit-scrollbar{width:5px;}
-#main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+/* ── CONTENT WRAPPER (unter Nav) ───────────────────── */
+#content-wrap{flex:1;display:flex;overflow:hidden;}
 
-/* SIDEBAR */
-.sb-section{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin:18px 0 8px;display:flex;align-items:center;gap:6px;}
-.sb-section::after{content:'';flex:1;height:1px;background:var(--border);}
-.sb-section:first-child{margin-top:0;}
-.step-btn{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;text-align:left;cursor:pointer;display:flex;align-items:center;gap:8px;transition:.12s;margin-bottom:4px;}
-.step-btn:hover{background:var(--surface2);border-color:var(--border2);}
-.step-btn.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);}
-.step-btn.done{border-color:var(--green);color:var(--green);background:var(--green-bg);}
-.step-num{width:20px;height:20px;border-radius:50%;background:var(--surface2);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.step-btn.active .step-num{background:var(--accent);color:#111;}
-.step-btn.done .step-num{background:var(--green);color:#111;}
-.step-badge{margin-left:auto;font-size:10px;font-weight:700;background:var(--orange-bg);color:var(--orange);border-radius:10px;padding:1px 6px;display:none;}
-.step-badge.show{display:inline;}
+/* ── SIDEBAR ────────────────────────────────────────── */
+#sidebar{
+  width:var(--sidebar-w);flex-shrink:0;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  position:relative;
+}
+#sidebar-content{flex:1;overflow-y:auto;padding:16px;}
+#sidebar-content::-webkit-scrollbar{width:4px;}
+#sidebar-content::-webkit-scrollbar-track{background:transparent;}
+#sidebar-content::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 
-.quartal-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:4px;}
-.q-btn{padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:transparent;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer;text-align:center;transition:.12s;}
-.q-btn:hover{border-color:var(--border2);color:var(--text2);}
-.q-btn.active{background:var(--accent);color:#111;border-color:var(--accent);}
-#sidebar select{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:6px 9px;outline:none;font-family:var(--font);cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%235c5f6b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:26px;}
-.sb-stat{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:6px;}
-.sb-stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
-.sb-stat-val{font-size:16px;font-weight:700;}
-.sb-stat-val.green{color:var(--green);}
-.sb-stat-val.red{color:var(--red);}
-.sb-stat-val.accent{color:var(--accent);}
-.sb-stat-val.blue{color:var(--blue);}
+/* Resize handle */
+#resize-handle{
+  position:absolute;right:0;top:0;bottom:0;width:4px;
+  cursor:col-resize;z-index:10;
+  background:transparent;transition:background .15s;
+}
+#resize-handle:hover,#resize-handle.dragging{background:var(--accent);}
 
-/* PAGES */
-.page{display:none;}
-.page.active{display:block;}
-.page-title{font-size:18px;font-weight:700;margin-bottom:4px;}
-.page-sub{font-size:12px;color:var(--text3);margin-bottom:20px;line-height:1.6;}
+/* Sidebar panels */
+.panel{display:none;}
+.panel.active{display:block;}
+.panel-title{
+  font-size:11px;font-weight:600;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.8px;
+  margin-bottom:16px;
+}
 
-/* CARDS */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;}
-.card-title{font-size:13px;font-weight:600;margin-bottom:4px;}
-.card-sub{font-size:11px;color:var(--text3);margin-bottom:14px;line-height:1.6;}
+/* Form elements – nur im Sidebar anwenden, NICHT im doc-page */
+.field-group{margin-bottom:14px;}
+.field-label{font-size:11px;color:var(--text3);margin-bottom:5px;display:block;}
+#sidebar .field-input,
+#sidebar input[type=text],#sidebar input[type=email],
+#sidebar input[type=number],#sidebar input[type=date],
+#sidebar textarea,#sidebar select,
+#topbar input[type=text],#topbar input[type=email]{
+  width:100%;background:var(--surface2);
+  border:1px solid var(--border2);border-radius:var(--radius-sm);
+  color:var(--text);font-size:12px;padding:7px 10px;
+  outline:none;font-family:var(--font);
+  transition:border-color .15s,background .15s;
+  -webkit-appearance:none;
+}
+#sidebar input:focus,#sidebar textarea:focus,#sidebar select:focus{
+  border-color:var(--accent);
+  background:var(--surface3);
+}
+#sidebar textarea{resize:vertical;min-height:56px;line-height:1.6;}
+#sidebar select{cursor:pointer;appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235c5f6b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 9px center;
+  padding-right:28px;}
+#sidebar select option{background:var(--surface2);color:var(--text);}
 
-/* BUTTONS */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:none;border-radius:var(--radius-sm);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);transition:.15s;white-space:nowrap;}
-.btn svg{width:13px;height:13px;stroke-width:2;}
+/* Section header */
+.section-hd{
+  font-size:10px;font-weight:600;color:var(--text3);
+  text-transform:uppercase;letter-spacing:.7px;
+  margin:18px 0 8px;
+  display:flex;align-items:center;gap:6px;
+}
+.section-hd::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* Buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:7px 12px;border:none;border-radius:var(--radius-sm);
+  font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font);
+  transition:opacity .15s,background .15s;white-space:nowrap;
+}
 .btn:hover{opacity:.85;}
 .btn-primary{background:var(--accent);color:#111;}
 .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border2);}
-.btn-ghost:hover{background:var(--surface2);opacity:1;}
-.btn-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red);}
-.btn-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green);}
-.btn-sm{padding:5px 10px;font-size:11px;}
-.btn-lg{padding:12px 20px;font-size:13px;}
+.btn-ghost:hover{background:var(--surface3);opacity:1;}
+.btn-danger{background:transparent;color:var(--red);border:1px solid var(--border2);}
+.btn-danger:hover{background:#2a1515;opacity:1;}
+.btn-full{width:100%;margin-top:6px;}
+.btn svg{width:14px;height:14px;stroke-width:2;}
+.btn-icon{
+  width:28px;height:28px;padding:0;background:transparent;
+  border:none;color:var(--text3);cursor:pointer;border-radius:4px;
+  display:inline-flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s;
+}
+.btn-icon:hover{background:var(--surface3);color:var(--text);}
+.btn-icon svg{width:14px;height:14px;stroke-width:1.8;}
 
-/* HINWEIS */
-.hinweis{display:flex;gap:10px;align-items:flex-start;background:var(--blue-bg);border:1px solid rgba(96,165,250,.2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:16px;font-size:11px;color:var(--text2);line-height:1.6;}
-.hinweis svg{width:14px;height:14px;color:var(--blue);flex-shrink:0;margin-top:1px;}
-.hinweis.warn{background:var(--orange-bg);border-color:rgba(251,146,60,.2);}
-.hinweis.warn svg{color:var(--orange);}
-.hinweis.ok{background:var(--green-bg);border-color:rgba(74,222,128,.2);}
-.hinweis.ok svg{color:var(--green);}
+/* Cards */
+.card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;
+  position:relative;
+}
+.card:hover{border-color:var(--border2);}
+.card-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.card-sub{font-size:11px;color:var(--text3);line-height:1.5;}
+.card-actions{display:flex;gap:6px;margin-top:8px;align-items:center;}
+.card-del{position:absolute;top:8px;right:8px;}
 
-/* UPLOAD ZONE */
-.upload-zone{border:2px dashed var(--border2);border-radius:var(--radius);padding:32px 20px;text-align:center;cursor:pointer;transition:.15s;position:relative;margin-bottom:12px;}
-.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-bg);}
-.upload-zone svg.upload-icon{width:32px;height:32px;stroke-width:1.2;color:var(--text3);margin-bottom:10px;}
-.upload-zone p{font-size:12px;color:var(--text3);line-height:1.7;}
-.upload-zone strong{color:var(--text2);}
-.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+/* Status chips */
+.status-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
+.chip{
+  font-size:10px;padding:3px 8px;border-radius:20px;cursor:pointer;
+  border:1px solid var(--border2);color:var(--text3);background:none;
+  font-family:var(--font);transition:.15s;user-select:none;
+  display:inline-flex;align-items:center;justify-content:center;
+  line-height:1;
+}
+.chip:hover{border-color:var(--text3);color:var(--text2);}
+.chip.sent{background:#1a2a3f;border-color:var(--blue);color:var(--blue);}
+.chip.accepted{background:#0f2a1a;border-color:var(--green);color:var(--green);}
+.chip.declined{background:#2a1515;border-color:var(--red);color:var(--red);}
+.chip.paid{background:#0f2a1a;border-color:var(--green);color:var(--green);}
 
-/* FILE LIST */
-.file-list{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
-.file-item{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:11px;}
-.file-item-icon{width:28px;height:28px;border-radius:5px;background:var(--surface3);color:var(--text3);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;}
-.file-item-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);}
-.file-item-size{color:var(--text3);flex-shrink:0;}
-.file-item-status{font-size:10px;color:var(--text3);flex-shrink:0;}
-.file-item-status.ok{color:var(--green);}
-.file-item-status.err{color:var(--red);}
-.file-item-status.loading{color:var(--accent);}
-.file-item-del{width:22px;height:22px;border:none;background:none;color:var(--text3);cursor:pointer;border-radius:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.file-item-del:hover{background:var(--red-bg);color:var(--red);}
-.file-item-del svg{width:12px;height:12px;}
+/* Toggle row */
+.toggle-row{display:flex;gap:6px;}
+.toggle-btn{
+  flex:1;padding:6px 8px;border:1px solid var(--border2);
+  border-radius:var(--radius-sm);background:var(--surface2);
+  color:var(--text3);cursor:pointer;font-size:11px;font-weight:500;
+  font-family:var(--font);transition:.15s;text-align:center;
+}
+.toggle-btn:hover{border-color:var(--text3);color:var(--text2);}
+.toggle-btn.active{background:var(--accent);color:#111;border-color:var(--accent);}
 
-/* TRANSACTION LIST */
-.tx-list{display:flex;flex-direction:column;}
-.tx-row{display:grid;grid-template-columns:80px 1fr auto auto;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:11px;}
-.tx-row:last-child{border-bottom:none;}
-.tx-row:hover{background:var(--surface2);}
-.tx-date{color:var(--text3);font-size:10px;}
-.tx-desc{color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.tx-sub{color:var(--text3);font-size:10px;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.tx-amt{font-weight:600;font-size:12px;text-align:right;white-space:nowrap;}
-.tx-amt.income{color:var(--green);}
-.tx-amt.expense{color:var(--red);}
-.tx-tag{font-size:9px;font-weight:600;padding:2px 6px;border-radius:8px;white-space:nowrap;}
-.tx-tag.matched{background:var(--green-bg);color:var(--green);}
-.tx-tag.unmatched{background:var(--orange-bg);color:var(--orange);}
-.tx-tag.manual{background:var(--blue-bg);color:var(--blue);}
+/* Tax pills */
+.tax-group{display:flex;flex-direction:column;gap:4px;}
+.tax-btn{
+  padding:7px 10px;border:1px solid var(--border2);border-radius:var(--radius-sm);
+  background:var(--surface2);color:var(--text3);cursor:pointer;
+  font-size:11px;font-family:var(--font);text-align:left;transition:.15s;
+}
+.tax-btn:hover{border-color:var(--text3);color:var(--text2);}
+.tax-btn.active{background:var(--surface3);border-color:var(--accent);color:var(--accent);}
 
-/* LEXOFFICE-STYLE REVIEW TABLE */
-.lx-row{display:grid;grid-template-columns:68px minmax(0,1fr) 88px 56px 150px 70px 28px;align-items:center;gap:6px;padding:7px 14px;border-bottom:1px solid var(--border);font-size:11px;transition:background .1s;min-height:52px;}
-.lx-row:hover{background:var(--surface2);}
-.lx-row.unsicher{box-shadow:inset 3px 0 0 var(--orange);}
-.lx-row.bestaetigt{box-shadow:inset 3px 0 0 var(--green);}
-.lx-header{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);padding:6px 14px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:68px minmax(0,1fr) 88px 56px 150px 70px 28px;gap:6px;}
-.lx-date{color:var(--text3);font-size:10px;white-space:nowrap;}
-.lx-desc{min-width:0;overflow:hidden;}
-.lx-desc-main{color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.lx-desc-sub{color:var(--text3);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px;}
-.lx-amt{font-weight:600;font-size:12px;text-align:right;white-space:nowrap;}
-.lx-amt.in{color:var(--green);}
-.lx-amt.out{color:var(--red);}
-.lx-thumb{display:flex;align-items:center;justify-content:center;width:56px;}
-.lx-row-wrap{border-bottom:1px solid var(--border);}
-.lx-row-wrap .lx-row{border-bottom:none;}
-.reason-row{display:flex;align-items:flex-start;gap:8px;padding:6px 14px 8px 14px;background:var(--surface2);font-size:11px;color:var(--text3);line-height:1.5;}
-.reason-btn{color:var(--text3);}
-.reason-btn.has-grund{color:var(--text2);}
-.reason-btn svg{transition:transform .15s;}
-.ki-loading-inline{display:none;align-items:center;gap:8px;font-size:11px;color:var(--text3);padding:6px 0;}
-.ki-loading-inline.show{display:flex;}
+/* Hist item */
+.hist-item{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius);padding:10px 12px;margin-bottom:7px;
+  transition:border-color .15s;
+}
+.hist-item:hover{border-color:var(--border2);}
+.hist-badge{
+  display:inline-block;font-size:9px;padding:2px 6px;
+  border-radius:3px;font-weight:700;margin-bottom:5px;
+}
+.badge-ang{background:#3a2a0a;color:#fbbf24;}
+.badge-re{background:#0a2a1a;color:var(--green);}
+.hist-nr{font-size:12px;font-weight:600;color:var(--text);cursor:pointer;}
+.hist-nr:hover{color:var(--accent);}
+.hist-sub{font-size:10px;color:var(--text3);margin-top:2px;}
 
-/* BELEG-THUMBNAIL */
-.thumb-slot{width:40px;height:40px;border-radius:5px;border:2px dashed var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;transition:.15s;position:relative;background:var(--surface2);}
-.thumb-slot:hover{border-color:var(--accent);background:var(--accent-bg);}
-.thumb-slot.has-thumb{border-style:solid;border-color:var(--border);}
-.thumb-slot.has-thumb:hover{border-color:var(--accent);}
-.thumb-slot img{width:100%;height:100%;object-fit:cover;border-radius:2px;}
-.thumb-slot .pdf-lbl{font-size:8px;font-weight:700;color:var(--text3);text-align:center;line-height:1.3;padding:2px;}
-.thumb-slot .add-lbl{color:var(--text3);font-size:18px;line-height:1;}
-.conf-dot{position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;border:1.5px solid var(--surface);}
-.conf-dot.hoch{background:var(--green);}
-.conf-dot.mittel{background:var(--orange);}
-.conf-dot.niedrig{background:var(--red);}
-
-/* KONFIDENZ BADGE */
-.konfidenz{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;}
-.konfidenz.hoch{background:var(--green-bg);color:var(--green);}
-.konfidenz.mittel{background:var(--orange-bg);color:var(--orange);}
-.konfidenz.niedrig,.konfidenz.unklar{background:var(--red-bg);color:var(--red);}
-.konfidenz.bestaetigt{background:var(--green-bg);color:var(--green);}
-
-/* CAT SELECT */
-.cat-select{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:10px;padding:3px 6px;outline:none;font-family:var(--font);width:100%;}
-
-/* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;}
-.modal-overlay.open{display:flex;}
-.modal-box{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);max-width:700px;width:100%;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);}
-.modal-head{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;}
-.modal-head h3{flex:1;font-size:14px;font-weight:600;margin:0;}
-.modal-close{width:28px;height:28px;border:none;background:none;color:var(--text3);cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:20px;line-height:1;flex-shrink:0;}
-.modal-close:hover{background:var(--surface2);color:var(--text);}
-.modal-body{flex:1;overflow-y:auto;padding:20px;}
-.modal-foot{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;}
-
-/* PICKER GRID */
-.picker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;}
-.picker-item{border:2px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;cursor:pointer;transition:.15s;}
-.picker-item:hover{border-color:var(--accent);}
-.picker-item.selected{border-color:var(--accent);background:var(--accent-bg);}
-.picker-thumb{width:100%;height:72px;object-fit:cover;display:block;background:var(--surface2);}
-.picker-pdf{height:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:var(--surface2);color:var(--text3);font-size:10px;font-weight:700;}
-.picker-pdf svg{color:var(--text3);}
-.picker-used{opacity:.5;cursor:not-allowed!important;}
-.picker-name{padding:5px 7px 6px;font-size:10px;color:var(--text3);line-height:1.4;}
-.picker-name-desc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);}
-.picker-name-date{font-size:9px;color:var(--text3);margin-top:1px;}
-
-/* AI RESULT ROW (legacy, wird noch für nicht-CSV Einträge verwendet) */
-.ai-row{display:grid;grid-template-columns:1fr auto 140px auto;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;}
-.ai-row:last-child{border-bottom:none;}
-.ai-desc{color:var(--text2);font-size:12px;}
-.ai-sub{color:var(--text3);font-size:10px;margin-top:2px;}
-.ai-amt{font-weight:600;font-size:12px;white-space:nowrap;text-align:right;}
-.ai-amt.income{color:var(--green);}
-.ai-amt.expense{color:var(--red);}
-
-/* USTVA GRID */
-.ustv-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;}
-.ustv-kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
-.ustv-kpi-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
-.ustv-kpi-val{font-size:22px;font-weight:700;}
-.ustv-kpi-val.green{color:var(--green);}
-.ustv-kpi-val.red{color:var(--red);}
-.ustv-kpi-val.accent{color:var(--accent);}
-.ustv-kpi-val.blue{color:var(--blue);}
-.detail-table{width:100%;border-collapse:collapse;font-size:11px;}
-.detail-table th{padding:8px 14px;text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);}
-.detail-table td{padding:8px 14px;border-bottom:1px solid var(--border);color:var(--text2);}
-.detail-table td:last-child{text-align:right;font-weight:600;color:var(--text);}
-.detail-table tr:last-child td{border-bottom:none;}
-
-/* PROGRESS */
-.progress-wrap{height:4px;background:var(--surface3);border-radius:2px;overflow:hidden;margin-top:6px;}
-.progress-bar{height:4px;background:var(--accent);border-radius:2px;transition:width .3s;}
-
-/* SPINNER */
-.spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
-.spinner-lg{width:32px;height:32px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.loading-bar{display:none;align-items:center;gap:10px;padding:14px;background:var(--surface2);border-radius:var(--radius);margin:8px 0;font-size:12px;color:var(--text3);}
-.loading-bar.show{display:flex;}
-
-/* TOAST */
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--surface3);color:var(--text);border:1px solid var(--border2);padding:9px 18px;border-radius:var(--radius);font-size:12px;opacity:0;transition:.25s;pointer-events:none;z-index:999;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+/* Toast */
+#toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--surface3);color:var(--text);border:1px solid var(--border2);
+  padding:9px 18px;border-radius:var(--radius);font-size:12px;
+  opacity:0;transition:.25s;pointer-events:none;z-index:999;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);
+}
 #toast.show{opacity:1;}
 
-/* LOADING SCREEN */
-#loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;z-index:100;}
+/* ── MAIN / DOCUMENT AREA ───────────────────────────── */
+#main{
+  flex:1;overflow-y:auto;background:var(--bg);
+  padding:24px 32px;
+  display:flex;flex-direction:column;align-items:center;gap:0;
+}
+#main::-webkit-scrollbar{width:6px;}
+#main::-webkit-scrollbar-track{background:transparent;}
+#main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 
-/* ENTRY TABLE */
-.entry-table{width:100%;border-collapse:collapse;font-size:11px;}
-.entry-table th{padding:7px 10px;text-align:left;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);}
-.entry-table td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text2);}
-.entry-table tr:last-child td{border-bottom:none;}
-.entry-del{width:20px;height:20px;border:none;background:none;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.entry-del:hover{color:var(--red);}
-.entry-del svg{width:12px;height:12px;}
+/* Doc-type toggle bar */
+#topbar{
+  width:210mm;max-width:100%;
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:16px;
+  flex-shrink:0;
+}
+#topbar .doc-type-toggle{display:flex;gap:4px;}
+#topbar .doc-type-btn{
+  padding:6px 14px;border:1px solid var(--border2);border-radius:var(--radius-sm);
+  background:var(--surface2);color:var(--text3);cursor:pointer;
+  font-size:12px;font-weight:500;font-family:var(--font);transition:.15s;
+}
+#topbar .doc-type-btn.active{background:var(--accent);color:#111;border-color:var(--accent);}
+
+/* ── DOCUMENT PAGES ─────────────────────────────────── */
+.doc-page{
+  width:210mm;max-width:100%;
+  background:#fff;color:#1a1a1a;
+  padding:20mm 20mm 18mm 22mm;
+  box-shadow:0 2px 24px rgba(0,0,0,.35);
+  margin-bottom:20px;
+  position:relative;
+  flex-shrink:0;
+}
+/* Page 2 starts on new page always */
+#page2{display:none;}
+
+/* Doc variables inside white doc */
+.doc-page{
+  --doc-accent:#5a5a5a;
+  --doc-accent-soft:#888;
+  --doc-light:#f7f7f7;
+  font-family:'Helvetica Neue',Arial,sans-serif;
+  font-size:12.5px;
+  line-height:1.5;
+}
+
+/* ── INLINE EDIT STYLES ────────────────────────────────────
+   Alle Inline-Felder im Dokument: einheitlich, kein schwarzer Hintergrund,
+   kein gestrichelter Rand – stattdessen dezenter Hover/Focus-Effekt.
+   Im PDF werden alle Klassen komplett bereinigt.
+──────────────────────────────────────────────────────────── */
+.ie,.ie-block,.ie-select,.ie-date{
+  font-family:inherit;font-size:inherit;color:inherit;
+  background:transparent;
+  border:1px solid transparent;
+  border-radius:3px;
+  outline:none;
+  transition:background .12s,border-color .12s;
+}
+/* Standard: subtiler Rand – immer sichtbar */
+.ie,.ie-block,.ie-select,.ie-date{
+  border-color:#e8e8e8;
+}
+/* Hover: etwas deutlicher */
+.ie:hover,.ie-block:hover,.ie-select:hover,.ie-date:hover{
+  background:rgba(0,0,0,.03);
+  border-color:#ccc;
+}
+/* Focus: klarer Rahmen */
+.ie:focus,.ie-block:focus,.ie-select:focus,.ie-date:focus{
+  background:#f5f5e8;
+  border-color:#999;
+}
+/* Einzelne Maße */
+.ie{padding:1px 3px;width:auto;min-width:40px;}
+.ie-block{padding:3px 5px;width:100%;}
+.ie-select{
+  padding:2px 4px;cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+}
+/* Native date picker – behält Browser-Kalender */
+.ie-date{
+  padding:2px 4px;cursor:pointer;width:138px;
+  -webkit-appearance:auto;appearance:auto;
+}
+.ie-date::-webkit-calendar-picker-indicator{
+  opacity:0.4;cursor:pointer;
+}
+
+/* Doc header */
+.doc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:9mm;}
+.doc-logo{font-size:20px;font-weight:700;color:#111;letter-spacing:-.3px;}
+.doc-logo span{color:var(--doc-accent-soft);font-weight:300;}
+.doc-name-sub{font-size:10.5px;color:#888;margin-top:2px;}
+.doc-meta{text-align:right;}
+/* Typ-Titel kein hartes Schwarz – dunkles Grau */
+.doc-meta h1{font-size:21px;font-weight:700;color:#4a4a4a;margin-bottom:5px;}
+.doc-meta-row{font-size:11.5px;color:#555;line-height:1.9;display:flex;align-items:center;gap:4px;justify-content:flex-end;}
+.doc-meta-label{color:#999;font-size:10.5px;white-space:nowrap;}
+
+.sender-bar{font-size:9px;color:#aaa;margin-bottom:5mm;border-bottom:1px solid #eee;padding-bottom:2mm;}
+
+/* Empfänger + Inline-Kunde */
+.recipient-block{margin-bottom:7mm;min-height:24mm;position:relative;}
+.recipient-block p{line-height:1.8;font-size:12px;}
+
+/* Kunde-Inline Toolbar */
+.recipient-toolbar{
+  display:flex;gap:5px;align-items:center;margin-bottom:4px;
+}
+/* Einheitliche Inline-Steuerelemente im Dokument-Kontext */
+.doc-ctrl{
+  font-size:10.5px;padding:3px 8px;border-radius:3px;
+  background:#f0f0f0;border:1px solid #d0d0d0;color:#555;
+  font-family:inherit;cursor:pointer;outline:none;
+  transition:background .12s,border-color .12s;
+}
+.doc-ctrl:hover{background:#e4e4e4;border-color:#aaa;color:#333;}
+.doc-ctrl:focus{border-color:#999;outline:none;}
+.recipient-toolbar select.rc-sel{
+  -webkit-appearance:none;appearance:none;
+  padding-right:20px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 5px center;
+  background-color:#f0f0f0;
+  max-width:220px;
+}
+.recipient-toolbar button.rc-btn{
+  padding:3px 8px;white-space:nowrap;flex-shrink:0;
+}
+
+.doc-subject{
+  font-size:13.5px;font-weight:700;color:#111;
+  margin-bottom:4mm;
+}
+.doc-intro{margin-bottom:5mm;line-height:1.75;color:#444;font-size:12px;}
+
+/* Table – gedimmter Header statt Schwarz */
+.doc-table{width:100%;border-collapse:collapse;margin-bottom:5mm;font-size:12px;}
+.doc-table thead tr{background:var(--doc-accent);color:#fff;}
+.doc-table thead th{padding:7px 9px;text-align:left;font-weight:600;font-size:11.5px;}
+.doc-table thead th:nth-child(n+3){text-align:right;white-space:nowrap;}
+.doc-table tbody tr{border-bottom:1px solid #eee;}
+.doc-table tbody tr:nth-child(even){background:var(--doc-light);}
+.doc-table tbody td{padding:7px 9px;vertical-align:top;}
+.doc-table tbody td:nth-child(n+3){text-align:right;white-space:nowrap;}
+.doc-table .add-row-btn{
+  display:block;width:100%;padding:6px;margin-top:4px;
+  background:none;border:1px dashed #ccc;border-radius:4px;
+  color:#aaa;font-size:11px;cursor:pointer;font-family:inherit;
+  transition:.15s;
+}
+.doc-table .add-row-btn:hover{border-color:#999;color:#666;}
+.pos-del{
+  background:none;border:none;color:#ccc;cursor:pointer;
+  font-size:13px;padding:0 2px;vertical-align:middle;
+  transition:color .15s;
+}
+.pos-del:hover{color:#e05555;}
+.pos-details-input{
+  width:100%;background:transparent;border:none;border-bottom:1px solid transparent;
+  font-family:inherit;font-size:11px;color:#555;padding:2px 3px;
+  outline:none;margin-top:3px;resize:none;min-height:0;overflow:hidden;
+  border-radius:2px;
+  transition:background .12s,border-color .12s;
+}
+.pos-details-input:hover{background:rgba(0,0,0,.03);border-bottom-color:#ddd;}
+.pos-details-input:focus{border-bottom-color:#aaa;background:#f5f5f5;}
+/* Bullet-Rendering im Editor */
+.pos-detail-line{
+  display:block;padding-left:14px;position:relative;
+  font-size:11px;color:#555;line-height:1.6;margin-top:3px;
+}
+.pos-detail-line::before{
+  content:'–';position:absolute;left:0;color:#999;
+}
+
+/* Totals */
+.totals-wrap{margin-left:auto;width:240px;margin-bottom:6mm;}
+.totals-wrap table{width:100%;border-collapse:collapse;}
+.totals-wrap td{padding:4px 9px;font-size:12px;}
+.totals-wrap tr.total-final{background:var(--doc-accent);color:#fff;font-weight:700;font-size:13px;}
+.totals-wrap tr.total-final td{padding:7px 9px;}
+
+/* Info boxes */
+.info-box{
+  background:#f8f8f8;border-left:3px solid #aaa;
+  padding:9px 13px;margin-bottom:5mm;font-size:11.5px;line-height:1.75;color:#333;
+}
+.sign-block{margin-bottom:10mm;line-height:1.75;color:#444;font-size:12px;}
+
+/* Footer – keep-together per display:table-footer-group trick nicht nötig,
+   wir nutzen page-break-inside:avoid im PDF */
+.doc-footer{
+  border-top:1px solid #e0e0e0;padding-top:4mm;
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;
+  font-size:10px;color:#555;line-height:1.85;
+  page-break-inside:avoid;
+  break-inside:avoid;
+}
+/* Abschluss-Block: Zahlung + Sign + Footer kompakt zusammenhalten */
+.doc-closing-block{
+  page-break-inside:avoid;
+  break-inside:avoid;
+}
+.doc-footer strong{color:#333;font-size:10.5px;display:block;margin-bottom:2px;}
+
+/* AGB */
+.agb-section{margin-bottom:5mm;}
+.agb-section h3{font-size:11.5px;font-weight:700;color:var(--doc-accent);margin-bottom:2mm;border-bottom:1px solid #eee;padding-bottom:1.5mm;}
+.agb-section p{font-size:11px;line-height:1.75;color:#444;}
+.sig-block{margin-top:10mm;display:grid;grid-template-columns:1fr 1fr;gap:14mm;}
+.sig-field{border-top:1px solid #aaa;padding-top:2.5mm;font-size:9.5px;color:#888;}
+.sig-field .sig-line{height:13mm;}
+.agb-hint-box{background:#f8f8f8;border-left:3px solid #aaa;padding:9px 13px;font-size:11px;color:#555;}
+
+/* ── PRINT / PDF OVERRIDES ──────────────────────────── */
+@media print{
+  body{background:#fff;display:block;}
+  #nav,#sidebar,#topbar,#content-wrap>#sidebar{display:none!important;}
+  #main{padding:0;overflow:visible;}
+  .doc-page{box-shadow:none;margin:0;width:100%;padding:0;}
+  #page1{page-break-after:always;}
+  #page2{display:block!important;page-break-before:always;page-break-after:auto;}
+  @page{size:A4;margin:25mm;}
+  .ie,.ie-block,.ie-select,.ie-date{border:none!important;background:transparent!important;}
+  .doc-table .add-row-btn{display:none!important;}
+  .pos-del{display:none!important;}
+  .doc-footer{page-break-inside:avoid;break-inside:avoid;}
+  .recipient-toolbar{display:none!important;}
+}
 </style>
 </head>
 <body>
 
-<div id="loading-screen">
-  <div class="spinner-lg"></div>
-  <span style="font-size:12px;color:var(--text3);">Lade Steuertool …</span>
-</div>
-
+<!-- ── TOPNAV ─────────────────────────────────────────────── -->
 <nav id="nav">
   <span class="nav-logo">VISO <span>Media</span></span>
   <div class="nav-sep"></div>
-  <a class="nav-btn" href="/dashboard"><i data-lucide="layout-dashboard"></i> Dashboard</a>
-  <a class="nav-btn" href="/tool"><i data-lucide="file-text"></i> Angebote & Rechnungen</a>
-  <a class="nav-btn active" href="/steuer"><i data-lucide="calculator"></i> Steuer</a>
+  <a class="nav-btn" href="/dashboard" title="Dashboard">
+    <i data-lucide="layout-dashboard"></i> Dashboard
+  </a>
+  <a class="nav-btn active" href="/tool" title="Angebote & Rechnungen">
+    <i data-lucide="file-text"></i> Angebote & Rechnungen
+  </a>
+  <a class="nav-btn" href="/steuer" title="Steuertool">
+    <i data-lucide="calculator"></i> Steuer
+  </a>
+  <div class="nav-sep"></div>
+  <!-- Sidebar-Panel-Shortcuts -->
+  <button class="nav-btn" onclick="showPanel('doc',this)" title="Einstellungen" id="nav-doc">
+    <i data-lucide="sliders-horizontal"></i> Einstellungen
+  </button>
+  <button class="nav-btn" onclick="newDoc(this)" title="Neues Dokument" id="nav-new">
+    <i data-lucide="plus"></i> Neu
+  </button>
+  <button class="nav-btn" onclick="showPanel('customers',this)" title="Kunden" id="nav-customers">
+    <i data-lucide="users"></i> Kunden
+  </button>
+  <button class="nav-btn" onclick="showPanel('library',this)" title="Leistungen" id="nav-library">
+    <i data-lucide="package"></i> Bibliothek
+  </button>
+  <button class="nav-btn" onclick="showPanel('history',this)" title="Verlauf" id="nav-history">
+    <i data-lucide="clock"></i> Verlauf
+  </button>
+  <button class="nav-btn" onclick="showPanel('email',this)" title="E-Mail" id="nav-email">
+    <i data-lucide="mail"></i> E-Mail
+  </button>
   <div class="nav-spacer"></div>
-  <span style="font-size:11px;color:var(--text3);padding:0 6px;" id="nav-user"></span>
-  <button class="nav-icon-btn" onclick="doSignOut()" title="Abmelden"><i data-lucide="log-out"></i></button>
+  <button class="nav-icon-btn" onclick="saveDoc()" title="Speichern">
+    <i data-lucide="save"></i>
+  </button>
+  <button class="nav-icon-btn" onclick="printPDF()" title="PDF Download" style="color:var(--accent);">
+    <i data-lucide="download"></i>
+  </button>
+  <div class="nav-sep"></div>
+  <button class="nav-icon-btn" onclick="signOut()" title="Abmelden">
+    <i data-lucide="log-out"></i>
+  </button>
 </nav>
 
-<div id="app">
+<!-- ── CONTENT WRAP ──────────────────────────────────────── -->
+<div id="content-wrap">
 
+<!-- ── SIDEBAR ───────────────────────────────────────────── -->
 <div id="sidebar">
-  <div class="sb-section">Zeitraum</div>
-  <select id="sel-year" onchange="onPeriodChange()">
-    <option value="2026">2026</option>
-    <option value="2025">2025</option>
-    <option value="2024">2024</option>
-  </select>
-  <div style="margin-top:8px;margin-bottom:4px;font-size:10px;color:var(--text3);">Quartal</div>
-  <div class="quartal-grid">
-    <button class="q-btn" id="q1" onclick="setQuartal(1)">Q1</button>
-    <button class="q-btn" id="q2" onclick="setQuartal(2)">Q2</button>
-    <button class="q-btn" id="q3" onclick="setQuartal(3)">Q3</button>
-    <button class="q-btn" id="q4" onclick="setQuartal(4)">Q4</button>
-  </div>
-  <button class="q-btn" id="qjahr" onclick="setQuartal(0)" style="width:100%;margin-top:4px;">Ganzes Jahr</button>
+  <div id="resize-handle"></div>
+  <div id="sidebar-content">
 
-  <div class="sb-section">Schritte</div>
-  <button class="step-btn active" id="step-btn-1" onclick="goPage(1)">
-    <span class="step-num">1</span> Upload
-  </button>
-  <button class="step-btn" id="step-btn-2" onclick="goPage(2)">
-    <span class="step-num">2</span> Belege prüfen
-  </button>
-  <button class="step-btn" id="step-btn-3" onclick="goPage(3)">
-    <span class="step-num">3</span> Review
-    <span class="step-badge" id="badge-review">0</span>
-  </button>
-  <button class="step-btn" id="step-btn-4" onclick="goPage(4)">
-    <span class="step-num">4</span> Ergebnis
-  </button>
+    <!-- DOC SETTINGS -->
+    <div class="panel active" id="panel-doc">
+      <div class="panel-title">Einstellungen</div>
 
-  <div class="sb-section">Übersicht</div>
-  <div class="sb-stat">
-    <div class="sb-stat-label">Einnahmen</div>
-    <div class="sb-stat-val green" id="sb-einnahmen">–</div>
-  </div>
-  <div class="sb-stat">
-    <div class="sb-stat-label">Ausgaben</div>
-    <div class="sb-stat-val red" id="sb-ausgaben">–</div>
-  </div>
-  <div class="sb-stat">
-    <div class="sb-stat-label">Gewinn (EÜR)</div>
-    <div class="sb-stat-val accent" id="sb-gewinn">–</div>
-  </div>
-  <div class="sb-stat">
-    <div class="sb-stat-label">USt-Zahllast</div>
-    <div class="sb-stat-val blue" id="sb-zahllast">–</div>
-  </div>
-</div>
-
-<div id="main">
-
-<!-- ═══════════════════════════════════════════════════════
-     SEITE 1: UPLOAD
-     ═══════════════════════════════════════════════════════ -->
-<div class="page active" id="page-1">
-  <div class="page-title">Upload</div>
-  <div class="page-sub">Lade alle Daten des Zeitraums auf einmal hoch. CSV-Kontoauszug deines Geschäftskontos + alle Belege (Fotos, PDFs, E-Mail-Anhänge). Die KI liest alles aus und ordnet zu.</div>
-
-  <!-- CSV Upload -->
-  <div class="card">
-    <div class="card-title">Kontoauszug (CSV)</div>
-    <div class="card-sub">CSV-Export deines Geschäftskontos – alle Buchungen des Zeitraums. Positiv = Gutschrift, Negativ = Lastschrift.</div>
-    <div class="upload-zone" id="csv-zone" ondragover="onCsvDrag(event,true)" ondragleave="onCsvDrag(event,false)" ondrop="onCsvDrop(event)">
-      <input type="file" id="csv-input" accept=".csv" onchange="onCsvSelect(this.files)">
-      <i data-lucide="table-2" class="upload-icon"></i>
-      <p><strong>CSV hier ablegen</strong> oder klicken<br>Unterstützt: Sparkasse, DKB, ING, Commerzbank, N26, Kontist …</p>
-    </div>
-    <div id="csv-status" style="display:none;"></div>
-  </div>
-
-  <!-- Belege Upload -->
-  <div class="card">
-    <div class="card-title">Belege & Rechnungen</div>
-    <div class="card-sub">Alle Belege des Zeitraums – Fotos von Kassenbons, PDFs von Online-Rechnungen, E-Mail-Anhänge.</div>
-    <div class="upload-zone" id="beleg-zone" ondragover="onBelegDrag(event,true)" ondragleave="onBelegDrag(event,false)" ondrop="onBelegDrop(event)">
-      <input type="file" id="beleg-input" multiple accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp" onchange="onBelegSelect(this.files)">
-      <i data-lucide="upload-cloud" class="upload-icon"></i>
-      <p><strong>Dateien hier ablegen</strong> oder klicken<br>PDF · JPG · PNG · HEIC – mehrere auf einmal möglich</p>
-    </div>
-    <div class="file-list" id="beleg-list" style="display:none;"></div>
-    <!-- KI Belege auslesen – direkt hier in Schritt 1 -->
-    <div id="beleg-ki-wrap" style="margin-top:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <button class="btn btn-primary" id="btn-read-belege" onclick="readBelege()" style="display:none;"><i data-lucide="sparkles"></i> Belege mit KI auslesen</button>
-      <span id="beleg-skip-hint" style="font-size:11px;color:var(--text3);display:none;">Keine neuen Belege zum Auslesen.</span>
-      <div class="loading-bar" id="beleg-loading" style="margin:0;"><div class="spinner"></div><div><div id="beleg-loading-text">KI liest Belege aus …</div><div class="progress-wrap" style="width:180px;"><div class="progress-bar" id="beleg-progress-bar" style="width:0%"></div></div></div></div>
-    </div>
-  </div>
-
-  <!-- Rechnungen aus dem Tool -->
-  <div class="card">
-    <div class="card-title">Rechnungen aus dem Tool <span style="font-weight:400;color:var(--text3);font-size:11px;" id="re-count"></span></div>
-    <div class="card-sub">Automatisch geladen. Setze Haken für Rechnungen die in den gewählten Zeitraum fallen.</div>
-    <div id="re-list">
-      <div style="color:var(--text3);font-size:11px;padding:8px 0;">Lade …</div>
-    </div>
-    <div style="display:flex;gap:6px;margin-top:8px;">
-      <button class="btn btn-ghost btn-sm" onclick="selectAllRe(true)"><i data-lucide="check-square"></i> Alle</button>
-      <button class="btn btn-ghost btn-sm" onclick="selectAllRe(false)"><i data-lucide="square"></i> Keine</button>
-    </div>
-  </div>
-
-  <!-- Manuelle Einnahmen -->
-  <div class="card">
-    <div class="card-title">Manuelle Einnahmen <span style="font-weight:400;color:var(--text3);font-size:11px;">(Bargeschäfte, Nebeneinnahmen)</span></div>
-    <div id="manual-income-wrap" style="display:none;margin-bottom:10px;">
-      <table class="entry-table"><thead><tr><th>Beschreibung</th><th>Datum</th><th style="text-align:right;">Brutto</th><th></th></tr></thead>
-      <tbody id="manual-income-tbody"></tbody></table>
-    </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;">
-      <input id="mi-desc" type="text" placeholder="Beschreibung" style="flex:2;min-width:140px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:6px 9px;outline:none;font-family:var(--font);">
-      <input id="mi-amt" type="text" placeholder="Brutto €" style="width:90px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:6px 9px;outline:none;font-family:var(--font);">
-      <input id="mi-date" type="date" style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:6px 9px;outline:none;font-family:var(--font);">
-      <button class="btn btn-ghost btn-sm" onclick="addManualIncome()"><i data-lucide="plus"></i> Hinzufügen</button>
-    </div>
-  </div>
-
-  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:4px;">
-    <button class="btn btn-primary btn-lg" onclick="goPage(2)"><i data-lucide="arrow-right"></i> Belege prüfen</button>
-    <button class="btn btn-ghost btn-lg" onclick="goPage(3)"><i data-lucide="list"></i> Direkt zum Review</button>
-    <span style="font-size:11px;color:var(--text3);" id="upload-summary"></span>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════
-     SEITE 2: BELEGE PRÜFEN
-     ═══════════════════════════════════════════════════════ -->
-<div class="page" id="page-2">
-  <div class="page-title">Belege prüfen</div>
-  <div class="page-sub">Alle gespeicherten Belege im gewählten Zeitraum. Fehlende Daten ergänzen oder Belege löschen.</div>
-
-  <div class="card" style="padding:0;overflow:hidden;">
-    <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
-      <span style="font-size:12px;font-weight:600;">Gespeicherte Belege</span>
-      <span style="flex:1;"></span>
-      <span id="beleg-uebersicht-count" style="font-size:11px;color:var(--text3);"></span>
-    </div>
-    <div id="beleg-uebersicht-list">
-      <div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">Lade …</div>
-    </div>
-  </div>
-
-  <!-- Edit-Modal für einzelnen Beleg -->
-  <div class="modal-overlay" id="modal-beleg-edit">
-    <div class="modal-box" style="max-width:420px;">
-      <div class="modal-head">
-        <h3>Beleg bearbeiten</h3>
-        <button class="modal-close" onclick="closeModal('modal-beleg-edit')">×</button>
+      <div class="section-hd">Sprache</div>
+      <div class="toggle-row">
+        <button class="toggle-btn active" id="lang-de" onclick="setLang('de')">DE</button>
+        <button class="toggle-btn" id="lang-en" onclick="setLang('en')">EN</button>
       </div>
-      <div class="modal-body" style="display:flex;flex-direction:column;gap:12px;">
-        <input type="hidden" id="edit-beleg-id">
-        <div>
-          <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;">Beschreibung / Händler</label>
-          <input id="edit-beleg-desc" type="text" placeholder="z.B. Adobe Creative Cloud" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:7px 10px;outline:none;font-family:var(--font);">
+
+      <div class="section-hd">Steuer</div>
+      <div class="tax-group">
+        <button class="tax-btn active" id="tax-de" onclick="setTax('de')">Standard 19% MwSt.</button>
+        <button class="tax-btn" id="tax-eu" onclick="setTax('eu')">EU B2B – Reverse Charge</button>
+        <button class="tax-btn" id="tax-int" onclick="setTax('int')">Drittland – steuerbefreit</button>
+      </div>
+      <div id="wrap_uid" style="display:none;margin-top:8px;">
+        <label class="field-label">USt-IdNr. Kunde</label>
+        <input type="text" id="f_uid" placeholder="DE123456789" oninput="update()">
+      </div>
+
+      <div class="section-hd">Zahlung</div>
+      <select id="f_zahlung" onchange="update()">
+        <option value="voll">Vollzahlung (14 Tage)</option>
+        <option value="50">50% Anzahlung</option>
+      </select>
+
+      <div class="section-hd">Aktionen</div>
+      <button class="btn btn-ghost btn-full" onclick="convertDoc()">
+        <i data-lucide="arrow-left-right"></i> Umwandeln
+      </button>
+      <button class="btn btn-ghost btn-full" style="margin-top:6px;" onclick="saveDoc()">
+        <i data-lucide="save"></i> Speichern
+      </button>
+      <button class="btn btn-primary btn-full" style="margin-top:6px;" onclick="printPDF()">
+        <i data-lucide="download"></i> PDF Download
+      </button>
+    </div>
+
+    <!-- CUSTOMERS -->
+    <div class="panel" id="panel-customers">
+      <div class="panel-title">Kundendatenbank</div>
+      <div id="customer-list"></div>
+      <div class="section-hd">Neu anlegen</div>
+      <label class="field-label">Firma / Name *</label>
+      <input type="text" id="nc_firma" placeholder="Mustermann GmbH">
+      <label class="field-label" style="margin-top:8px;">Ansprechpartner</label>
+      <input type="text" id="nc_ansp" placeholder="Max Mustermann">
+      <label class="field-label" style="margin-top:8px;">Straße</label>
+      <input type="text" id="nc_str" placeholder="Musterstraße 1">
+      <label class="field-label" style="margin-top:8px;">PLZ & Ort</label>
+      <input type="text" id="nc_ort" placeholder="12345 Berlin">
+      <label class="field-label" style="margin-top:8px;">Land</label>
+      <input type="text" id="nc_land" placeholder="Deutschland">
+      <label class="field-label" style="margin-top:8px;">E-Mail</label>
+      <input type="email" id="nc_email" placeholder="kontakt@firma.de">
+      <button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="saveCustomer()">
+        <i data-lucide="check"></i> Speichern
+      </button>
+    </div>
+
+    <!-- LIBRARY -->
+    <div class="panel" id="panel-library">
+      <div class="panel-title">Leistungsbibliothek</div>
+      <div id="lib-list"></div>
+      <div class="section-hd">Neu anlegen</div>
+      <label class="field-label">Bezeichnung *</label>
+      <input type="text" id="nl_desc" placeholder="Social Media Betreuung">
+      <label class="field-label" style="margin-top:8px;">Beschreibung</label>
+      <textarea id="nl_details" placeholder="Details..." style="min-height:50px;"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <div style="flex:1">
+          <label class="field-label">Menge</label>
+          <input type="text" id="nl_menge" value="1">
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div>
-            <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;">Datum</label>
-            <input id="edit-beleg-datum" type="date" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:7px 10px;outline:none;font-family:var(--font);">
-          </div>
-          <div>
-            <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;">Betrag Brutto €</label>
-            <input id="edit-beleg-betrag" type="number" step="0.01" min="0" placeholder="0.00" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:7px 10px;outline:none;font-family:var(--font);">
-          </div>
-        </div>
-        <div>
-          <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;">Kategorie</label>
-          <select id="edit-beleg-kat" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:7px 10px;outline:none;font-family:var(--font);appearance:none;"></select>
+        <div style="flex:1">
+          <label class="field-label">Einheit</label>
+          <select id="nl_einheit">
+            <option value="pauschal">pauschal</option>
+            <option value="stunde">Stunde</option>
+            <option value="tag">Tag</option>
+            <option value="stueck">Stück</option>
+            <option value="monat">Monat</option>
+            <option value="wort">Wort</option>
+          </select>
         </div>
       </div>
-      <div class="modal-foot">
-        <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-beleg-edit')">Abbrechen</button>
-        <button class="btn btn-primary btn-sm" onclick="saveBelegEdit()"><i data-lucide="save"></i> Speichern</button>
-      </div>
+      <label class="field-label" style="margin-top:8px;">Preis (€)</label>
+      <input type="text" id="nl_preis" placeholder="0,00">
+      <button class="btn btn-primary btn-full" style="margin-top:12px;" onclick="saveLibItem()">
+        <i data-lucide="check"></i> Speichern
+      </button>
     </div>
-  </div>
 
-  <div style="display:flex;gap:8px;margin-top:4px;">
-    <button class="btn btn-ghost" onclick="goPage(1)"><i data-lucide="arrow-left"></i> Zurück</button>
-    <button class="btn btn-primary" onclick="goPage(3)"><i data-lucide="arrow-right"></i> Weiter zum Review</button>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════
-     SEITE 3: REVIEW
-     ═══════════════════════════════════════════════════════ -->
-<div class="page" id="page-3">
-  <div class="page-title">Review</div>
-  <div class="page-sub">Alle Bankbewegungen im Überblick. Belege werden automatisch zugeordnet. KI kategorisiert auf Knopfdruck und fügt Begründungen hinzu.</div>
-
-  <!-- Alle Buchungen (auch ohne KI sofort sichtbar) -->
-  <div class="card" style="padding:0;overflow:hidden;">
-    <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-      <span style="font-size:12px;font-weight:600;">Buchungen</span>
-      <span style="flex:1;"></span>
-      <div class="ki-loading-inline" id="ki-review-loading">
-        <div class="spinner" style="width:14px;height:14px;border-width:2px;"></div>
-        <span id="ki-review-loading-text">KI analysiert …</span>
-      </div>
-      <button class="btn btn-primary btn-sm" id="btn-ki-review" onclick="runKIKategorisierung()"><i data-lucide="sparkles"></i> KI kategorisieren</button>
-      <button class="btn btn-ghost btn-sm" id="btn-filter-review" onclick="toggleFilterReview()"><i data-lucide="alert-triangle"></i> Nur unsichere</button>
+    <!-- HISTORY -->
+    <div class="panel" id="panel-history">
+      <div class="panel-title">Verlauf</div>
+      <div id="history-list"><p style="color:var(--text3);font-size:11px;">Keine Dokumente.</p></div>
     </div>
-    <div id="review-list"></div>
-  </div>
 
-  <div style="display:flex;gap:8px;margin-top:4px;">
-    <button class="btn btn-ghost" onclick="goPage(2)"><i data-lucide="arrow-left"></i> Zurück</button>
-    <button class="btn btn-primary" onclick="buildUStVA();goPage(4);"><i data-lucide="calculator"></i> Freigeben & Ergebnis berechnen</button>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════
-     SEITE 4: ERGEBNIS
-     ═══════════════════════════════════════════════════════ -->
-<div class="page" id="page-4">
-  <div class="page-title">UStVA-Ergebnis</div>
-  <div class="page-sub" id="ustva-period-label"></div>
-
-  <div class="hinweis warn"><i data-lucide="alert-triangle"></i>
-    <div><strong>Kein Ersatz für Steuerberatung.</strong> Diese Berechnung ist eine Arbeitshilfe. Bitte von dir oder deinem Steuerberater prüfen lassen.</div>
-  </div>
-
-  <div class="ustv-grid" id="ustv-kpi-grid"></div>
-
-  <div class="card" style="padding:0;overflow:hidden;">
-    <div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:12px;font-weight:600;">Detailauswertung</div>
-    <table class="detail-table" id="detail-table"><tbody></tbody></table>
-  </div>
-
-  <div class="card">
-    <div class="card-title">EÜR-Zusammenfassung</div>
-    <table class="detail-table" id="euer-table"><tbody></tbody></table>
-  </div>
-
-  <div class="card" style="background:var(--accent-bg);border-color:var(--accent);">
-    <div class="card-title">Export</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
-      <button class="btn btn-primary" onclick="exportSummary()"><i data-lucide="copy"></i> Zusammenfassung kopieren</button>
-      <button class="btn btn-ghost" onclick="window.print()"><i data-lucide="printer"></i> Drucken</button>
+    <!-- EMAIL -->
+    <div class="panel" id="panel-email">
+      <div class="panel-title">E-Mail-Vorlage</div>
+      <label class="field-label">Vorlage</label>
+      <select id="email_template" onchange="loadEmailTemplate()">
+        <option value="angebot_de">Angebot (DE)</option>
+        <option value="angebot_en">Quote (EN)</option>
+        <option value="rechnung_de">Rechnung (DE)</option>
+        <option value="rechnung_en">Invoice (EN)</option>
+        <option value="followup_de">Follow-up (DE)</option>
+        <option value="followup_en">Follow-up (EN)</option>
+      </select>
+      <label class="field-label" style="margin-top:10px;">An</label>
+      <input type="email" id="email_to" placeholder="kunde@firma.de">
+      <label class="field-label" style="margin-top:8px;">Betreff</label>
+      <input type="text" id="email_subject">
+      <label class="field-label" style="margin-top:8px;">Text</label>
+      <textarea id="email_body" style="min-height:180px;font-size:11px;line-height:1.7;"></textarea>
+      <p style="font-size:10px;color:var(--text3);margin-top:6px;line-height:1.6;">
+        Platzhalter: <code style="color:var(--text2);">{{name}}</code> <code style="color:var(--text2);">{{nr}}</code> <code style="color:var(--text2);">{{betreff}}</code> <code style="color:var(--text2);">{{betrag}}</code> <code style="color:var(--text2);">{{datum}}</code>
+      </p>
+      <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="saveEmailTemplate()">
+        <i data-lucide="save"></i> Vorlage speichern
+      </button>
+      <button class="btn btn-primary btn-full" style="margin-top:6px;" onclick="openGmail()">
+        <i data-lucide="external-link"></i> In Gmail öffnen
+      </button>
+      <button class="btn btn-ghost btn-full" style="margin-top:6px;" onclick="copyEmail()">
+        <i data-lucide="copy"></i> Kopieren
+      </button>
     </div>
-  </div>
 
-  <div class="card" style="background:var(--blue-bg);border-color:var(--blue);">
-    <div class="card-title" style="color:var(--blue);">ELSTER XML</div>
-    <div class="card-sub">UStVA-XML für ELSTER oder deinen Steuerberater.</div>
-    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-      <div style="flex:1;min-width:160px;">
-        <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;">Steuernummer</label>
-        <input id="elster-steuernr" type="text" placeholder="02 087 20105 8" style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:6px 9px;outline:none;font-family:var(--font);width:100%;">
-      </div>
-      <div style="flex:1;min-width:130px;">
-        <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;">Bundesland</label>
-        <select id="elster-bundesland" style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:6px 9px;outline:none;font-family:var(--font);width:100%;appearance:none;">
-          <option value="26">Hessen</option><option value="11">Berlin</option><option value="91">Bayern</option>
-          <option value="20">Hamburg</option><option value="21">Niedersachsen</option><option value="28">Nordrhein-Westfalen</option>
-          <option value="40">Baden-Württemberg</option><option value="30">Rheinland-Pfalz</option><option value="10">Brandenburg</option>
-          <option value="31">Saarland</option><option value="22">Sachsen-Anhalt</option><option value="32">Sachsen</option>
-          <option value="23">Schleswig-Holstein</option><option value="13">Mecklenburg-Vorpommern</option>
-        </select>
-      </div>
+    <!-- DATA -->
+    <div class="panel" id="panel-data">
+      <div class="panel-title">Datensicherung</div>
+      <button class="btn btn-ghost btn-full" onclick="exportData()">
+        <i data-lucide="download"></i> Export (.json)
+      </button>
+      <div class="section-hd" style="margin-top:14px;">Import</div>
+      <input type="file" id="import_file" accept=".json" style="font-size:11px;color:var(--text2);width:100%;" onchange="importData(this)">
+      <div class="section-hd" style="margin-top:14px;">Statistik</div>
+      <div id="data_stats" style="font-size:11px;color:var(--text3);line-height:2.2;background:var(--surface2);padding:10px 12px;border-radius:var(--radius);border:1px solid var(--border);margin-top:4px;"></div>
+      <div class="section-hd" style="margin-top:14px;">Reset</div>
+      <button class="btn btn-danger btn-full" onclick="resetData()">
+        <i data-lucide="trash-2"></i> Alle Daten löschen
+      </button>
     </div>
-    <button class="btn" style="background:var(--blue);color:#fff;border:none;" onclick="exportElsterXML()"><i data-lucide="file-code-2"></i> ELSTER XML herunterladen</button>
-  </div>
 
-  <div style="margin-top:4px;">
-    <button class="btn btn-ghost" onclick="goPage(3)"><i data-lucide="arrow-left"></i> Zurück</button>
-  </div>
-</div>
-
-</div><!-- /main -->
-</div><!-- /app -->
+  </div><!-- /sidebar-content -->
+</div><!-- /sidebar -->
 
 <div id="toast"></div>
 
-<!-- ── BELEG-VOLLANSICHT MODAL ── -->
-<div class="modal-overlay" id="modal-beleg">
-  <div class="modal-box" style="max-width:820px;">
-    <div class="modal-head">
-      <h3 id="modal-beleg-title">Beleg</h3>
-      <button class="modal-close" onclick="closeModal('modal-beleg')">×</button>
-    </div>
-    <div class="modal-body" style="display:grid;grid-template-columns:1fr 260px;gap:20px;">
-      <div>
-        <img id="modal-beleg-img" src="" alt="" style="width:100%;border-radius:6px;display:none;">
-        <div id="modal-beleg-pdf" style="display:none;padding:40px;text-align:center;background:var(--surface2);border-radius:6px;">
-          <div style="font-size:32px;margin-bottom:8px;">📄</div>
-          <div style="color:var(--text3);font-size:12px;" id="modal-beleg-pdf-name"></div>
-        </div>
-      </div>
-      <div>
-        <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Beleg-Details</div>
-        <div id="modal-beleg-meta" style="font-size:11px;color:var(--text2);line-height:2;"></div>
-        <div style="margin-top:16px;">
-          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Verknüpfte Transaktion</div>
-          <div id="modal-beleg-tx" style="font-size:11px;color:var(--text2);"></div>
-        </div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-red btn-sm" id="modal-beleg-unlink" onclick="unlinkReceipt()"><i data-lucide="link-2-off"></i> Verknüpfung lösen</button>
-      <button class="btn btn-ghost btn-sm" id="modal-beleg-change" onclick="openPickerFromModal()"><i data-lucide="refresh-cw"></i> Anderen Beleg wählen</button>
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-beleg')">Schließen</button>
+<!-- ── MAIN ──────────────────────────────────────────────── -->
+<div id="main">
+
+  <!-- Doc-type toggle bar (schmal, nur Angebot/Rechnung) -->
+  <div id="topbar">
+    <div class="doc-type-toggle">
+      <button class="doc-type-btn active" id="typ-angebot" onclick="setTyp('angebot',this)">Angebot</button>
+      <button class="doc-type-btn" id="typ-rechnung" onclick="setTyp('rechnung',this)">Rechnung</button>
     </div>
   </div>
-</div>
 
-<!-- ── BELEG-PICKER MODAL ── -->
-<div class="modal-overlay" id="modal-picker">
-  <div class="modal-box">
-    <div class="modal-head">
-      <h3>Beleg zuordnen</h3>
-      <button class="modal-close" onclick="closeModal('modal-picker')">×</button>
-    </div>
-    <div class="modal-body">
-      <div class="hinweis" style="margin-bottom:14px;"><i data-lucide="info"></i><div>Wähle den passenden Beleg für diese Transaktion. Bereits zugeordnete Belege sind ausgegraut.</div></div>
-      <div class="picker-grid" id="picker-grid"></div>
-      <div id="picker-empty" style="display:none;text-align:center;color:var(--text3);font-size:12px;padding:30px 0;">Keine Belege verfügbar. Lade zuerst Belege hoch und lasse sie von der KI auslesen.</div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-picker')">Abbrechen</button>
-      <button class="btn btn-primary btn-sm" id="picker-confirm" onclick="confirmPicker()" disabled><i data-lucide="link-2"></i> Zuordnen</button>
-    </div>
-  </div>
-</div>
+  <!-- PAGE 1 -->
+  <div class="doc-page" id="page1">
 
+    <!-- Header -->
+    <div class="doc-header">
+      <div>
+        <div class="doc-logo">VISO <span>Media</span></div>
+        <div class="doc-name-sub">David Stiehler</div>
+      </div>
+      <div class="doc-meta">
+        <h1 id="d_typ_title">ANGEBOT</h1>
+        <div class="doc-meta-row">
+          <span class="doc-meta-label" id="d_nr_label">Angebots-Nr.:</span>
+          <input class="ie" id="f_nr" value="ANG-2026-001" oninput="update()" style="font-weight:700;font-size:11.5px;width:120px;">
+        </div>
+        <div class="doc-meta-row">
+          <span class="doc-meta-label" id="d_date_label">Datum:</span>
+          <input type="date" class="ie-date" id="f_datum" oninput="update()" style="width:138px;">
+        </div>
+        <div class="doc-meta-row" id="row_extra" style="display:flex;align-items:center;gap:4px;">
+          <span class="doc-meta-label" id="d_extra_label" style="white-space:nowrap;">Gültig bis:</span>
+          <input type="date" class="ie-date" id="f_gueltig" oninput="update()" style="width:138px;">
+          <input type="date" class="ie-date" id="f_von" oninput="update()" style="display:none;width:138px;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Sender bar -->
+    <div class="sender-bar">David Stiehler · Schiffenberger Weg 28A · 35394 Gießen · Germany</div>
+
+    <!-- Recipient (inline editable) + Kunden-Toolbar -->
+    <div class="recipient-block">
+      <!-- Kunden-Toolbar (nur Editor, nicht PDF) -->
+      <div class="recipient-toolbar no-print">
+        <select class="rc-sel doc-ctrl" id="f_kunde_inline" onchange="loadCustomerInline()">
+          <option value="">Kunde wählen …</option>
+        </select>
+        <button class="rc-btn doc-ctrl" onclick="saveCurrentAsCustomer()" title="Aktuelle Adresse in Kundendatenbank speichern">+ DB</button>
+      </div>
+      <p>
+        <input class="ie-block" id="f_firma" placeholder="Firma / Company" oninput="update()" style="font-weight:700;margin-bottom:2px;">
+        <input class="ie-block" id="f_ansprechpartner" placeholder="Ansprechpartner" oninput="update()" style="margin-top:3px;">
+        <input class="ie-block" id="f_strasse" placeholder="Straße" oninput="update()" style="margin-top:3px;">
+        <input class="ie-block" id="f_ort" placeholder="PLZ & Ort" oninput="update()" style="margin-top:3px;">
+        <input class="ie-block" id="f_land" placeholder="Land (optional)" oninput="update()" style="margin-top:3px;">
+      </p>
+    </div>
+
+    <!-- Subject -->
+    <div class="doc-subject">
+      <span id="d_subj_prefix" style="color:#888;font-weight:400;font-size:12px;"></span>
+      <input class="ie" id="f_betreff" placeholder="Betreff / Subject" oninput="update()" style="font-size:13px;font-weight:700;width:80%;">
+    </div>
+
+    <!-- Intro -->
+    <p class="doc-intro" id="d_intro"></p>
+
+    <!-- Positions table -->
+    <table class="doc-table">
+      <thead>
+        <tr>
+          <th style="width:5%"><span class="th">Pos.</span></th>
+          <th style="width:46%"><span class="th">Leistungsbeschreibung</span></th>
+          <th style="width:8%;text-align:right;"><span class="th">Menge</span></th>
+          <th style="width:12%;text-align:right;"><span class="th">Einheit</span></th>
+          <th style="width:13%;text-align:right;"><span class="th">Einzelpreis</span></th>
+          <th style="width:14%;text-align:right;"><span class="th">Gesamt</span></th>
+          <th style="width:2%;" class="no-print"></th>
+        </tr>
+      </thead>
+      <tbody id="d_positionen">
+        <tr><td colspan="7" style="color:#bbb;font-style:italic;text-align:center;padding:14px;">– Positionen werden hier angezeigt –</td></tr>
+      </tbody>
+      <tfoot>
+        <tr class="no-print">
+          <td colspan="7">
+            <button class="add-row-btn" onclick="addPos()">+ Position hinzufügen</button>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <!-- Lib select (inline) -->
+    <div class="no-print" style="margin-top:-3mm;margin-bottom:5mm;">
+      <select id="f_lib_select" class="doc-ctrl" onchange="addFromLib()" style="font-size:11px;-webkit-appearance:none;appearance:none;padding-right:20px;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 6px center;">
+        <option value="">+ Aus Bibliothek hinzufügen</option>
+      </select>
+    </div>
+
+    <!-- Totals -->
+    <div class="totals-wrap">
+      <table>
+        <tr id="row_netto"><td id="t_net">Nettobetrag</td><td style="text-align:right;" id="d_netto">0,00 €</td></tr>
+        <tr id="row_tax"><td id="t_tax">zzgl. 19% MwSt.</td><td style="text-align:right;" id="d_mwst">0,00 €</td></tr>
+        <tr class="total-final"><td><strong id="t_total">Gesamtbetrag</strong></td><td style="text-align:right;"><strong id="d_gesamt">0,00 €</strong></td></tr>
+      </table>
+    </div>
+
+    <!-- Tax note -->
+    <div id="d_tax_note_box" class="info-box" style="display:none;font-size:11px;"></div>
+
+    <!-- Hinweise (inline) -->
+    <div style="margin-bottom:5mm;">
+      <textarea class="ie-block" id="f_hinweise" placeholder="Hinweise (leer = wird nicht angezeigt)" oninput="update();autoResize(this)" style="min-height:36px;font-size:11.5px;" rows="1"></textarea>
+    </div>
+    <div id="d_notes_rendered" style="display:none;" class="info-box"></div>
+
+    <!-- Abschlussblock: Zahlung + Sign + AGB-Hinweis + Footer werden im PDF zusammengehalten -->
+    <div class="doc-closing-block">
+
+    <!-- Payment -->
+    <div class="info-box"><strong id="t_payment_title">Zahlungsbedingungen:</strong><br><span id="d_zahlung_text">–</span></div>
+
+    <!-- Sign -->
+    <p class="sign-block" id="d_sign"></p>
+
+    <!-- AGB hint (Angebot only) -->
+    <div class="agb-hint-box" id="agb_hint" style="display:none;"></div>
+
+    <!-- Footer -->
+    <div class="doc-footer">
+      <div><strong id="t_contact">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br>rechnungen&#64;viso.media</div>
+      <div><strong id="t_tax_f">Steuer</strong><span id="t_taxnr_label">Steuernummer:</span> 02087201058<br><span id="t_vatid_label">USt-IdNr.:</span> DE354878347</div>
+      <div><strong id="t_bank">Bankverbindung</strong><span id="t_accholder_label">Kontoinhaber:</span> David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
+    </div>
+
+    </div><!-- /doc-closing-block -->
+  </div><!-- /page1 -->
+
+  <!-- PAGE 2 (AGB – Angebot only) -->
+  <div class="doc-page" id="page2">
+    <div class="doc-header">
+      <div>
+        <div class="doc-logo">VISO <span>Media</span></div>
+        <div class="doc-name-sub">David Stiehler</div>
+      </div>
+      <div class="doc-meta" style="padding-top:4px;">
+        <p style="font-size:10.5px;color:#aaa;"><span id="t_annex_label">Anhang zu</span> <span id="d_typ2">Angebots</span>-Nr.: <strong id="d_nr2">–</strong></p>
+      </div>
+    </div>
+    <div class="sender-bar">David Stiehler · Schiffenberger Weg 28A · 35394 Gießen · Germany</div>
+    <h2 style="font-size:15px;font-weight:700;margin-bottom:7mm;color:#111;" id="t_agb_title">Allgemeine Geschäftsbedingungen (AGB)</h2>
+    <div id="agb_content"></div>
+    <div class="info-box" style="margin-top:8mm;">
+      <strong id="t_confirm_title">Auftragsbestätigung</strong><br>
+      <span id="t_confirm_text"></span>
+    </div>
+    <div class="sig-block">
+      <div class="sig-field"><div class="sig-line"></div><span id="t_sig_date">Ort, Datum</span></div>
+      <div class="sig-field"><div class="sig-line"></div><span id="t_sig_sign">Unterschrift Auftraggeber / Stempel</span></div>
+    </div>
+    <div style="margin-top:8mm;font-size:10px;color:#aaa;text-align:center;" id="t_return">Bitte unterschriebene Seite per E-Mail zurücksenden an: rechnungen&#64;viso.media</div>
+    <div class="doc-footer" style="margin-top:7mm;">
+      <div><strong id="t_contact2">Kontakt</strong>David Stiehler<br>Schiffenberger Weg 28A<br>35394 Gießen · Germany<br>015735386155<br>rechnungen&#64;viso.media</div>
+      <div><strong id="t_tax2">Steuer</strong><span id="t_taxnr_label2">Steuernummer:</span> 02087201058<br><span id="t_vatid_label2">USt-IdNr.:</span> DE354878347</div>
+      <div><strong id="t_bank2">Bankverbindung</strong><span id="t_accholder_label2">Kontoinhaber:</span> David Stiehler<br>Bank: Kontist<br>IBAN: DE02 1101 0101 5262 3588 06<br>BIC: SOBKDEB2XXX</div>
+    </div>
+  </div><!-- /page2 -->
+
+</div><!-- /main -->
+
+</div><!-- /content-wrap -->
+
+<!-- Supabase SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase.js"></script>
 <script>
+
+// ── INIT LUCIDE ICONS ──────────────────────────────────────
 lucide.createIcons();
 
-// ── KATEGORIEN ─────────────────────────────────────────────
-const CATEGORIES = {
-  einnahmen_19:{label:'Einnahmen 19% MwSt.',type:'income',vat:0.19},
-  einnahmen_7:{label:'Einnahmen 7% MwSt.',type:'income',vat:0.07},
-  einnahmen_0:{label:'Einnahmen steuerfrei',type:'income',vat:0},
-  software:{label:'Software & Tools',type:'expense',vat:0.19},
-  hardware:{label:'Hardware & Technik',type:'expense',vat:0.19},
-  buero:{label:'Büro & Arbeitsmittel',type:'expense',vat:0.19},
-  marketing:{label:'Marketing & Werbung',type:'expense',vat:0.19},
-  reise:{label:'Reise & Fahrtkosten',type:'expense',vat:0.07},
-  bewirtung:{label:'Bewirtung (70%)',type:'expense',vat:0.19,limitFactor:0.7},
-  telefon:{label:'Telefon & Internet',type:'expense',vat:0.19},
-  weiterbildung:{label:'Weiterbildung',type:'expense',vat:0.19},
-  freelancer:{label:'Fremdleistungen',type:'expense',vat:0.19},
-  versicherung:{label:'Versicherungen',type:'expense',vat:0},
-  steuerberatung:{label:'Steuerberatung',type:'expense',vat:0.19},
-  miete:{label:'Miete / Raumkosten',type:'expense',vat:0.19},
-  bankgebuehr:{label:'Bankgebühren',type:'expense',vat:0},
-  sonstiges:{label:'Sonstiges',type:'expense',vat:0.19},
-  privat:{label:'Privat (nicht absetzbar)',type:'private',vat:0},
+// ── STATE ──────────────────────────────────────────────────
+let positionen=[];
+let lang='de',tax='de',typ='angebot';
+let customers=[];
+let library=[];
+let history=[];
+let customEmailTpl={};
+// Track current loaded doc id for proper upsert
+let currentDocId=null;
+
+const UNITS={
+  pauschal:{de:'pauschal',en:'flat rate'},
+  stunde:{de:'Std.',en:'hr'},
+  tag:{de:'Tag',en:'day'},
+  stueck:{de:'Stk.',en:'pcs'},
+  monat:{de:'Monat',en:'month'},
+  wort:{de:'Wort',en:'word'},
+};
+function unitLabel(key,l){return(UNITS[key]||{de:key,en:key})[l]||key;}
+
+const STATUS_ANG=[
+  {key:'sent',   label_de:'Abgeschickt',label_en:'Sent',    cls:'sent'},
+  {key:'accepted',label_de:'Angenommen',label_en:'Accepted',cls:'accepted'},
+  {key:'declined',label_de:'Abgelehnt', label_en:'Declined',cls:'declined'},
+];
+const STATUS_RE=[
+  {key:'sent',label_de:'Abgeschickt',label_en:'Sent',cls:'sent'},
+  {key:'paid',label_de:'Bezahlt',    label_en:'Paid',cls:'paid'},
+];
+
+const T={
+  de:{
+    doc_q:'ANGEBOT',doc_i:'RECHNUNG',nr_q:'Angebots-Nr.:',nr_i:'Rechnungs-Nr.:',
+    date:'Datum:',valid:'Gültig bis:',period:'Lieferdatum:',
+    th:['Pos.','Leistungsbeschreibung','Menge','Einheit','Einzelpreis','Gesamt'],
+    net:'Nettobetrag',tax19:'zzgl. 19% MwSt.',total_q:'Gesamtbetrag',total_i:'Rechnungsbetrag',
+    payment:'Zahlungsbedingungen:',notes:'Hinweise:',contact:'Kontakt',tax_f:'Steuer',bank:'Bankverbindung',
+    intro_q:'vielen Dank für Ihr Interesse. Gerne unterbreite ich Ihnen folgendes Angebot für die beschriebenen Leistungen:',
+    intro_i:'Vielen Dank für Ihren Auftrag. Für die erbrachten Leistungen stelle ich Ihnen folgendes in Rechnung:',
+    sign_q:'Für Rückfragen stehe ich Ihnen gerne zur Verfügung. Ich freue mich auf eine gute Zusammenarbeit.<br><br>Mit freundlichen Grüßen,<br><br><strong>David Stiehler</strong><br>VISO Media',
+    sign_i:'Für Rückfragen stehe ich Ihnen jederzeit gerne zur Verfügung.<br><br>Mit freundlichen Grüßen,<br><br><strong>David Stiehler</strong><br>VISO Media',
+    pay_full:b=>`Gesamtbetrag von <strong>${b}</strong> zahlbar innerhalb von 14 Tagen nach Rechnungsstellung.`,
+    pay_50:h=>`Zahlung in zwei Raten: <strong>1. Rate (50% = ${h})</strong> nach Auftragsbestätigung, <strong>2. Rate (50% = ${h})</strong> nach Projektabschluss – jeweils innerhalb von 14 Tagen.`,
+    tax_eu:'Hinweis: Steuerfreie innergemeinschaftliche Leistung gemäß § 3a Abs. 2 UStG. Steuerschuld geht auf den Leistungsempfänger über (Reverse Charge). USt-IdNr. des Empfängers: ',
+    tax_int:'Hinweis: Gemäß § 3a Abs. 2 UStG ist diese Leistung nicht im Inland steuerbar. Es wird keine Umsatzsteuer ausgewiesen.',
+    agb:'Allgemeine Geschäftsbedingungen (AGB)',
+    confirm_title:'Auftragsbestätigung',
+    confirm:nr=>`Mit Unterzeichnung bestätigt der Auftraggeber, das Angebot (Nr.: ${nr}) gelesen und akzeptiert zu haben, und erteilt verbindlich den Auftrag. Er erklärt sich mit den vorstehenden AGB einverstanden.`,
+    sig_date:'Ort, Datum',sig_sign:'Unterschrift Auftraggeber / Stempel',
+    return:'Bitte unterschriebene Seite per E-Mail zurücksenden an: rechnungen@viso.media',
+    prefix_q:'Angebot: ',prefix_i:'Rechnung: ',
+    empty_sub:'Betreff …',
+    annex_label:'Anhang zu',annex_q:'Angebots',annex_i:'Rechnungs',
+    taxnr:'Steuernummer:',vatid:'USt-IdNr.:',accholder:'Kontoinhaber:',bank_title:'Bankverbindung',
+    agb_hint:'AGB auf der nächsten Seite',
+  },
+  en:{
+    doc_q:'QUOTE',doc_i:'INVOICE',nr_q:'Quote No.:',nr_i:'Invoice No.:',
+    date:'Date:',valid:'Valid until:',period:'Delivery date:',
+    th:['No.','Description','Qty','Unit','Unit price','Total'],
+    net:'Net amount',tax19:'plus 19% VAT',total_q:'Total amount',total_i:'Invoice total',
+    payment:'Payment terms:',notes:'Notes:',contact:'Contact',tax_f:'Tax',bank:'Bank details',
+    intro_q:'Thank you for your interest. Please find our quote for the described services below:',
+    intro_i:'Thank you for your order. Please find below our invoice for services rendered:',
+    sign_q:'Please do not hesitate to contact me with any questions. I look forward to working with you.<br><br>Kind regards,<br><br><strong>David Stiehler</strong><br>VISO Media',
+    sign_i:'Please do not hesitate to contact me with any questions.<br><br>Kind regards,<br><br><strong>David Stiehler</strong><br>VISO Media',
+    pay_full:b=>`Total amount of <strong>${b}</strong> due within 14 days of invoice date.`,
+    pay_50:h=>`Payment in two instalments: <strong>1st (50% = ${h})</strong> upon order confirmation, <strong>2nd (50% = ${h})</strong> upon project completion – each due within 14 days.`,
+    tax_eu:'Note: VAT-exempt intra-community supply pursuant to § 3a para. 2 German VAT Act. Tax liability transferred to recipient (Reverse Charge). Customer VAT ID: ',
+    tax_int:'Note: This service is not subject to German VAT pursuant to § 3a para. 2 German VAT Act. No VAT is charged.',
+    agb:'Terms and Conditions (T&C)',
+    confirm_title:'Order Confirmation',
+    confirm:nr=>`By signing, the client confirms having read and accepted the quote (No.: ${nr}) and hereby places a binding order, agreeing to the Terms and Conditions stated above.`,
+    sig_date:'Place, Date',sig_sign:'Signature Client / Stamp',
+    return:'Please return the signed page by e-mail to: rechnungen@viso.media',
+    prefix_q:'Quote: ',prefix_i:'Invoice: ',
+    empty_sub:'Subject …',
+    annex_label:'Annex to',annex_q:'Quote',annex_i:'Invoice',
+    taxnr:'Tax No.:',vatid:'VAT ID:',accholder:'Account holder:',bank_title:'Bank details',
+    agb_hint:'T&C on the next page',
+  }
 };
 
-// ── STATE ──────────────────────────────────────────────────
-let selectedYear    = new Date().getFullYear();
-let selectedQuartal = 0;
-let allDocs         = [];   // Dokumente aus dem Tool
-let reChecked       = {};   // {id: bool} – welche Rechnungen sind angehakt
-let manualIncomes   = [];   // {id, desc, datum, brutto}
-let csvTransactions = [];   // Rohdaten aus CSV (nach Import)
-let belegFiles      = [];   // {file, status, result, thumbnail} – Session-only
-let receipts        = [];   // Aus DB geladene Belege (mit thumbnail_data)
-let matches         = [];   // Aus DB geladene Matches (persistent) – ersetzt aiResults
-let aiResults       = [];   // Legacy-Alias → zeigt auf matches
-let filterReview    = false;
-// Modal-State
-let modalMatchIdx   = null; // welcher Match ist gerade im Modal
-let pickerSelected  = null; // ausgewählter Receipt im Picker
+const AGB={
+  de:`<div class="agb-section"><h3>§ 1 – Geltungsbereich</h3><p>Diese AGB gelten für alle Verträge zwischen David Stiehler, VISO Media, Schiffenberger Weg 28A, 35394 Gießen (nachfolgend „Auftragnehmer") und dem Auftraggeber über Leistungen im Bereich Video-/Fotoproduktion sowie Social Media Management.</p></div>
+<div class="agb-section"><h3>§ 2 – Vertragsschluss</h3><p>Angebote sind freibleibend. Ein Vertrag kommt durch schriftliche Auftragsbestätigung oder Unterzeichnung des Angebots zustande. Mit Auftragserteilung erkennt der Auftraggeber diese AGB an.</p></div>
+<div class="agb-section"><h3>§ 3 – Korrekturrunden</h3><p>Im Preis inbegriffen sind <strong>zwei Korrekturrunden</strong> je Leistungsposition. Weitere Korrekturen werden nach Aufwand berechnet.</p></div>
+<div class="agb-section"><h3>§ 4 – Mitwirkungspflichten</h3><p>Der Auftraggeber stellt Materialien und Freigaben rechtzeitig bereit. Verzögerungen berechtigen zur Terminanpassung; Mehrkosten trägt der Auftraggeber.</p></div>
+<div class="agb-section"><h3>§ 5 – Urheberrecht & Nutzungsrechte</h3><p>Alle Werke unterliegen dem Urheberrecht des Auftragnehmers. Mit vollständiger Bezahlung erhält der Auftraggeber ein einfaches Nutzungsrecht für die vereinbarten Zwecke. Rohdaten verbleiben beim Auftragnehmer.</p></div>
+<div class="agb-section"><h3>§ 6 – Zahlungsbedingungen</h3><p>Rechnungen sind innerhalb von 14 Tagen netto zu begleichen. Bei Verzug fallen Zinsen von 9 Prozentpunkten über dem Basiszinssatz an (§ 288 BGB).</p></div>
+<div class="agb-section"><h3>§ 7 – Stornierung</h3><p>Bei Absage weniger als <strong>7 Tage</strong> vor Leistungsbeginn werden <strong>50% des Nettohonorars</strong> als Ausfallhonorar fällig.</p></div>
+<div class="agb-section"><h3>§ 8 – Haftung</h3><p>Haftung nur bei Vorsatz oder grober Fahrlässigkeit. Indirekte Schäden sind ausgeschlossen.</p></div>
+<div class="agb-section"><h3>§ 9 – Referenzrecht</h3><p>Der Auftragnehmer darf erstellte Arbeiten zu Referenzzwecken veröffentlichen, sofern nicht widersprochen.</p></div>
+<div class="agb-section"><h3>§ 10 – Gerichtsstand</h3><p>Es gilt deutsches Recht. Gerichtsstand ist Gießen, soweit gesetzlich zulässig.</p></div>`,
+  en:`<div class="agb-section"><h3>§ 1 – Scope</h3><p>These Terms apply to all contracts between David Stiehler, VISO Media, Schiffenberger Weg 28A, 35394 Gießen, Germany ("Service Provider") and the client for video/photo production and social media management services.</p></div>
+<div class="agb-section"><h3>§ 2 – Contract Formation</h3><p>Quotes are non-binding. A contract is formed upon written order confirmation or signature of the quote.</p></div>
+<div class="agb-section"><h3>§ 3 – Revision Rounds</h3><p>The price includes <strong>two revision rounds</strong> per deliverable. Additional revisions are charged at the applicable rate.</p></div>
+<div class="agb-section"><h3>§ 4 – Client Responsibilities</h3><p>The client shall provide required materials and approvals in a timely manner.</p></div>
+<div class="agb-section"><h3>§ 5 – Copyright & Usage Rights</h3><p>All works remain subject to the Service Provider's copyright. Upon full payment, the client receives a simple licence for the agreed purposes.</p></div>
+<div class="agb-section"><h3>§ 6 – Payment Terms</h3><p>Invoices are due within 14 days net. Late payment incurs interest of 9 percentage points above the base rate.</p></div>
+<div class="agb-section"><h3>§ 7 – Cancellation</h3><p>Cancellations less than <strong>7 days</strong> before the scheduled start incur a cancellation fee of <strong>50% of the net fee</strong>.</p></div>
+<div class="agb-section"><h3>§ 8 – Liability</h3><p>Liability is limited to intent or gross negligence. Indirect damages are excluded.</p></div>
+<div class="agb-section"><h3>§ 9 – Portfolio Rights</h3><p>The Service Provider may publish completed work for portfolio purposes unless the client objects.</p></div>
+<div class="agb-section"><h3>§ 10 – Governing Law</h3><p>German law applies. Place of jurisdiction is Gießen, Germany.</p></div>`
+};
 
-// ── HELPERS ────────────────────────────────────────────────
-const fmt    = n => n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+'\u00a0€';
-const fmtDate= v=>{if(!v)return'–';try{const[y,m,d]=v.split('-');return`${d}.${m}.${y}`;}catch{return v;}};
-const parseAmt=s=>{if(!s)return 0;s=String(s).trim();if(/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(s))return parseFloat(s.replace(/\./g,'').replace(',','.'));return parseFloat(s.replace(',','.').replace(/[^\d.-]/g,''))||0;};
-const toast  = msg=>{const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);};
-const $      = id=>document.getElementById(id);
-const fmtSize= b=>b<1024?b+'B':b<1048576?(b/1024).toFixed(0)+'KB':(b/1048576).toFixed(1)+'MB';
+const EMAIL_TPL={
+  angebot_de:{subject:'Angebot {{nr}} – {{betreff}} | VISO Media',body:`Guten Tag {{name}},\n\nvielen Dank für Ihr Interesse an einer Zusammenarbeit mit VISO Media.\n\nIm Anhang erhalten Sie das Angebot Nr. {{nr}} für „{{betreff}}" über {{betrag}} (brutto inkl. MwSt.).\n\nDas Angebot ist bis zum {{datum}} gültig. Bitte senden Sie die unterschriebene Seite 2 zurück, um den Auftrag verbindlich zu erteilen.\n\nMit freundlichen Grüßen,\nDavid Stiehler · VISO Media\nrechnungen@viso.media · 015735386155`},
+  angebot_en:{subject:'Quote {{nr}} – {{betreff}} | VISO Media',body:`Dear {{name}},\n\nThank you for your interest in working with VISO Media.\n\nPlease find attached Quote No. {{nr}} for "{{betreff}}" totalling {{betrag}} (net).\n\nThis quote is valid until {{datum}}. Please sign and return page 2 to confirm your order.\n\nKind regards,\nDavid Stiehler · VISO Media\nrechnungen@viso.media · +49 157 35386155`},
+  rechnung_de:{subject:'Rechnung {{nr}} – {{betreff}} | VISO Media',body:`Guten Tag {{name}},\n\nim Anhang erhalten Sie die Rechnung Nr. {{nr}} für „{{betreff}}" über {{betrag}}.\n\nBitte überweisen Sie den Betrag innerhalb von 14 Tagen auf das angegebene Konto.\n\nMit freundlichen Grüßen,\nDavid Stiehler · VISO Media\nrechnungen@viso.media · 015735386155`},
+  rechnung_en:{subject:'Invoice {{nr}} – {{betreff}} | VISO Media',body:`Dear {{name}},\n\nPlease find attached Invoice No. {{nr}} for "{{betreff}}" totalling {{betrag}}.\n\nPayment is due within 14 days to the bank account stated on the invoice.\n\nKind regards,\nDavid Stiehler · VISO Media\nrechnungen@viso.media · +49 157 35386155`},
+  followup_de:{subject:'Nachfrage: Angebot {{nr}} | VISO Media',body:`Guten Tag {{name}},\n\nich möchte kurz nachfragen, ob Sie das Angebot Nr. {{nr}} für „{{betreff}}" erhalten haben.\n\nDas Angebot ist noch bis zum {{datum}} gültig.\n\nMit freundlichen Grüßen,\nDavid Stiehler · VISO Media`},
+  followup_en:{subject:'Follow-up: Quote {{nr}} | VISO Media',body:`Dear {{name}},\n\nI wanted to follow up on Quote No. {{nr}} for "{{betreff}}" and check if you have any questions.\n\nThe quote remains valid until {{datum}}.\n\nKind regards,\nDavid Stiehler · VISO Media`}
+};
 
-// ── NAVIGATION ─────────────────────────────────────────────
-let currentPage=1;
-function goPage(n){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  $(`page-${n}`).classList.add('active');
-  document.querySelectorAll('.step-btn').forEach((b,i)=>b.classList.toggle('active',i+1===n));
-  currentPage=n;
-  if(n===1) updateUploadSummary();
-  if(n===2) renderBelegUebersicht();
-  if(n===3) renderReview();
-  if(n===4) buildUStVA();
-  lucide.createIcons();
+// Parst Preis-Texteingaben: "1.500,50" → 1500.50 oder "1500.50" → 1500.50
+function parsePreis(s){
+  if(!s)return 0;
+  s=String(s).trim();
+  // Wenn Komma als Dezimal (DE-Format: "1.500,50")
+  if(/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(s)){
+    return parseFloat(s.replace(/\./g,'').replace(',','.'));
+  }
+  // Fallback: normales Float-Parsing
+  return parseFloat(s.replace(',','.').replace(/[^\d.]/g,''))||0;
 }
 
-// ── ZEITRAUM ───────────────────────────────────────────────
-async function setQuartal(q){
-  selectedQuartal=q;
-  document.querySelectorAll('.q-btn').forEach(b=>b.classList.remove('active'));
-  if(q===0)$('qjahr').classList.add('active');
-  else $(`q${q}`).classList.add('active');
-  refreshReList();
-  updateUploadSummary();
-  // Matches für neues Quartal laden
-  await loadMatchesFromDB(selectedYear,q);
-  updateSidebar();
-  if(currentPage===3)renderReview();
+const fmt=n=>n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+'\u00a0€';
+const fmtDate=v=>{if(!v)return'–';const[y,m,d]=v.split('-');return`${d}.${m}.${y}`;};
+const pad=n=>String(n).padStart(2,'0');
+const toast=msg=>{const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);};
+const $=id=>document.getElementById(id);
+const val=id=>$(id)?$(id).value:'';
+
+function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+
+// ── SIDEBAR PANELS ─────────────────────────────────────────
+function showPanel(p,btn){
+  document.querySelectorAll('.panel').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(e=>e.classList.remove('active'));
+  $('panel-'+p).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(p==='email')refreshEmailPreview();
+  if(p==='data')updateDataStats();
 }
-async function onPeriodChange(){
-  selectedYear=parseInt($('sel-year').value);
-  // CSV + Matches für das neue Jahr nachladen
-  await Promise.all([
-    (async()=>{
-      try{
-        const txs=await DB.getTransactions(selectedYear);
-        if(txs.length){
-          csvTransactions=txs.map(t=>({
-            id:'tx'+t.id, datum:t.datum||'', empfaenger:t.empfaenger||'',
-            verwendungszweck:t.verwendungszweck||'',
-            beschreibung:t.beschreibung||(t.empfaenger||'')+(t.verwendungszweck?' – '+t.verwendungszweck:''),
-            betrag:parseFloat(t.betrag)||0, isEinnahme:!!t.is_einnahme, quelle:'csv', _fromDB:true
-          }));
-          const ein=csvTransactions.filter(t=>t.isEinnahme).length;
-          const aus=csvTransactions.filter(t=>!t.isEinnahme).length;
-          const st=$('csv-status');
-          st.style.display='block';
-          st.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} Buchungen</strong> aus ${selectedYear}: ${ein} Eingänge, ${aus} Ausgaben. <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="clearCSVData()"><i data-lucide="trash-2"></i> Löschen</button></div></div>`;
-          lucide.createIcons();
-        } else {
-          csvTransactions=[];
-          $('csv-status').style.display='none';
-        }
-      }catch(e){console.info('CSV nicht geladen:',e.message);}
-    })(),
-    loadMatchesFromDB(selectedYear,selectedQuartal),
-  ]);
-  // ERST nach beiden Loads: neue CSV-Buchungen ohne Match hinzufügen
-  if(csvTransactions.length) buildMatchesFromCSV();
-  refreshReList();
-  updateUploadSummary();
-  updateSidebar();
-  if(currentPage===3)renderReview();
+
+// ── RESIZABLE SIDEBAR ──────────────────────────────────────
+(function(){
+  const handle=$('resize-handle');
+  const sidebar=$('sidebar');
+  let dragging=false,startX=0,startW=0;
+  handle.addEventListener('mousedown',e=>{
+    dragging=true;startX=e.clientX;
+    startW=parseInt(getComputedStyle(sidebar).width,10);
+    handle.classList.add('dragging');
+    document.body.style.cursor='col-resize';
+    document.body.style.userSelect='none';
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!dragging)return;
+    const w=Math.max(200,Math.min(500,startW+(e.clientX-startX)));
+    sidebar.style.width=w+'px';
+  });
+  document.addEventListener('mouseup',()=>{
+    if(!dragging)return;
+    dragging=false;handle.classList.remove('dragging');
+    document.body.style.cursor='';document.body.style.userSelect='';
+  });
+})();
+
+// ── LANG / TAX / TYP ──────────────────────────────────────
+function setLang(l){
+  lang=l;
+  $('lang-de').classList.toggle('active',l==='de');
+  $('lang-en').classList.toggle('active',l==='en');
+  update();
 }
-function inPeriod(datum){
-  if(!datum)return false;
-  if(!datum.startsWith(String(selectedYear)))return false;
-  if(selectedQuartal===0)return true;
-  const m=parseInt(datum.slice(5,7));
-  return{1:[1,2,3],2:[4,5,6],3:[7,8,9],4:[10,11,12]}[selectedQuartal].includes(m);
+function setTax(t){
+  tax=t;
+  ['de','eu','int'].forEach(x=>$('tax-'+x).classList.toggle('active',x===t));
+  $('wrap_uid').style.display=t==='eu'?'block':'none';
+  update();
 }
-async function clearCSVData(){
-  if(!confirm(`Alle gespeicherten CSV-Buchungen aus ${selectedYear} löschen?`))return;
+function setTyp(t,btn){
+  typ=t;
+  // Update topbar buttons
+  document.querySelectorAll('.doc-type-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  // Auto-nummer wenn noch altes Präfix
+  const nr=val('f_nr');
+  if(t==='rechnung'&&nr.startsWith('ANG')){$('f_nr').value=nextDocNr('rechnung');}
+  else if(t==='angebot'&&nr.startsWith('RE')){$('f_nr').value=nextDocNr('angebot');}
+  update();
+}
+
+// ── NUMMERNVERGABE ─────────────────────────────────────────
+function nextDocNr(t){
+  const year=new Date().getFullYear();
+  const prefix=t==='rechnung'?'RE':'ANG';
+  const existing=history.filter(h=>h.typ===t&&h.nr&&h.nr.startsWith(prefix+'-'+year));
+  const nums=existing.map(h=>{const m=h.nr.match(/(\d+)$/);return m?parseInt(m[1]):0;}).filter(n=>!isNaN(n));
+  const next=nums.length?Math.max(...nums)+1:1;
+  return`${prefix}-${year}-${String(next).padStart(3,'0')}`;
+}
+
+// ── NEUES DOKUMENT ─────────────────────────────────────────
+function newDoc(btn){
+  if(!confirm('Neues Dokument erstellen? Nicht gespeicherte Änderungen gehen verloren.'))return;
+  const today=new Date();
+  const inM=new Date(today);inM.setMonth(inM.getMonth()+1);
+  ['f_firma','f_ansprechpartner','f_strasse','f_ort','f_land','f_uid','f_betreff','f_hinweise','f_von'].forEach(id=>{if($(id))$(id).value='';});
+  $('f_zahlung').value='voll';
+  $('f_kunde_inline').value='';
+  typ='angebot';
+  currentDocId=null;
+  $('f_nr').value=nextDocNr('angebot');
+  $('f_datum').value=today.getFullYear()+'-'+pad(today.getMonth()+1)+'-'+pad(today.getDate());
+  $('f_gueltig').value=inM.getFullYear()+'-'+pad(inM.getMonth()+1)+'-'+pad(inM.getDate());
+  // Reset topbar
+  document.querySelectorAll('.doc-type-btn').forEach(b=>b.classList.remove('active'));
+  $('typ-angebot').classList.add('active');
+  setLang('de');setTax('de');
+  positionen=[];renderPositionen();addPos();
+  showPanel('doc',$('nav-doc'));
+  update();toast('Neues Dokument ✓');
+}
+
+// ── CONVERT ───────────────────────────────────────────────
+function convertDoc(){
+  const newTyp=typ==='angebot'?'rechnung':'angebot';
+  currentDocId=null; // Umgewandelt = neues Dokument
+  setTyp(newTyp, newTyp==='rechnung'?$('typ-rechnung'):$('typ-angebot'));
+  toast('Umgewandelt ✓');
+}
+
+// ── POSITIONEN ─────────────────────────────────────────────
+function addPos(){
+  positionen.push({id:Date.now(),desc:'',details:'',menge:'1',einheit:'pauschal',preis:''});
+  renderPositionen();update();
+}
+function removePos(id){
+  positionen=positionen.filter(p=>p.id!==id);
+  renderPositionen();update();
+}
+function posUpdate(id,field,v){
+  const p=positionen.find(x=>x.id===id);
+  if(!p)return;
+  p[field]=v;
+  // Gesamt-Zelle für diese Zeile sofort aktualisieren (ohne vollständiges Re-Render)
+  const m=parsePreis(p.menge)||0,pr=parsePreis(p.preis)||0,sum=m*pr;
+  const row=document.activeElement?.closest('tr');
+  if(row){
+    const gesamtCell=row.cells[row.cells.length-2]; // vorletzte Zelle (letzte ist del-btn)
+    if(gesamtCell)gesamtCell.textContent=sum?fmt(sum):(p.preis&&p.preis.trim()?fmt(0):'–');
+  }
+  update();
+}
+
+function unitOptions(selected='pauschal'){
+  return Object.keys(UNITS).map(k=>`<option value="${k}"${k===selected?' selected':''}>${UNITS[k][lang]||UNITS[k].de}</option>`).join('');
+}
+
+function renderPositionen(){
+  const tbody=$('d_positionen');
+  if(!positionen.length){
+    tbody.innerHTML='<tr><td colspan="7" style="color:#bbb;font-style:italic;text-align:center;padding:14px;">– Positionen werden hier angezeigt –</td></tr>';
+    return;
+  }
+  tbody.innerHTML=positionen.map((p,i)=>{
+    const m=parsePreis(p.menge)||0,pr=parsePreis(p.preis)||0,sum=m*pr;
+    return`<tr>
+      <td style="color:#888;font-size:11px;vertical-align:top;padding-top:10px;">${i+1}</td>
+      <td>
+        <input class="ie-block" value="${(p.desc||'').replace(/"/g,'&quot;')}" placeholder="Bezeichnung"
+          oninput="posUpdate(${p.id},'desc',this.value)" style="font-weight:600;margin-bottom:3px;">
+        <textarea class="pos-details-input" placeholder="Details (optional, eine Zeile = ein Bullet)"
+          oninput="posUpdate(${p.id},'details',this.value);autoResize(this)"
+          rows="1">${p.details||''}</textarea>
+      </td>
+      <td style="text-align:right;vertical-align:top;padding-top:10px;">
+        <input class="ie" type="text" value="${p.menge}" style="width:44px;text-align:right;"
+          oninput="posUpdate(${p.id},'menge',this.value)">
+      </td>
+      <td style="text-align:right;vertical-align:top;padding-top:10px;">
+        <select class="ie-select" onchange="posUpdate(${p.id},'einheit',this.value)" style="font-size:11px;">${unitOptions(p.einheit)}</select>
+      </td>
+      <td style="text-align:right;vertical-align:top;padding-top:10px;white-space:nowrap;">
+        <input class="ie" type="text" value="${p.preis}" placeholder="0,00" style="width:62px;text-align:right;"
+          oninput="posUpdate(${p.id},'preis',this.value)"><span style="color:#888;font-size:11px;"> €</span>
+      </td>
+      <td style="text-align:right;vertical-align:top;padding-top:10px;white-space:nowrap;font-weight:600;">
+        ${(p.preis&&p.preis.trim())?fmt(sum):'–'}
+      </td>
+      <td style="vertical-align:top;padding-top:8px;" class="no-print">
+        <button class="pos-del" onclick="removePos(${p.id})" title="Löschen">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── EMAIL ──────────────────────────────────────────────────
+function getDocVals(){
+  const netto=positionen.reduce((s,p)=>s+parsePreis(p.menge)*parsePreis(p.preis),0);
+  const brutto=tax==='de'?netto*1.19:netto;
+  return{
+    name:val('f_ansprechpartner')||val('f_firma')||'…',
+    nr:val('f_nr')||'–',
+    betreff:val('f_betreff')||'–',
+    betrag:fmt(brutto),
+    datum:fmtDate(val('f_gueltig')||val('f_von'))
+  };
+}
+function fillTpl(tpl,v){return tpl.replace(/\{\{(\w+)\}\}/g,(_,k)=>v[k]||'–');}
+function loadEmailTemplate(){
+  const key=$('email_template').value;
+  const tpl=customEmailTpl[key]||EMAIL_TPL[key];if(!tpl)return;
+  const v=getDocVals();
+  $('email_subject').value=fillTpl(tpl.subject,v);
+  $('email_body').value=fillTpl(tpl.body,v);
+  const c=customers.find(x=>x.firma===val('f_firma'));
+  if(c&&c.email)$('email_to').value=c.email;
+}
+function refreshEmailPreview(){loadEmailTemplate();}
+function openGmail(){
+  const to=encodeURIComponent(val('email_to'));
+  const su=encodeURIComponent(val('email_subject'));
+  const bo=encodeURIComponent(val('email_body'));
+  window.open(`https://mail.google.com/mail/?view=cm&to=${to}&su=${su}&body=${bo}`,'_blank');
+}
+function copyEmail(){
+  navigator.clipboard.writeText(`Betreff: ${val('email_subject')}\n\n${val('email_body')}`).then(()=>toast('Kopiert ✓'));
+}
+
+// ── UPDATE (document render) ───────────────────────────────
+function update(){
+  const isRe=typ==='rechnung';
+  const l=T[lang];
+  const nr=val('f_nr')||'–';
+
+  // Typ-Title
+  $('d_typ_title').textContent=isRe?l.doc_i:l.doc_q;
+  $('d_nr_label').textContent=isRe?l.nr_i:l.nr_q;
+  $('d_date_label').textContent=l.date;
+  $('d_extra_label').textContent=isRe?l.period:l.valid;
+
+  // Datum-Felder ein/ausblenden
+  $('f_gueltig').style.display=isRe?'none':'inline-block';
+  $('f_von').style.display=isRe?'inline-block':'none';
+
+  // Table headers
+  document.querySelectorAll('.th').forEach((th,i)=>th.textContent=l.th[i]);
+
+  // Einheiten-Optionen: nur Texte in selects aktualisieren (kein vollständiges Re-Render, das würde Fokus zerstören)
+  document.querySelectorAll('#d_positionen select.ie-select').forEach(sel=>{
+    const cur=sel.value;
+    sel.innerHTML=Object.keys(UNITS).map(k=>`<option value="${k}"${k===cur?' selected':''}>${UNITS[k][lang]||UNITS[k].de}</option>`).join('');
+  });
+
+  // Annex (page 2)
+  ['d_nr','d_nr2'].forEach(id=>$(id)&&($(id).textContent=nr));
+  $('t_annex_label').textContent=l.annex_label;
+  $('d_typ2').textContent=isRe?l.annex_i:l.annex_q;
+
+  // Intro & sign
+  $('d_intro').textContent=isRe?l.intro_i:l.intro_q;
+  $('d_sign').innerHTML=isRe?l.sign_i:l.sign_q;
+
+  // Subject prefix
+  const betreff=val('f_betreff');
+  $('d_subj_prefix').textContent=betreff?(isRe?l.prefix_i:l.prefix_q):'';
+
+  // Payment
+  $('t_payment_title').textContent=l.payment;
+  const netto=positionen.reduce((s,p)=>s+parsePreis(p.menge)*parsePreis(p.preis),0);
+  const mwst=tax==='de'?netto*.19:0,brutto=netto+mwst;
+  const half=brutto/2;
+  $('d_zahlung_text').innerHTML=val('f_zahlung')==='voll'?l.pay_full(fmt(brutto)):l.pay_50(fmt(half));
+
+  // Totals
+  $('d_netto').textContent=fmt(netto);
+  $('d_mwst').textContent=fmt(mwst);
+  $('d_gesamt').textContent=fmt(brutto);
+  $('t_net').textContent=l.net;
+  $('t_tax').textContent=l.tax19;
+  $('t_total').textContent=isRe?l.total_i:l.total_q;
+
+  // Tax row visibility
+  const taxRow=$('row_tax');
+  const taxNote=$('d_tax_note_box');
+  const uid=val('f_uid');
+  if(tax==='de'){taxRow.style.display='';taxNote.style.display='none';}
+  else{taxRow.style.display='none';taxNote.style.display='block';taxNote.innerHTML=tax==='eu'?l.tax_eu+(uid?`<strong>${uid}</strong>`:'[VAT ID]'):l.tax_int;}
+
+  // Notes
+  const notes=val('f_hinweise').trim();
+  const nbox=$('d_notes_rendered');
+  const ninput=$('f_hinweise');
+  if(notes){
+    nbox.style.display='block';
+    nbox.innerHTML=`<strong>${l.notes}</strong><br>${notes}`;
+    ninput.style.display='none';
+  }else{
+    nbox.style.display='none';
+    ninput.style.display='block';
+  }
+
+  // Footer labels
+  ['t_contact','t_contact2'].forEach(id=>$(id)&&($(id).textContent=l.contact));
+  $('t_tax_f').textContent=l.tax_f;
+  $('t_bank').textContent=l.bank;
+  ['t_taxnr_label','t_taxnr_label2'].forEach(id=>$(id)&&($(id).textContent=l.taxnr));
+  ['t_vatid_label','t_vatid_label2'].forEach(id=>$(id)&&($(id).textContent=l.vatid));
+  ['t_accholder_label','t_accholder_label2'].forEach(id=>$(id)&&($(id).textContent=l.accholder));
+  $('t_bank2')&&($('t_bank2').textContent=l.bank_title);
+  $('t_tax2')&&($('t_tax2').textContent=l.tax_f);
+
+  // AGB
+  $('agb_content').innerHTML=AGB[lang];
+  $('t_agb_title').textContent=l.agb;
+  $('t_confirm_title').textContent=l.confirm_title;
+  $('t_confirm_text').textContent=l.confirm(nr);
+  $('t_sig_date').textContent=l.sig_date;
+  $('t_sig_sign').textContent=l.sig_sign;
+  $('t_return').textContent=l.return;
+
+  // AGB hint
+  const hint=$('agb_hint');
+  if(!isRe){hint.textContent=l.agb_hint;hint.style.display='block';}
+  else{hint.style.display='none';}
+
+  // Page 2 visibility
+  $('page2').style.display=isRe?'none':'block';
+}
+
+// ── CUSTOMERS ──────────────────────────────────────────────
+async function saveCustomer(){
+  const firma=$('nc_firma').value.trim();
+  if(!firma){toast('Firma fehlt!');return;}
+  const customer={firma,ansp:$('nc_ansp').value.trim(),str:$('nc_str').value.trim(),ort:$('nc_ort').value.trim(),land:$('nc_land').value.trim(),email:$('nc_email').value.trim()};
   try{
-    await DB.deleteAllTransactions(selectedYear);
-    csvTransactions=[];
-    $('csv-status').style.display='none';
-    updateUploadSummary();
-    toast('CSV-Daten gelöscht ✓');
+    const saved=await DB.saveCustomer(customer);
+    customers.unshift(saved);
+    ['nc_firma','nc_ansp','nc_str','nc_ort','nc_land','nc_email'].forEach(id=>$(id).value='');
+    renderCustomerList();toast('Kunde gespeichert ✓');
   }catch(e){toast('Fehler: '+e.message);}
 }
 
-// ── SIDEBAR-STATS ──────────────────────────────────────────
-function updateSidebar(){
-  const src=matches.length?matches:aiResults;
-  if(!src.length){$('sb-einnahmen').textContent='–';$('sb-ausgaben').textContent='–';$('sb-gewinn').textContent='–';$('sb-zahllast').textContent='–';return;}
-  let ein=0,aus=0,zl=0;
-  src.forEach(r=>{
-    const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
-    const netto=r.betrag_netto||0;const mwst=r.mwst_betrag||0;
-    if(cat.type==='income'){ein+=netto;zl+=mwst;}
-    else if(cat.type==='expense'){const f=cat.limitFactor||1;aus+=netto*f;zl-=mwst*f;}
-  });
-  $('sb-einnahmen').textContent=fmt(ein);
-  $('sb-ausgaben').textContent=fmt(aus);
-  $('sb-gewinn').textContent=fmt(ein-aus);
-  $('sb-zahllast').textContent=fmt(Math.max(0,zl));
-}
-
-// ── RECHNUNGEN AUS DEM TOOL ────────────────────────────────
-function refreshReList(){
-  const el=$('re-list');
-  const relevant=allDocs.filter(d=>d.typ==='rechnung'&&inPeriod(d.datum));
-  $('re-count').textContent=`(${relevant.length})`;
-  if(!relevant.length){el.innerHTML='<div style="color:var(--text3);font-size:11px;padding:8px 0;">Keine Rechnungen im gewählten Zeitraum.</div>';return;}
-  // Init: alle angehakt die noch nicht explizit abgehakt wurden
-  relevant.forEach(d=>{if(reChecked[d.id]===undefined)reChecked[d.id]=true;});
-  el.innerHTML=relevant.map(d=>{
-    const netto=d.positionen?.reduce((s,p)=>s+parseFloat(p.menge||1)*parseFloat(p.preis||0),0)||0;
-    const brutto=d.tax==='de'?netto*1.19:netto;
-    return`<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:11px;">
-      <input type="checkbox" ${reChecked[d.id]?'checked':''} onchange="reChecked['${d.id}']=this.checked;updateUploadSummary();" style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;">
-      <div style="flex:1;min-width:0;">
-        <div style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.firma||d.kunde||'–'}</div>
-        <div style="color:var(--text3);font-size:10px;">${d.nr||''} · ${fmtDate(d.datum)}</div>
-      </div>
-      <span style="font-weight:600;color:var(--green);flex-shrink:0;">${fmt(brutto)}</span>
-    </label>`;
-  }).join('');
-  updateUploadSummary();
-}
-function selectAllRe(v){allDocs.filter(d=>d.typ==='rechnung'&&inPeriod(d.datum)).forEach(d=>reChecked[d.id]=v);refreshReList();}
-
-// ── MANUELLE EINNAHMEN ─────────────────────────────────────
-function addManualIncome(){
-  const desc=$('mi-desc').value.trim(),amt=$('mi-amt').value.trim(),date=$('mi-date').value;
-  if(!desc||!amt){toast('Beschreibung und Betrag erforderlich.');return;}
-  manualIncomes.push({id:'m'+Date.now(),desc,datum:date,brutto:parseAmt(amt)});
-  $('mi-desc').value='';$('mi-amt').value='';
-  renderManualIncomes();updateUploadSummary();
-}
-function removeManualIncome(id){manualIncomes=manualIncomes.filter(x=>x.id!==id);renderManualIncomes();updateUploadSummary();}
-function renderManualIncomes(){
-  const wrap=$('manual-income-wrap');
-  if(!manualIncomes.length){wrap.style.display='none';return;}
-  wrap.style.display='block';
-  $('manual-income-tbody').innerHTML=manualIncomes.map(x=>`
-    <tr><td>${x.desc}</td><td>${fmtDate(x.datum)}</td>
-    <td style="text-align:right;font-weight:600;color:var(--green);">${fmt(x.brutto)}</td>
-    <td><button class="entry-del" onclick="removeManualIncome('${x.id}')"><i data-lucide="x"></i></button></td></tr>`).join('');
-  lucide.createIcons();
-}
-
-// ── CSV UPLOAD ─────────────────────────────────────────────
-function onCsvDrag(e,over){e.preventDefault();$('csv-zone').classList.toggle('drag',over);}
-function onCsvDrop(e){e.preventDefault();$('csv-zone').classList.remove('drag');onCsvSelect(e.dataTransfer.files);}
-function onCsvSelect(files){
-  const f=files[0];if(!f)return;
-  if(!f.name.toLowerCase().endsWith('.csv')){toast('Nur CSV-Dateien erlaubt.');return;}
-  parseAndSaveCSV(f);
-}
-
-async function parseAndSaveCSV(file){
-  const status=$('csv-status');
-  status.style.display='block';
-  status.innerHTML=`<div class="loading-bar show"><div class="spinner"></div> Lese CSV …</div>`;
-  try{
-    const text=await file.text();
-    const parsed=parseCSV(text,file.name);
-    if(!parsed.length){status.innerHTML='<div class="hinweis warn"><i data-lucide="alert-triangle"></i><div>Keine Einträge erkannt. Bitte CSV-Format prüfen.</div></div>';lucide.createIcons();return;}
-    // In DB speichern – gibt Zeilen mit echten DB-UUIDs zurück
-    let savedRows=[];
-    try{
-      savedRows=await DB.saveTransactions(parsed.map(t=>({...t,quellDatei:file.name})));
-      toast('CSV gespeichert ✓');
-    }catch(e){console.warn('CSV-Speicherung fehlgeschlagen:',e.message);}
-    // IDs aus DB übernehmen damit Matching konsistent ist
-    if(savedRows.length){
-      csvTransactions=savedRows.map(t=>({
-        id:'tx'+t.id, _dbId:t.id,
-        datum:t.datum||'', empfaenger:t.empfaenger||'',
-        verwendungszweck:t.verwendungszweck||'',
-        beschreibung:t.beschreibung||(t.empfaenger||'')+(t.verwendungszweck?' – '+t.verwendungszweck:''),
-        betrag:parseFloat(t.betrag)||0, isEinnahme:!!t.is_einnahme, quelle:'csv'
-      }));
-    } else {
-      // Fallback: ohne DB-IDs (Offline / Tabelle fehlt)
-      csvTransactions=parsed;
-    }
-    const ein=csvTransactions.filter(t=>t.isEinnahme).length;
-    const aus=csvTransactions.filter(t=>!t.isEinnahme).length;
-    status.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} Buchungen</strong> aus ${file.name}: ${ein} Eingänge, ${aus} Ausgaben. <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="clearCSVData()"><i data-lucide="trash-2"></i> Löschen</button></div></div>`;
-    lucide.createIcons();
-    updateUploadSummary();
-    // Sofort Match-Objekte erstellen → Review zeigt Buchungen ohne KI-Klick
-    buildMatchesFromCSV();
-    if(currentPage===3)renderReview();
-  }catch(e){
-    status.innerHTML=`<div class="hinweis warn"><i data-lucide="alert-triangle"></i><div>Fehler: ${e.message}</div></div>`;
-    lucide.createIcons();
-  }
-}
-
-// ── CSV PARSER ─────────────────────────────────────────────
-function parseCSV(text,filename=''){
-  const lines=text.trim().split('\n').filter(l=>l.trim());
-  if(lines.length<2)return[];
-  const sep=lines[0].includes(';')?';':',';
-  const headers=lines[0].split(sep).map(h=>h.trim().replace(/^["']|["']$/g,'').toLowerCase());
-  const findCol=names=>{for(const n of names){const i=headers.indexOf(n);if(i>-1)return i;}return -1;};
-  const dateCol =findCol(['datum','date','buchungstag','buchungsdatum','valuta','wertstellungsdatum','buchungsdat.']);
-  const nameCol =findCol(['empfänger/zahlungspflichtiger','empfaenger/zahlungspflichtiger','empfänger','empfaenger','auftraggeber','beguenstigter','name','kontoinhaber']);
-  const zweckCol=findCol(['verwendungszweck','beschreibung','description','buchungstext','transaktionsbeschreibung','text','betreff']);
-  const amtCol  =findCol(['betrag','amount','umsatz','betrag eur','betrag (eur)','amount eur']);
-  const results=[];
-  for(let i=1;i<lines.length;i++){
-    const parts=splitCSVLine(lines[i],sep);
-    const col=idx=>idx>-1?(parts[idx]||'').trim().replace(/^["']|["']$/g,''):'';
-    const datum=formatCSVDate(col(dateCol));
-    const empf=col(nameCol);
-    const zweck=col(zweckCol);
-    const amtNum=parseCSVAmount(col(amtCol));
-    if(amtNum===null)continue;
-    const desc=empf&&zweck?`${empf} – ${zweck.slice(0,60)}`:(empf||zweck);
-    if(!desc&&amtNum===0)continue;
-    results.push({id:'csv'+i,datum,empfaenger:empf,verwendungszweck:zweck,beschreibung:desc,betrag:Math.abs(amtNum),isEinnahme:amtNum>0,quelle:'csv'});
-  }
-  return results;
-}
-function splitCSVLine(line,sep){
-  const r=[];let cur='';let inQ=false;
-  for(const c of line){if(c==='"')inQ=!inQ;else if(c===sep&&!inQ){r.push(cur);cur='';}else cur+=c;}
-  r.push(cur);return r;
-}
-function parseCSVAmount(s){
-  if(!s)return null;
-  s=s.replace(/\s/g,'').replace(/€|EUR/gi,'');
-  if(/^-?\d{1,3}(\.\d{3})*(,\d+)?$/.test(s))return parseFloat(s.replace(/\./g,'').replace(',','.'));
-  const n=parseFloat(s.replace(/,(?=\d{3})/g,'').replace(',','.'));
-  return isNaN(n)?null:n;
-}
-function formatCSVDate(s){
-  if(!s)return'';
-  const m1=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
-  if(m1)return`${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`;
-  const m2=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2})$/);
-  if(m2)return`20${m2[3]}-${m2[2].padStart(2,'0')}-${m2[1].padStart(2,'0')}`;
-  if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
-  return s;
-}
-
-// ── BELEGE UPLOAD ──────────────────────────────────────────
-function onBelegDrag(e,over){e.preventDefault();$('beleg-zone').classList.toggle('drag',over);}
-function onBelegDrop(e){e.preventDefault();$('beleg-zone').classList.remove('drag');onBelegSelect(e.dataTransfer.files);}
-function onBelegSelect(files){
-  Array.from(files).forEach(f=>{
-    if(belegFiles.find(b=>b.file.name===f.name&&b.file.size===f.size))return;
-    belegFiles.push({file:f,status:'pending',result:null});
-  });
-  renderBelegList();updateUploadSummary();
-}
-function removeBelegFile(i){belegFiles.splice(i,1);renderBelegList();updateUploadSummary();}
-function renderBelegList(){
-  const wrap=$('beleg-list');
-  const kiBtn=$('btn-read-belege');
-  const skipHint=$('beleg-skip-hint');
-  if(!belegFiles.length){
-    wrap.style.display='none';
-    if(kiBtn)kiBtn.style.display='none';
-    if(skipHint)skipHint.style.display='none';
-    return;
-  }
-  wrap.style.display='flex';
-  wrap.innerHTML=belegFiles.map((b,i)=>{
-    const ext=b.file.name.split('.').pop().toLowerCase();
-    const icon=ext==='pdf'?'FILE':'IMG';
-    const st=b.status==='done'?`<span class="file-item-status ok">✓ Ausgelesen</span>`:
-              b.status==='err'?`<span class="file-item-status err">Fehler</span>`:
-              b.status==='loading'?`<span class="file-item-status loading">⟳ Lese …</span>`:
-              `<span class="file-item-status">Ausstehend</span>`;
-    return`<div class="file-item">
-      <div class="file-item-icon">${icon}</div>
-      <span class="file-item-name" title="${b.file.name}">${b.file.name}</span>
-      <span class="file-item-size">${fmtSize(b.file.size)}</span>
-      ${st}
-      <button class="file-item-del" onclick="removeBelegFile(${i})"><i data-lucide="x"></i></button>
-    </div>`;
-  }).join('');
-  lucide.createIcons();
-  // KI-Button: zeige wenn ausstehende Belege vorhanden
-  const hasPending=belegFiles.some(b=>b.status==='pending');
-  if(kiBtn){kiBtn.style.display=hasPending?'inline-flex':'none';}
-  if(skipHint){skipHint.style.display=(!hasPending&&belegFiles.length)?'inline':'none';}
-}
-
-function updateUploadSummary(){
-  const reCount=allDocs.filter(d=>d.typ==='rechnung'&&inPeriod(d.datum)&&reChecked[d.id]).length;
-  const csvCount=csvTransactions.filter(t=>inPeriod(t.datum)||!t.datum).length; // nur im Zeitraum
-  const belegCount=belegFiles.length;
-  const parts=[];
-  if(reCount)parts.push(`${reCount} Rechnung${reCount>1?'en':''}`);
-  if(csvCount)parts.push(`${csvCount} Bankbuchungen`);
-  if(belegCount)parts.push(`${belegCount} Beleg${belegCount>1?'e':''}`);
-  if(manualIncomes.length)parts.push(`${manualIncomes.length} manuelle Einnahmen`);
-  const qLabel=selectedQuartal?` (Q${selectedQuartal} ${selectedYear})`:` (${selectedYear})`;
-  $('upload-summary').textContent=parts.length?parts.join(' · ') + ' bereit'+qLabel:'Noch nichts hochgeladen';
-}
-
-// ── SEITE 2: BELEGE ÜBERSICHT ──────────────────────────────
-function renderBelegUebersicht(){
-  const el=$('beleg-uebersicht-list');
-  const cnt=$('beleg-uebersicht-count');
-  // Belege aus DB + nicht-gespeicherte Session-Belege
-  const allRecs=[...receipts];
-  belegFiles.filter(b=>b.receiptRecord&&!receipts.find(r=>r.id===b.receiptRecord.id))
-    .forEach(b=>allRecs.push({...b.receiptRecord,thumbnail_data:b.thumbnail||null}));
-  // Thumbnail aus Session einmergen
-  allRecs.forEach(r=>{
-    if(!r.thumbnail_data){const bf=belegFiles.find(b=>b.receiptId===r.id&&b.thumbnail);if(bf)r.thumbnail_data=bf.thumbnail;}
-  });
-  cnt.textContent=allRecs.length?`${allRecs.length} Beleg${allRecs.length>1?'e':''}` :'';
-  if(!allRecs.length){
-    el.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">Keine Belege vorhanden. Lade Belege in Schritt 1 hoch und lasse sie von der KI auslesen.</div>';
-    return;
-  }
-  // Sortieren: neueste zuerst
-  allRecs.sort((a,b)=>((b.datum||'') < (a.datum||'') ? -1 : 1));
-  el.innerHTML=allRecs.map((rec,i)=>{
-    const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
-    const thumbHtml=rec.thumbnail_data
-      ?`<img src="${rec.thumbnail_data}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0;">`
-      :`<div style="width:36px;height:36px;border-radius:4px;background:var(--surface3);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;font-weight:700;color:var(--text3);">${isPDF?'PDF':'IMG'}</div>`;
-    const missingData=!rec.datum||!rec.betrag||!rec.beschreibung;
-    return`<div style="display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:11px;" class="${missingData?'lx-row unsicher':''}">
-      ${thumbHtml}
-      <div>
-        <div style="color:var(--text2);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${rec.beschreibung||rec.filename||'–'}</div>
-        <div style="color:var(--text3);font-size:10px;margin-top:2px;">
-          ${rec.datum?fmtDate(rec.datum):'<span style="color:var(--orange);">Datum fehlt</span>'}
-          ${rec.betrag?' · '+fmt(parseFloat(rec.betrag)):'<span style="color:var(--orange);"> · Betrag fehlt</span>'}
-          ${rec.kategorie?' · '+(CATEGORIES[rec.kategorie]?.label||rec.kategorie):''}
-        </div>
-      </div>
-      <div style="display:flex;gap:6px;flex-shrink:0;">
-        <button class="btn btn-ghost btn-sm" onclick="openBelegEdit('${rec.id}')" title="Bearbeiten"><i data-lucide="pencil"></i></button>
-        <button class="btn btn-red btn-sm" onclick="deleteBelegEntry('${rec.id}')" title="Löschen"><i data-lucide="trash-2"></i></button>
-      </div>
-    </div>`;
-  }).join('');
-  lucide.createIcons();
-}
-
-function openBelegEdit(id){
-  // Beleg aus receipts oder Session suchen
-  const rec=receipts.find(r=>r.id===id)||belegFiles.map(b=>b.receiptRecord).find(r=>r?.id===id);
-  if(!rec)return;
-  $('edit-beleg-id').value=id;
-  $('edit-beleg-desc').value=rec.beschreibung||'';
-  $('edit-beleg-datum').value=rec.datum||'';
-  $('edit-beleg-betrag').value=rec.betrag||'';
-  // Kategorie-Select befüllen
-  const sel=$('edit-beleg-kat');
-  sel.innerHTML=Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}"${rec.kategorie===k?' selected':''}>${v.label}</option>`).join('');
-  $('modal-beleg-edit').classList.add('open');
-  lucide.createIcons();
-}
-
-async function saveBelegEdit(){
-  const id=$('edit-beleg-id').value;
-  const changes={
-    beschreibung:$('edit-beleg-desc').value.trim()||null,
-    datum:$('edit-beleg-datum').value||null,
-    betrag:parseFloat($('edit-beleg-betrag').value)||null,
-    kategorie:$('edit-beleg-kat').value||null,
+// Aktuell eingetragene Adresse als Kunde in DB speichern
+async function saveCurrentAsCustomer(){
+  const firma=val('f_firma').trim();
+  if(!firma){toast('Firma/Name im Dokument fehlt!');return;}
+  // Prüfen ob schon vorhanden
+  if(customers.find(c=>c.firma===firma)){toast('Kunde bereits in Datenbank.');return;}
+  const customer={
+    firma,
+    ansp:val('f_ansprechpartner').trim(),
+    str:val('f_strasse').trim(),
+    ort:val('f_ort').trim(),
+    land:val('f_land').trim(),
+    email:''
   };
   try{
-    await DB.updateReceipt(id,changes);
-    // Lokal aktualisieren
-    const rec=receipts.find(r=>r.id===id);
-    if(rec)Object.assign(rec,changes);
-    closeModal('modal-beleg-edit');
-    renderBelegUebersicht();
-    toast('Beleg gespeichert ✓');
+    const saved=await DB.saveCustomer(customer);
+    customers.unshift(saved);
+    renderCustomerList();
+    toast('Kunde in Datenbank gespeichert ✓');
   }catch(e){toast('Fehler: '+e.message);}
 }
 
-async function deleteBelegEntry(id){
-  if(!confirm('Beleg wirklich löschen?'))return;
+async function deleteCustomer(id){
+  try{await DB.deleteCustomer(id);customers=customers.filter(c=>c.id!==id);renderCustomerList();toast('Gelöscht');}
+  catch(e){toast('Fehler: '+e.message);}
+}
+function useCustomer(i){
+  const c=customers[i];
+  $('f_firma').value=c.firma||'';
+  $('f_ansprechpartner').value=c.ansp||'';
+  $('f_strasse').value=c.str||'';
+  $('f_ort').value=c.ort||'';
+  $('f_land').value=c.land||'';
+  update();showPanel('doc',$('nav-doc'));
+  toast('Kunde übernommen ✓');
+}
+function loadCustomer(){
+  const i=$('f_kunde_select')?.value;
+  if(i!==''&&i!==undefined&&i!==null)useCustomer(parseInt(i));
+}
+// Inline Kunden-Dropdown im Dokument
+function loadCustomerInline(){
+  const i=$('f_kunde_inline').value;
+  if(i==='')return;
+  useCustomer(parseInt(i));
+  $('f_kunde_inline').value='';
+}
+function renderCustomerList(){
+  // Sidebar Kunden-Dropdown (falls noch vorhanden)
+  const sel=$('f_kunde_select');
+  if(sel){
+    sel.innerHTML='<option value="">— Kunde übernehmen —</option>';
+    customers.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.firma;sel.appendChild(o);});
+  }
+  // Inline Dropdown im Dokument
+  const inlineSel=$('f_kunde_inline');
+  if(inlineSel){
+    inlineSel.innerHTML='<option value="">Kunde aus Datenbank übernehmen …</option>';
+    customers.forEach((c,i)=>{const o=document.createElement('option');o.value=i;o.textContent=c.firma+(c.ort?' ('+c.ort+')':'');inlineSel.appendChild(o);});
+  }
+  // Kunden-Karten in Sidebar
+  const el=$('customer-list');
+  if(!customers.length){el.innerHTML='<p style="color:var(--text3);font-size:11px;">Noch keine Kunden.</p>';return;}
+  el.innerHTML=customers.map((c,i)=>`
+    <div class="card">
+      <button class="btn-icon card-del" onclick="deleteCustomer('${c.id}')"><i data-lucide="x"></i></button>
+      <div class="card-title">${c.firma}</div>
+      <div class="card-sub">${[c.ansp,c.str,c.ort,c.land].filter(Boolean).join(' · ')}</div>
+      ${c.email?`<div class="card-sub">${c.email}</div>`:''}
+      <div class="card-actions">
+        <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px;" onclick="useCustomer(${i})">Übernehmen</button>
+      </div>
+    </div>`).join('');
+  lucide.createIcons();
+}
+
+// ── LIBRARY ────────────────────────────────────────────────
+async function saveLibItem(){
+  const desc=$('nl_desc').value.trim();
+  if(!desc){toast('Bezeichnung fehlt!');return;}
+  const item={desc,details:$('nl_details').value.trim(),menge:$('nl_menge').value||'1',einheit:$('nl_einheit').value||'pauschal',preis:$('nl_preis').value||''};
   try{
-    const rec=receipts.find(r=>r.id===id);
-    await DB.deleteReceipt(id,rec?.storage_path||null);
-    receipts=receipts.filter(r=>r.id!==id);
-    // Aus matches entfernen
-    matches.forEach(m=>{if(m.receipt_id===id){m.receipt_id=null;m.receipts=null;}});
-    renderBelegUebersicht();
-    toast('Beleg gelöscht ✓');
+    const saved=await DB.saveLibItem(item);
+    library.unshift(saved);
+    ['nl_desc','nl_details','nl_preis'].forEach(id=>$(id).value='');
+    $('nl_menge').value='1';
+    renderLibraryList();toast('Leistung gespeichert ✓');
   }catch(e){toast('Fehler: '+e.message);}
 }
-
-// ── THUMBNAIL ERZEUGUNG ────────────────────────────────────
-async function createThumbnail(file){
-  if(file.type==='application/pdf')return null; // PDFs: kein Canvas-Thumbnail möglich
-  return new Promise(resolve=>{
-    const img=new Image();
-    const url=URL.createObjectURL(file);
-    img.onload=()=>{
-      const canvas=document.createElement('canvas');
-      canvas.width=96;canvas.height=96;
-      const ctx=canvas.getContext('2d');
-      ctx.fillStyle='#27282c';ctx.fillRect(0,0,96,96);
-      // Cover-Fit
-      const scale=Math.max(96/img.width,96/img.height);
-      const w=img.width*scale,h=img.height*scale;
-      ctx.drawImage(img,(96-w)/2,(96-h)/2,w,h);
-      URL.revokeObjectURL(url);
-      resolve(canvas.toDataURL('image/jpeg',0.65));
-    };
-    img.onerror=()=>{URL.revokeObjectURL(url);resolve(null);};
-    img.src=url;
-  });
+async function deleteLibItem(id){
+  try{await DB.deleteLibItem(id);library=library.filter(l=>l.id!==id);renderLibraryList();toast('Gelöscht');}
+  catch(e){toast('Fehler: '+e.message);}
 }
-
-// ── BELEGE AUSLESEN (KI) ───────────────────────────────────
-async function readBelege(){
-  const pending=belegFiles.filter(b=>b.status==='pending');
-  if(!pending.length){toast('Alle Belege bereits ausgelesen.');return;}
-  $('beleg-loading').classList.add('show');
-  $('btn-read-belege').disabled=true;
-  for(let i=0;i<belegFiles.length;i++){
-    const b=belegFiles[i];
-    if(b.status!=='pending')continue;
-    b.status='loading';
-    renderBelegStatusList();renderBelegList();
-    $('beleg-loading-text').textContent=`Lese ${b.file.name} …`;
-    $('beleg-progress-bar').style.width=Math.round(i/belegFiles.length*100)+'%';
-    try{
-      // Thumbnail erzeugen (vor dem API-Call, damit wir es speichern können)
-      b.thumbnail=await createThumbnail(b.file);
-
-      const b64=await readFileAsBase64(b.file);
-      const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({mode:'vision',imageData:b64,imageType:b.file.type,filename:b.file.name})});
-      if(!res.ok){const e=await res.json();throw new Error(e.error||'Fehler');}
-      const data=await res.json();
-      b.result=data.results||[];
-      b.status='done';
-      console.log('[Vision] Ergebnis für',b.file.name,':',JSON.stringify(b.result).slice(0,300));
-
-      // Beleg in DB speichern – Duplikat-Check: gleicher Dateiname + Größe
-      try{
-        const r0=b.result[0]||{};
-        console.log('[Vision] r0 (erstes Ergebnis):', JSON.stringify(r0).slice(0,200));
-        // Existiert schon ein Beleg mit gleichem Namen und Größe?
-        let uploadedReceipt=receipts.find(r=>r.filename===b.file.name&&r.size_bytes===b.file.size)||null;
-        if(uploadedReceipt){
-          console.info('Beleg bereits in DB vorhanden, überspringe Upload:',b.file.name);
-          // Thumbnail aktualisieren falls noch nicht vorhanden
-          if(!uploadedReceipt.thumbnail_data&&b.thumbnail){
-            try{await DB.updateReceipt(uploadedReceipt.id,{thumbnail_data:b.thumbnail});
-              uploadedReceipt.thumbnail_data=b.thumbnail;}catch(_){}
-          }
-        } else {
-          // Noch nicht in DB: speichern (Storage-Upload versuchen, Fallback auf Meta-only)
-          try{
-            uploadedReceipt=await DB.uploadReceipt(b.file,{
-              beschreibung:r0.beschreibung||b.file.name,
-              datum:r0.datum||null,
-              betrag:r0.betrag_brutto||null,
-              kategorie:r0.kategorie||null,
-            });
-          }catch(se){
-            console.warn('Storage-Upload fehlgeschlagen, speichere nur Metadaten:',se.message);
-            uploadedReceipt=await DB.saveReceiptMeta({
-              filename:b.file.name,
-              size_bytes:b.file.size,
-              mime_type:b.file.type||'application/octet-stream',
-              datum:r0.datum||null,
-              beschreibung:r0.beschreibung||b.file.name,
-              kategorie:r0.kategorie||null,
-              betrag:r0.betrag_brutto||null,
-            });
-          }
-          // Thumbnail speichern
-          if(uploadedReceipt&&b.thumbnail){
-            try{
-              await DB.updateReceipt(uploadedReceipt.id,{thumbnail_data:b.thumbnail});
-              uploadedReceipt.thumbnail_data=b.thumbnail;
-              console.log('[Beleg] Thumbnail gespeichert für',b.file.name,'ID:',uploadedReceipt.id);
-            }catch(te){console.warn('[Beleg] Thumbnail-Speicherung fehlgeschlagen:',te.message);}
-          }
-          // Lokal aufnehmen (mit Thumbnail auch wenn DB-Update fehlschlug)
-          if(uploadedReceipt)receipts.push({...uploadedReceipt,thumbnail_data:b.thumbnail||uploadedReceipt.thumbnail_data||null});
-        }
-        b.receiptId=uploadedReceipt?.id||null;
-        b.receiptRecord=uploadedReceipt;
-        b.savedToStorage=true;
-      }catch(se){
-        console.warn('Beleg-Speicherung fehlgeschlagen:',se.message);
-        b.savedToStorage=false;
-      }
-    }catch(e){b.status='err';b.error=e.message;toast(`Fehler bei ${b.file.name}: ${e.message}`);}
-    renderBelegStatusList();renderBelegList();
-  }
-  $('beleg-progress-bar').style.width='100%';
-  $('beleg-loading').classList.remove('show');
-  $('btn-read-belege').disabled=false;
-  renderBelegList(); // KI-Button ausblenden (nichts mehr pending)
-  // Client-seitiges Matching (kein API-Call): Beleg → Transaktion
-  const matched=autoMatchBelege();
-  if(matched){
-    const matchedCount=belegFiles.filter(b=>b.status==='done'&&b.receiptId&&matches.some(m=>m.receipt_id===b.receiptId)).length;
-    toast(`✓ Belege ausgelesen · ${matchedCount} automatisch zugeordnet`);
-  } else {
-    toast('✓ Belege ausgelesen');
-  }
-  if(currentPage===3)renderReview();
-}
-
-
-function readFileAsBase64(file){
-  return new Promise((res,rej)=>{
-    const r=new FileReader();
-    r.onload=e=>res(e.target.result.split(',')[1]);
-    r.onerror=rej;
-    r.readAsDataURL(file);
-  });
-}
-
-// ── BELEG-MATCHING (Client-seitig, kein API-Call) ──────────
-function matchBelegToTransactions(belegResult,belegReceiptId,txList){
-  // Gibt {transaction_id, score, konfidenz} zurück oder null
-  if(!belegResult)return null;
-  const bBetrag=parseFloat(belegResult.betrag_brutto)||0;
-  if(!bBetrag)return null; // kein Betrag → kein Match möglich
-  const bDatum=belegResult.datum||'';
-  const bDate=bDatum?new Date(bDatum):null;
-  // Kategorie-Hinweis: Einnahme oder Ausgabe?
-  const bIsIncome=belegResult.kategorie&&CATEGORIES[belegResult.kategorie]?.type==='income';
-  let best=null,bestScore=0;
-  txList.forEach(tx=>{
-    // Belege können Ausgaben ODER Einnahmen (Rechnungen) sein
-    const tBetrag=parseFloat(tx.betrag)||0;
-    const tDate=tx.datum?new Date(tx.datum):null;
-    // Betrag-Match: ±max(2%, 0.50€)
-    const betragstoleranz=Math.max(tBetrag*0.02,0.5);
-    const betragsMatch=Math.abs(bBetrag-tBetrag)<=betragstoleranz;
-    if(!betragsMatch)return;
-    // Richtung: Beleg-Kategorie mit TX-Typ abgleichen (wenn bekannt)
-    if(bIsIncome&&!tx.isEinnahme)return;
-    if(!bIsIncome&&belegResult.kategorie&&CATEGORIES[belegResult.kategorie]?.type==='expense'&&tx.isEinnahme)return;
-    // Datum-Match: ±7 Tage (etwas großzügiger)
-    let datumScore=0.5;
-    if(bDate&&tDate){
-      const diffDays=Math.abs((bDate-tDate)/(1000*60*60*24));
-      if(diffDays<=1)datumScore=1;
-      else if(diffDays<=3)datumScore=0.85;
-      else if(diffDays<=7)datumScore=0.65;
-      else return; // zu weit entfernt
-    }
-    // Empfänger-Match (optional, Bonus)
-    let empfScore=0;
-    if(belegResult.beschreibung&&tx.empfaenger){
-      const bDesc=(belegResult.beschreibung||'').toLowerCase();
-      const tEmpf=(tx.empfaenger||'').toLowerCase();
-      const words=tEmpf.split(/\s+/).filter(w=>w.length>3);
-      const matchWords=words.filter(w=>bDesc.includes(w));
-      empfScore=words.length?matchWords.length/words.length*0.3:0;
-    }
-    const score=datumScore*0.7+empfScore;
-    if(score>bestScore){bestScore=score;best=tx;}
-  });
-  if(!best)return null;
-  const konfidenz=bestScore>=0.85?'hoch':bestScore>=0.65?'mittel':'niedrig';
-  console.log('[Matching]',belegResult.beschreibung||'?','→',best.empfaenger||best.beschreibung||best.id,'Score:',bestScore.toFixed(2),'Konfidenz:',konfidenz);
-  return{transaction_id:best.id,score:bestScore,konfidenz};
-}
-
-// ── MATCHES AUS CSV AUFBAUEN (kein KI-Call) ────────────────
-function buildMatchesFromCSV(){
-  const existing=new Set(matches.map(m=>m.transaction_id));
-  const newM=csvTransactions.filter(t=>inPeriod(t.datum)&&!existing.has(t.id)).map(t=>({
-    transaction_id:t.id,
-    receipt_id:null,
-    beschreibung:t.beschreibung||t.empfaenger||'',
-    datum:t.datum||null,
-    betrag_brutto:Math.abs(t.betrag),
-    betrag_netto:Math.abs(t.betrag),
-    mwst_satz:0,mwst_betrag:0,
-    kategorie:t.isEinnahme?'einnahmen_19':'sonstiges',
-    konfidenz:null,
-    unklar:false,bestaetigt:false,
-    quelle:'csv',
-    is_einnahme:t.isEinnahme,
-    begruendung:null,
-    receipts:null,
-  }));
-  if(!newM.length)return;
-  matches=[...matches,...newM];
-  // Im Hintergrund in DB speichern
-  DB.saveMatches(newM.map(m=>({...m}))).then(saved=>{
-    saved.forEach(s=>{
-      const l=matches.find(m=>m.transaction_id===s.transaction_id);
-      if(l){l.id=s.id;l.kategorie_info=CATEGORIES[l.kategorie]||CATEGORIES.sonstiges;}
-    });
-  }).catch(e=>console.warn('Match-Speicherung (CSV):',e.message));
-}
-
-// ── BELEGE AUTOMATISCH MATCHEN (kein KI-Call) ─────────────
-function autoMatchBelege(){
-  const belegsDone=belegFiles.filter(b=>b.status==='done'&&b.receiptId);
-  let changed=false;
-  belegsDone.forEach(b=>{
-    if(!b.result?.length)return;
-    b.result.forEach(r=>{
-      const m=matchBelegToTransactions(r,b.receiptId,csvTransactions);
-      if(!m)return;
-      const existing=matches.find(mx=>mx.transaction_id===m.transaction_id);
-      if(existing&&!existing.receipt_id){
-        existing.receipt_id=b.receiptId;
-        existing.receipts=b.receiptRecord||receipts.find(rx=>rx.id===b.receiptId)||null;
-        existing.konfidenz=m.konfidenz;
-        existing.begruendung=`Beleg "${b.file.name}" automatisch gematcht (${m.konfidenz}).`;
-        changed=true;
-        if(existing.id){
-          DB.updateMatch(existing.id,{
-            receipt_id:b.receiptId,
-            konfidenz:m.konfidenz,
-            begruendung:existing.begruendung,
-          }).catch(()=>{});
-        }
-      }
-    });
-  });
-  return changed;
-}
-
-// ── KI KATEGORISIERUNG (Review-Button) ─────────────────────
-async function runKIKategorisierung(){
-  // Nur Einträge die noch keine KI-Kategorie haben
-  const toKI=matches.filter(m=>!m.konfidenz&&inPeriod(m.datum));
-  if(!toKI.length){toast('Alle Einträge bereits analysiert.');return;}
-
-  $('ki-review-loading').classList.add('show');
-  $('btn-ki-review').disabled=true;
-
-  const batchSize=10;
-  for(let i=0;i<toKI.length;i+=batchSize){
-    const batch=toKI.slice(i,i+batchSize).map(e=>({
-      id:e.transaction_id,
-      beschreibung:(e.beschreibung||'').slice(0,120)+(e.is_einnahme!=null?` [${e.is_einnahme?'Gutschrift':'Lastschrift'}]`:''),
-      betrag:e.betrag_brutto,datum:e.datum,quelle:e.quelle||'csv',
-    }));
-    $('ki-review-loading-text').textContent=`KI analysiert ${Math.min(i+batchSize,toKI.length)}/${toKI.length} …`;
-    console.log('[KI] Sende Batch', i/batchSize+1, '– Einträge:', batch.map(e=>e.id+'|'+e.beschreibung.slice(0,40)));
-    try{
-      const res=await fetch('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({entries:batch,mode:'categorize'})});
-      if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err.error||'API '+res.status);}
-      const data=await res.json();
-      console.log('[KI] Ergebnis:', (data.results||[]).map(r=>r.id+'→'+r.kategorie+'|'+r.konfidenz+'|'+(r.begruendung||'').slice(0,50)));
-      (data.results||[]).forEach(ki=>{
-        const match=matches.find(m=>m.transaction_id===ki.id);
-        if(!match)return;
-        const defaultCatKey=match.is_einnahme?'einnahmen_19':'sonstiges';
-        const catKey=ki.kategorie&&CATEGORIES[ki.kategorie]?ki.kategorie:defaultCatKey;
-        const cat=CATEGORIES[catKey];
-        const brutto=ki.betrag_brutto||match.betrag_brutto||0;
-        const netto=ki.betrag_netto||(cat.vat?Math.round(brutto/(1+cat.vat)*100)/100:brutto);
-        const mwst=ki.mwst_betrag||Math.round((brutto-netto)*100)/100;
-        match.kategorie=catKey;
-        match.kategorie_info=cat;
-        match.betrag_brutto=brutto;
-        match.betrag_netto=netto;
-        match.mwst_satz=ki.mwst_satz??cat.vat;
-        match.mwst_betrag=mwst;
-        match.konfidenz=ki.konfidenz||'mittel';
-        match.unklar=!!ki.unklar;
-        match.is_einnahme=cat.type==='income'||(match.is_einnahme||false);
-        // Begründung: KI-Text anhängen (Beleg-Begründung behalten falls vorhanden)
-        const kiGrund=ki.begruendung||'';
-        match.begruendung=match.begruendung
-          ?(match.begruendung+(kiGrund?' – '+kiGrund:''))
-          :kiGrund;
-        // In DB speichern
-        if(match.id){
-          DB.updateMatch(match.id,{
-            kategorie:catKey,betrag_brutto:brutto,betrag_netto:netto,
-            mwst_satz:match.mwst_satz,mwst_betrag:mwst,
-            konfidenz:match.konfidenz,unklar:match.unklar,
-            begruendung:match.begruendung,is_einnahme:match.is_einnahme,
-          }).catch(()=>{});
-        }
-      });
-    }catch(e){
-      toast('KI-Fehler: '+e.message);
-      break;
-    }
-  }
-
-  $('ki-review-loading').classList.remove('show');
-  $('btn-ki-review').disabled=false;
-  const reviewCount=matches.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
-  $('badge-review').textContent=reviewCount;
-  $('badge-review').classList.toggle('show',reviewCount>0);
-  updateSidebar();
-  renderReview();
-  toast(`✓ KI-Analyse abgeschlossen · ${toKI.length} Einträge kategorisiert`);
-}
-
-
-// ── REVIEW – LEXOFFICE-STIL ────────────────────────────────
-function getReceiptForMatch(m){
-  // Liefert das Receipt-Objekt für einen Match (aus matches.receipts oder lokaler receipts-Liste)
-  if(m.receipts)return m.receipts; // aus DB-Join
-  if(m.receipt_id){return receipts.find(r=>r.id===m.receipt_id)||null;}
-  return null;
-}
-
-function renderThumb(m,idx){
-  const rec=getReceiptForMatch(m);
-  if(rec){
-    const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
-    const confDot=m.unklar?'niedrig':(m.konfidenz||'hoch');
-    if(isPDF){
-      return`<div class="thumb-slot has-thumb" onclick="openBelegModal(${idx})" title="${rec.filename||'PDF'}">
-        <div class="pdf-lbl">PDF<br>${(rec.filename||'').slice(0,8)}</div>
-        <div class="conf-dot ${confDot}"></div>
-      </div>`;
-    }
-    if(rec.thumbnail_data){
-      return`<div class="thumb-slot has-thumb" onclick="openBelegModal(${idx})" title="${rec.filename||'Beleg'}">
-        <img src="${rec.thumbnail_data}" alt="Beleg">
-        <div class="conf-dot ${confDot}"></div>
-      </div>`;
-    }
-    // Hat Receipt aber kein Thumbnail
-    return`<div class="thumb-slot has-thumb" onclick="openBelegModal(${idx})" title="${rec.filename||'Beleg'}">
-      <div class="pdf-lbl">📎<br>${(rec.filename||'').slice(0,8)}</div>
-      <div class="conf-dot ${confDot}"></div>
-    </div>`;
-  }
-  // Kein Beleg → "+" Slot
-  return`<div class="thumb-slot" onclick="openPicker(${idx})" title="Beleg zuordnen">
-    <div class="add-lbl">+</div>
-  </div>`;
-}
-
-function renderReview(){
-  const list=$('review-list');
-
-  // Zeige CSV-Buchungen auch ohne KI (sofort nach Upload)
-  const displayed=matches.filter(m=>inPeriod(m.datum));
-  if(!displayed.length){
-    list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">Noch keine Buchungen im gewählten Zeitraum. Bitte CSV hochladen.</div>';
-    return;
-  }
-
-  // Sortierung: älteste zuerst
-  displayed.sort((a,b)=>{
-    const da=a.datum||'',db2=b.datum||'';
-    return da<db2?-1:da>db2?1:0;
-  });
-
-  const reviewCount=matches.filter(r=>inPeriod(r.datum)&&(r.unklar||r.konfidenz==='niedrig')).length;
-  $('badge-review').textContent=reviewCount;
-  $('badge-review').classList.toggle('show',reviewCount>0);
-
-  const filtered=filterReview?displayed.filter(r=>r.unklar||r.konfidenz==='niedrig'):displayed;
-
-  list.innerHTML=`
-    <div class="lx-header">
-      <span>Datum</span><span>Buchung</span><span style="text-align:right">Betrag</span>
-      <span style="text-align:center">Beleg</span><span>Kategorie</span><span>Status</span><span style="width:24px"></span>
-    </div>
-    ${filtered.map(r=>{
-      const realIdx=matches.indexOf(r);
-      const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
-      const isIncome=r.is_einnahme||(cat.type==='income');
-      const rowCls=r.bestaetigt?'bestaetigt':r.unklar?'unsicher':'';
-      // Status-Badge: leer wenn noch keine KI, sonst konfidenz
-      const statusLbl=r.bestaetigt
-        ?'<span class="konfidenz bestaetigt">✓ OK</span>'
-        :r.unklar
-          ?'<span class="konfidenz unklar">⚠ Prüfen</span>'
-          :r.konfidenz
-            ?`<span class="konfidenz ${r.konfidenz}">${r.konfidenz}</span>`
-            :'<span class="konfidenz" style="color:var(--text3)">–</span>';
-      const hasGrund=!!r.begruendung;
-      return`<div class="lx-row-wrap">
-        <div class="lx-row ${rowCls}" id="lxr-${realIdx}">
-          <div class="lx-date">${r.datum?fmtDate(r.datum):'–'}</div>
-          <div class="lx-desc">
-            <div class="lx-desc-main" title="${(r.beschreibung||'').replace(/"/g,'&quot;')}">${r.beschreibung||'–'}</div>
-          </div>
-          <div class="lx-amt ${isIncome?'in':'out'}">${isIncome?'+':'−'}${fmt(r.betrag_brutto||0)}</div>
-          <div class="lx-thumb">${renderThumb(r,realIdx)}</div>
-          <select class="cat-select" onchange="onCatChange(${realIdx},this.value)">
-            ${Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}"${r.kategorie===k?' selected':''}>${v.label}</option>`).join('')}
-          </select>
-          <div>${statusLbl}</div>
-          <button class="entry-del reason-btn${hasGrund?' has-grund':''}" onclick="toggleReason(${realIdx})" title="${hasGrund?'Begründung anzeigen':'Keine Begründung vorhanden'}">
-            <i data-lucide="chevron-down"></i>
-          </button>
-        </div>
-        ${hasGrund?`<div class="reason-row" id="reason-${realIdx}" style="display:none;">
-          <i data-lucide="info" style="width:13px;height:13px;flex-shrink:0;color:var(--text3)"></i>
-          <span>${r.begruendung}</span>
-          <button class="entry-del" onclick="onConfirmToggle(${realIdx})" title="${r.bestaetigt?'Bestätigung aufheben':'Als OK markieren'}" style="margin-left:auto;flex-shrink:0;">
-            <i data-lucide="${r.bestaetigt?'check-circle':'circle'}"></i>
-          </button>
-        </div>`:''}
-      </div>`;
-    }).join('')}`;
+function renderLibraryList(){
+  const sel=$('f_lib_select');
+  sel.innerHTML='<option value="">+ Aus Bibliothek hinzufügen</option>';
+  const el=$('lib-list');
+  if(!library.length){el.innerHTML='<p style="color:var(--text3);font-size:11px;">Noch keine Leistungen.</p>';return;}
+  el.innerHTML=library.map((l,i)=>`
+    <div class="card">
+      <button class="btn-icon card-del" onclick="deleteLibItem('${l.id}')"><i data-lucide="x"></i></button>
+      <div class="card-title">${l.desc}</div>
+      <div class="card-sub">${l.menge} ${UNITS[l.einheit]?UNITS[l.einheit].de:l.einheit}${l.preis?' · '+fmt(parsePreis(l.preis)):''}</div>
+    </div>`).join('');
+  library.forEach((l,i)=>{const o=document.createElement('option');o.value=i;o.textContent=l.desc;sel.appendChild(o);});
   lucide.createIcons();
 }
-
-function toggleReason(idx){
-  const el=$(`reason-${idx}`);
-  if(el)el.style.display=el.style.display==='none'?'flex':'none';
+function addFromLib(){
+  const i=$('f_lib_select').value;if(i==='')return;
+  const l=library[parseInt(i)];
+  positionen.push({id:Date.now(),desc:l.desc,details:l.details||'',menge:l.menge,einheit:l.einheit,preis:l.preis});
+  renderPositionen();update();$('f_lib_select').value='';toast('Hinzugefügt ✓');
 }
 
-async function onCatChange(idx,newCat){
-  matches[idx].kategorie=newCat;
-  matches[idx].kategorie_info=CATEGORIES[newCat]||CATEGORIES.sonstiges;
-  updateSidebar();
-  // In DB speichern
-  if(matches[idx].id){
-    try{await DB.updateMatch(matches[idx].id,{kategorie:newCat});}
-    catch(e){console.warn('Kategorie-Update fehlgeschlagen:',e.message);}
-  }
+// ── DOCUMENTS ─────────────────────────────────────────────
+async function saveDoc(){
+  // HTML-Snapshot für Dashboard-Vorschau erzeugen
+  let pdf_html='';
+  try{
+    const snap=buildCleanPages();
+    // CSS aus dem Dokument extrahieren
+    let css='';
+    try{css=Array.from(document.styleSheets).reduce((a,ss)=>{try{return a+Array.from(ss.cssRules).map(r=>r.cssText).join('\n');}catch{return a;}},'')}catch{}
+    pdf_html=JSON.stringify({p1:snap.p1,p2:snap.p2,css});
+  }catch(e){console.warn('Snapshot fehlgeschlagen:',e);}
+
+  const doc={
+    typ,nr:val('f_nr'),datum:val('f_datum'),gueltig:val('f_gueltig'),
+    von:val('f_von'),bis:'',betreff:val('f_betreff'),zahlung:val('f_zahlung'),
+    hinweise:val('f_hinweise'),firma:val('f_firma'),ansp:val('f_ansprechpartner'),
+    str:val('f_strasse'),ort:val('f_ort'),land:val('f_land'),uid:val('f_uid'),
+    lang,tax,positionen,pdf_html
+  };
+  // Wenn wir eine bekannte ID haben, Update via ID (kein upsert-Konflikt)
+  if(currentDocId){doc.id=currentDocId;}
+  try{
+    const saved=await DB.saveDocument(doc);
+    currentDocId=saved.id; // ID merken für nächstes Speichern
+    const idx=history.findIndex(h=>h.id===saved.id);
+    if(idx>-1)history[idx]=saved; else history.unshift(saved);
+    renderHistory();toast('Gespeichert ✓');
+  }catch(e){toast('Fehler: '+e.message);}
 }
-
-async function onConfirmToggle(idx){
-  matches[idx].bestaetigt=!matches[idx].bestaetigt;
-  if(matches[idx].id){
-    try{await DB.updateMatch(matches[idx].id,{bestaetigt:matches[idx].bestaetigt});}
-    catch(e){console.warn('Bestätigung fehlgeschlagen:',e.message);}
-  }
-  renderReview();
+async function toggleStatus(id,key,e){
+  e.stopPropagation();
+  const doc=history.find(h=>h.id===id);if(!doc)return;
+  if(!doc.status)doc.status={};
+  doc.status[key]=!doc.status[key];
+  try{await DB.updateDocStatus(id,doc.status);renderHistory();}
+  catch(err){toast('Fehler: '+err.message);}
 }
-
-function toggleFilterReview(){filterReview=!filterReview;$('btn-filter-review').classList.toggle('active',filterReview);renderReview();}
-
-// ── BELEG-MODAL ────────────────────────────────────────────
-function openBelegModal(matchIdx){
-  modalMatchIdx=matchIdx;
-  const m=matches[matchIdx];
-  const rec=getReceiptForMatch(m);
-  if(!rec){openPicker(matchIdx);return;}
-  $('modal-beleg-title').textContent=rec.filename||'Beleg';
-  const img=$('modal-beleg-img');
-  const pdf=$('modal-beleg-pdf');
-  const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
-  if(isPDF){
-    img.style.display='none';pdf.style.display='block';
-    $('modal-beleg-pdf-name').textContent=rec.filename||'PDF';
-    // Wenn signed_url vorhanden, zeige Link
-    if(rec.signed_url){
-      $('modal-beleg-pdf-name').innerHTML=`<a href="${rec.signed_url}" target="_blank" style="color:var(--accent);">${rec.filename||'PDF öffnen'}</a>`;
-    }
-  } else {
-    pdf.style.display='none';img.style.display='block';
-    img.src=rec.signed_url||rec.thumbnail_data||'';
-  }
-  $('modal-beleg-meta').innerHTML=`
-    <div><span style="color:var(--text3);">Datum:</span> ${fmtDate(rec.datum||'')}</div>
-    <div><span style="color:var(--text3);">Betrag:</span> ${rec.betrag?fmt(parseFloat(rec.betrag)):'–'}</div>
-    <div><span style="color:var(--text3);">Beschreibung:</span> ${rec.beschreibung||rec.filename||'–'}</div>
-    <div><span style="color:var(--text3);">Kategorie:</span> ${CATEGORIES[rec.kategorie]?.label||rec.kategorie||'–'}</div>
-  `;
-  $('modal-beleg-tx').innerHTML=`
-    <div style="background:var(--surface2);border-radius:5px;padding:8px 10px;">
-      <div style="color:var(--text2);">${m.beschreibung||'–'}</div>
-      <div style="color:var(--text3);font-size:10px;margin-top:3px;">${fmtDate(m.datum||'')} · ${m.is_einnahme?'+':'−'}${fmt(m.betrag_brutto||0)}</div>
-    </div>
-  `;
-  $('modal-overlay').style.display; // trigger
-  $('modal-beleg').classList.add('open');
-  lucide.createIcons();
+async function deleteDoc(id){
+  try{await DB.deleteDocument(id);history=history.filter(h=>h.id!==id);renderHistory();toast('Gelöscht');}
+  catch(e){toast('Fehler: '+e.message);}
 }
-
-function openPickerFromModal(){
-  closeModal('modal-beleg');
-  openPicker(modalMatchIdx);
+function loadDoc(i){
+  const d=history[i];
+  typ=d.typ||'angebot';
+  currentDocId=d.id||null; // ID für Speichern merken
+  // Update topbar type buttons
+  document.querySelectorAll('.doc-type-btn').forEach(b=>b.classList.remove('active'));
+  $(typ==='rechnung'?'typ-rechnung':'typ-angebot').classList.add('active');
+  $('f_nr').value=d.nr||'';
+  $('f_datum').value=d.datum||'';
+  $('f_gueltig').value=d.gueltig||'';
+  $('f_von').value=d.von||'';
+  $('f_betreff').value=d.betreff||'';
+  $('f_zahlung').value=d.zahlung||'voll';
+  $('f_hinweise').value=d.hinweise||'';
+  $('f_firma').value=d.firma||'';
+  $('f_ansprechpartner').value=d.ansp||'';
+  $('f_strasse').value=d.str||'';
+  $('f_ort').value=d.ort||'';
+  $('f_land').value=d.land||'';
+  $('f_uid').value=d.uid||'';
+  positionen=(d.positionen||[]).map(p=>({...p,id:p.id||Date.now()+Math.random()}));
+  setLang(d.lang||'de');setTax(d.tax||'de');
+  renderPositionen();update();
+  showPanel('doc',$('nav-doc'));
+  toast('Geladen ✓');
 }
-
-async function unlinkReceipt(){
-  if(modalMatchIdx===null)return;
-  const m=matches[modalMatchIdx];
-  if(!confirm('Verknüpfung zum Beleg lösen?'))return;
-  m.receipt_id=null;m.receipts=null;
-  if(m.id){
-    try{await DB.updateMatch(m.id,{receipt_id:null});}
-    catch(e){console.warn('Unlink fehlgeschlagen:',e.message);}
-  }
-  closeModal('modal-beleg');
-  renderReview();
-  toast('Verknüpfung gelöst ✓');
-}
-
-function closeModal(id){$(`${id}`).classList.remove('open');}
-
-// ── BELEG-PICKER ───────────────────────────────────────────
-// Gibt {desc, datum} aus Beleg-Metadaten zurück
-function fmtBelegParts(rec){
-  const raw=(rec.beschreibung||rec.filename||'').replace(/\.[^.]+$/,'');
-  const desc=raw.slice(0,22).replace(/[_-]/g,' ').trim()||'Beleg';
-  let datumStr='';
-  if(rec.datum){
-    try{const[y,m,d]=rec.datum.split('-');datumStr=`${d}.${m}.${y.slice(2)}`;}catch{}
-  }
-  return{desc,datumStr};
-}
-// Compat: immer noch gebraucht in confirmPicker etc.
-function fmtBelegLabel(rec){
-  const{desc,datumStr}=fmtBelegParts(rec);
-  return datumStr?`${desc} · ${datumStr}`:desc;
-}
-
-function openPicker(matchIdx){
-  modalMatchIdx=matchIdx;
-  pickerSelected=null;
-  $('picker-confirm').disabled=true;
-  // Alle verfügbaren Belege: aus DB + Session (mit Thumbnail mergen)
-  const allReceipts=[...receipts];
-  belegFiles.filter(b=>b.status==='done'&&b.receiptRecord&&!receipts.find(r=>r.id===b.receiptRecord.id))
-    .forEach(b=>allReceipts.push({...b.receiptRecord,thumbnail_data:b.thumbnail||b.receiptRecord?.thumbnail_data||null}));
-  // Thumbnail aus Session über receipts einmergen falls DB-Record kein Thumbnail hat
-  allReceipts.forEach(rec=>{
-    if(!rec.thumbnail_data){
-      const bf=belegFiles.find(b=>b.receiptId===rec.id&&b.thumbnail);
-      if(bf)rec.thumbnail_data=bf.thumbnail;
-    }
-  });
-
-  const grid=$('picker-grid');
-  const empty=$('picker-empty');
-  if(!allReceipts.length){
-    grid.innerHTML='';empty.style.display='block';
-    $('modal-picker').classList.add('open');lucide.createIcons();return;
-  }
-  empty.style.display='none';
-
-  // Bereits zugeordnete receipt_ids (außer dem aktuellen Match)
-  const usedIds=new Set(matches.filter((m,i)=>i!==matchIdx&&m.receipt_id).map(m=>m.receipt_id));
-
-  grid.innerHTML=allReceipts.map(rec=>{
-    const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
-    const used=usedIds.has(rec.id);
-    const{desc,datumStr}=fmtBelegParts(rec);
-    // Thumbnail-Bereich: Bild, PDF-Label oder "kein Thumbnail"-Platzhalter
-    let thumbHtml;
-    if(rec.thumbnail_data){
-      thumbHtml=`<img class="picker-thumb" src="${rec.thumbnail_data}" alt="${desc}">`;
-    } else if(isPDF){
-      thumbHtml=`<div class="picker-pdf"><i data-lucide="file-text" style="width:22px;height:22px;margin-bottom:3px;"></i><span>PDF</span></div>`;
-    } else {
-      thumbHtml=`<div class="picker-pdf"><i data-lucide="image" style="width:22px;height:22px;margin-bottom:3px;"></i><span>Bild</span></div>`;
-    }
-    return`<div class="picker-item${used?' picker-used':''}"
-        onclick="${used?'':'pickReceipt(this,\''+rec.id+'\')'}"
-        data-id="${rec.id}"
-        title="${rec.filename||''}"
-        ${used?'style="opacity:.45;cursor:not-allowed;"':''}>
-      ${thumbHtml}
-      <div class="picker-name">
-        <div class="picker-name-desc">${desc}</div>
-        ${datumStr?`<div class="picker-name-date">${datumStr}</div>`:''}
+function renderHistory(){
+  const el=$('history-list');
+  if(!history.length){el.innerHTML='<p style="color:var(--text3);font-size:11px;">Keine Dokumente.</p>';return;}
+  el.innerHTML=history.map((h,i)=>{
+    const isRe=h.typ==='rechnung';
+    const chips=(isRe?STATUS_RE:STATUS_ANG).map(s=>{
+      const active=h.status&&h.status[s.key];
+      const lbl=lang==='en'?s.label_en:s.label_de;
+      return`<button class="chip${active?' '+s.cls:''}" onclick="toggleStatus('${h.id}','${s.key}',event)">${lbl}</button>`;
+    }).join('');
+    return`<div class="hist-item">
+      <div onclick="loadDoc(${i})" style="cursor:pointer;">
+        <span class="hist-badge ${isRe?'badge-re':'badge-ang'}">${isRe?'RE':'ANG'}</span>
+        ${h.lang==='en'?'<span class="hist-badge" style="background:#1a2a3f;color:var(--blue);margin-left:4px;">EN</span>':''}
+        <div class="hist-nr">${h.nr||'–'}</div>
+        <div class="hist-sub">${h.firma||'–'} · ${h.betreff||'–'}</div>
+      </div>
+      <div class="status-row">${chips}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <span style="font-size:10px;color:var(--text3);">${new Date(h.updated_at||h.created_at).toLocaleDateString('de-DE')}</span>
+        <button class="btn btn-danger" style="font-size:11px;padding:4px 8px;" onclick="deleteDoc('${h.id}')">
+          <i data-lucide="trash-2"></i>
+        </button>
       </div>
     </div>`;
   }).join('');
-  $('modal-picker').classList.add('open');
   lucide.createIcons();
 }
 
-function pickReceipt(el,receiptId){
-  document.querySelectorAll('.picker-item').forEach(e=>e.classList.remove('selected'));
-  el.closest('.picker-item').classList.add('selected');
-  pickerSelected=receiptId;
-  $('picker-confirm').disabled=false;
-}
-
-async function confirmPicker(){
-  if(!pickerSelected||modalMatchIdx===null)return;
-  const rec=receipts.find(r=>r.id===pickerSelected)||
-    belegFiles.map(b=>b.receiptRecord).find(r=>r?.id===pickerSelected);
-  if(!rec)return;
-  matches[modalMatchIdx].receipt_id=pickerSelected;
-  matches[modalMatchIdx].receipts=rec;
-  // In DB speichern
-  if(matches[modalMatchIdx].id){
-    try{await DB.updateMatch(matches[modalMatchIdx].id,{receipt_id:pickerSelected});}
-    catch(e){console.warn('Picker-Update fehlgeschlagen:',e.message);}
-  }
-  closeModal('modal-picker');
-  renderReview();
-  toast('Beleg zugeordnet ✓');
-}
-
-// ── USTVA BERECHNUNG ───────────────────────────────────────
-function buildUStVA(){
-  const src=matches.length?matches:aiResults;
-  if(!src.length){
-    $('ustv-kpi-grid').innerHTML='<div style="color:var(--text3);font-size:12px;padding:10px;">Noch keine Analyse. Bitte zuerst Schritte 1–3 durchführen.</div>';
-    return;
-  }
-  const q=selectedQuartal;const year=selectedYear;
-  const label=q?`Q${q} ${year}`:year;
-  $('ustva-period-label').textContent=label;
-
-  let ein19=0,ein7=0,ein0=0,aus19=0,aus7=0,aus0=0;
-  let vor19=0,vor7=0;
-  let einNetto=0,ausNetto=0;
-
-  src.forEach(r=>{
-    const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
-    if(cat.type==='private')return;
-    const netto=r.betrag_netto||0;
-    const mwst=r.mwst_betrag||0;
-    const f=cat.limitFactor||1;
-    if(cat.type==='income'){
-      einNetto+=netto;
-      if(r.mwst_satz===0.19){ein19+=netto;}
-      else if(r.mwst_satz===0.07){ein7+=netto;}
-      else{ein0+=netto;}
-    } else {
-      ausNetto+=netto*f;
-      if(r.mwst_satz===0.19){aus19+=netto*f;vor19+=mwst*f;}
-      else if(r.mwst_satz===0.07){aus7+=netto*f;vor7+=mwst*f;}
-      else{aus0+=netto*f;}
-    }
-  });
-
-  const ust19=Math.round(ein19*0.19*100)/100;
-  const ust7=Math.round(ein7*0.07*100)/100;
-  const vorsteuer=Math.round((vor19+vor7)*100)/100;
-  const zahllast=Math.round((ust19+ust7-vorsteuer)*100)/100;
-  const gewinn=Math.round((einNetto-ausNetto)*100)/100;
-
-  $('ustv-kpi-grid').innerHTML=`
-    <div class="ustv-kpi"><div class="ustv-kpi-label">Umsatz Netto</div><div class="ustv-kpi-val green">${fmt(einNetto)}</div></div>
-    <div class="ustv-kpi"><div class="ustv-kpi-label">Ausgaben Netto</div><div class="ustv-kpi-val red">${fmt(ausNetto)}</div></div>
-    <div class="ustv-kpi"><div class="ustv-kpi-label">Gewinn (EÜR)</div><div class="ustv-kpi-val accent">${fmt(gewinn)}</div></div>
-    <div class="ustv-kpi"><div class="ustv-kpi-label">USt-Zahllast</div><div class="ustv-kpi-val ${zahllast>0?'red':'green'}">${fmt(Math.abs(zahllast))} ${zahllast<0?'(Erstattung)':''}</div></div>
-  `;
-
-  $('detail-table').querySelector('tbody').innerHTML=`
-    <tr><th colspan="2">Umsatzsteuer</th></tr>
-    <tr><td>Kz 81 – Umsätze 19%</td><td>${fmt(ein19)}</td></tr>
-    <tr><td>Kz 86 – Umsätze 7%</td><td>${fmt(ein7)}</td></tr>
-    <tr><td>Kz 35 – Steuer 19%</td><td>${fmt(ust19)}</td></tr>
-    <tr><td>Kz 36 – Steuer 7%</td><td>${fmt(ust7)}</td></tr>
-    <tr><th colspan="2">Vorsteuer</th></tr>
-    <tr><td>Kz 66 – Vorsteuer gesamt</td><td>${fmt(vorsteuer)}</td></tr>
-    <tr><th colspan="2">Ergebnis</th></tr>
-    <tr><td><strong>Kz 83 – Zahllast</strong></td><td><strong>${fmt(Math.max(0,zahllast))}</strong></td></tr>
-    ${zahllast<0?`<tr><td>Kz 83 – Erstattungsüberhang</td><td style="color:var(--green);">${fmt(Math.abs(zahllast))}</td></tr>`:''}
-  `;
-
-  $('euer-table').querySelector('tbody').innerHTML=`
-    <tr><td>Betriebseinnahmen Netto</td><td style="color:var(--green);">${fmt(einNetto)}</td></tr>
-    <tr><td>Betriebsausgaben Netto</td><td style="color:var(--red);">${fmt(ausNetto)}</td></tr>
-    <tr><td><strong>Gewinn / Verlust</strong></td><td><strong style="color:${gewinn>=0?'var(--green)':'var(--red)'};">${fmt(gewinn)}</strong></td></tr>
-    <tr><td style="color:var(--text3);">Nicht-abzugsfähig (Privat etc.)</td><td style="color:var(--text3);">${fmt(src.filter(r=>CATEGORIES[r.kategorie]?.type==='private').reduce((s,r)=>s+(r.betrag_brutto||0),0))}</td></tr>
-  `;
-
-  updateSidebar();
-}
-
-// ── EXPORT ─────────────────────────────────────────────────
-function exportSummary(){
-  const q=selectedQuartal,year=selectedYear;
-  const label=q?`Q${q} ${year}`:year;
-  let txt=`UStVA-Zusammenfassung VISO Media – ${label}\n${'─'.repeat(40)}\n`;
-  const src=matches.length?matches:aiResults;
-  src.forEach(r=>{
-    const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
-    txt+=`${fmtDate(r.datum)} | ${r.beschreibung?.slice(0,40)||'–'} | ${cat.type==='income'?'+':'−'}${fmt(r.betrag_brutto||0)} | ${cat.label}\n`;
-  });
-  navigator.clipboard.writeText(txt).then(()=>toast('Zusammenfassung kopiert ✓')).catch(()=>toast('Fehler beim Kopieren'));
-}
-
-function exportElsterXML(){
-  let ein19=0,ein7=0,vor=0;
-  const src=matches.length?matches:aiResults;
-  src.forEach(r=>{
-    const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
-    if(cat.type==='income'){if(r.mwst_satz===0.19)ein19+=r.betrag_netto||0;if(r.mwst_satz===0.07)ein7+=r.betrag_netto||0;}
-    else if(cat.type==='expense'){vor+=r.mwst_betrag||0;}
-  });
-  const ust19=Math.round(ein19*0.19*100)/100;
-  const ust7=Math.round(ein7*0.07*100)/100;
-  const zahllast=Math.max(0,Math.round((ust19+ust7-vor)*100)/100);
-  const steuernr=$('elster-steuernr').value.trim().replace(/\D/g,'');
-  const bl=$('elster-bundesland').value;
-  const q=selectedQuartal,year=selectedYear;
-  const [vy,vm,vt]=new Date().toISOString().split('T')[0].split('-');
-  const xml=`<?xml version="1.0" encoding="UTF-8"?>
-<Elster xmlns="http://www.elster.de/elsterxml/schema/v12">
-  <TransferHeader><Verfahren>ElsterAnmeldung</Verfahren><DatenArt>UStVA</DatenArt>
-    <Vorgang>send-Auth</Vorgang><Erstellungsdatum>${year}${String(q||1).padStart(2,'0')}01</Erstellungsdatum>
-  </TransferHeader>
-  <DatenTeil><Nutzdaten><Anmeldung art="UStVA" version="2024">
-    <Zeitraum><Jahr>${year}</Jahr><Quartal>${q||1}</Quartal></Zeitraum>
-    <Steuernummer>${steuernr}</Steuernummer><Bundesland>${bl}</Bundesland>
-    <Kz81>${Math.round(ein19*100)/100}</Kz81>
-    <Kz86>${Math.round(ein7*100)/100}</Kz86>
-    <Kz35>${ust19}</Kz35><Kz36>${ust7}</Kz36>
-    <Kz66>${Math.round(vor*100)/100}</Kz66>
-    <Kz83>${zahllast}</Kz83>
-  </Anmeldung></Nutzdaten></DatenTeil>
-</Elster>`;
-  const blob=new Blob([xml],{type:'application/xml'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download=`UStVA_${q?'Q'+q+'_':''}${year}_ELSTER.xml`;a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),5000);
-  toast('ELSTER XML heruntergeladen ✓');
-}
-
-// ── MATCHES AUS DB LADEN ───────────────────────────────────
-async function loadMatchesFromDB(year,quartal){
+// ── EMAIL TEMPLATES ────────────────────────────────────────
+async function saveEmailTemplate(){
+  const key=$('email_template').value;
   try{
-    const dbMatches=await DB.getMatches(year,quartal||0);
-    matches=dbMatches.map(m=>({
-      ...m,
-      id:m.id,
-      is_einnahme:!!m.is_einnahme,
-      unklar:!!m.unklar,
-      bestaetigt:!!m.bestaetigt,
-      kategorie_info:CATEGORIES[m.kategorie]||CATEGORIES.sonstiges,
-      receipts:m.receipts||null,
-    }));
-    aiResults=matches;
-    // Hinweis: buildMatchesFromCSV() wird NICHT hier aufgerufen.
-    // Es wird nach dem parallelen Laden von Transactions + Matches separat aufgerufen,
-    // um Race conditions zu vermeiden (csvTransactions muss bereits befüllt sein).
-    const reviewCount=matches.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
-    $('badge-review').textContent=reviewCount;
-    $('badge-review').classList.toggle('show',reviewCount>0);
-    updateSidebar();
+    await DB.saveEmailTemplate(key,val('email_subject'),val('email_body'));
+    customEmailTpl[key]={subject:val('email_subject'),body:val('email_body')};
+    toast('Vorlage gespeichert ✓');
+  }catch(e){toast('Fehler: '+e.message);}
+}
+
+// ── DATA ──────────────────────────────────────────────────
+function exportData(){
+  const blob=new Blob([JSON.stringify({customers,library,history,customEmailTpl,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`viso-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();toast('Export ✓');
+}
+async function importData(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      let imported=0;
+      if(data.customers){for(const c of data.customers){if(!customers.find(x=>x.firma===c.firma)){try{const s=await DB.saveCustomer(c);customers.unshift(s);imported++;}catch{}}}renderCustomerList();}
+      if(data.library){for(const l of data.library){if(!library.find(x=>x.desc===l.desc)){try{const s=await DB.saveLibItem(l);library.unshift(s);imported++;}catch{}}}renderLibraryList();}
+      if(data.history){for(const h of data.history){if(!history.find(x=>x.nr===h.nr)){try{const s=await DB.saveDocument(h);history.unshift(s);imported++;}catch{}}}renderHistory();}
+      updateDataStats();toast(`Import: ${imported} Einträge ✓`);
+    }catch{toast('Fehler beim Import!');}
+  };
+  reader.readAsText(file);input.value='';
+}
+function resetData(){
+  if(!confirm('Wirklich alle lokalen Daten zurücksetzen?'))return;
+  customers=[];library=[];history=[];customEmailTpl={};
+  renderCustomerList();renderLibraryList();renderHistory();updateDataStats();
+  toast('Zurückgesetzt');
+}
+function updateDataStats(){
+  $('data_stats').innerHTML=`Kunden: <strong>${customers.length}</strong><br>Leistungen: <strong>${library.length}</strong><br>Dokumente: <strong>${history.length}</strong>`;
+}
+
+// ── PDF SNAPSHOT HELPER ────────────────────────────────────
+// Erzeugt bereinigtes HTML des Dokuments (für PDF-Export und Dashboard-Vorschau)
+function buildCleanPages(){
+  const isRe=typ==='rechnung';
+  const notes=val('f_hinweise').trim();
+  const l=T[lang];
+
+  const p1clone=$('page1').cloneNode(true);
+  const p2clone=$('page2').cloneNode(true);
+
+  p1clone.querySelectorAll('.no-print').forEach(el=>el.remove());
+  p2clone.querySelectorAll('.no-print').forEach(el=>el.remove());
+
+  function replaceInputs(container){
+    container.querySelectorAll('input.ie,input.ie-date').forEach(inp=>{
+      const span=document.createElement('span');
+      span.style.cssText=inp.style.cssText;
+      const raw=inp.value;
+      if(inp.type==='date'){span.textContent=fmtDate(raw);}
+      else{span.textContent=raw||'';}
+      inp.replaceWith(span);
+    });
+    container.querySelectorAll('input.ie-block').forEach(inp=>{
+      const div=document.createElement('div');
+      div.textContent=inp.value||'';
+      div.style.cssText=inp.style.cssText;
+      div.style.border='none';div.style.background='transparent';
+      inp.replaceWith(div);
+    });
+    container.querySelectorAll('select.ie-select').forEach(sel=>{
+      const span=document.createElement('span');
+      span.textContent=sel.options[sel.selectedIndex]?.text||'';
+      sel.replaceWith(span);
+    });
+    container.querySelectorAll('textarea.ie-block,textarea.pos-details-input').forEach(ta=>{
+      if(!ta.value.trim()){ta.remove();return;}
+      const wrap=document.createElement('div');
+      wrap.style.marginTop='4px';
+      ta.value.trim().split('\n').filter(x=>x.trim()).forEach((line,idx)=>{
+        if(idx>0){const gap=document.createElement('div');gap.style.height='3px';wrap.appendChild(gap);}
+        const d=document.createElement('div');
+        d.style.cssText='display:block;padding-left:14px;position:relative;font-size:11px;color:#333;line-height:1.6;font-family:Helvetica Neue,Arial,sans-serif;';
+        d.innerHTML=`<span style="position:absolute;left:0;color:#666;">–</span>${line.trim()}`;
+        wrap.appendChild(d);
+      });
+      ta.replaceWith(wrap);
+    });
+    container.querySelectorAll('#f_hinweise').forEach(ta=>{
+      if(!ta.value.trim()){ta.remove();return;}
+      const box=document.createElement('div');
+      box.className='info-box';
+      box.innerHTML=`<strong>${l.notes}</strong><br>${ta.value.trim()}`;
+      ta.replaceWith(box);
+    });
+    const dnr=container.querySelector('#d_notes_rendered');
+    if(dnr)dnr.style.display=notes?'block':'none';
+  }
+
+  replaceInputs(p1clone);
+  if(!isRe)replaceInputs(p2clone);
+
+  return{p1:p1clone.innerHTML, p2:isRe?'':p2clone.innerHTML, isRe};
+}
+
+// ── PDF ───────────────────────────────────────────────────
+async function printPDF(){
+  const isRe=typ==='rechnung';
+  const nr=val('f_nr')||'–';
+  const firma=val('f_firma')||val('f_ansprechpartner')||'';
+  const filename=firma?`${nr} – ${firma}`:nr;
+
+  const {p1,p2}=buildCleanPages();
+
+  let css='';
+  try{css=Array.from(document.styleSheets).reduce((a,ss)=>{try{return a+Array.from(ss.cssRules).map(r=>r.cssText).join('\n');}catch{return a;}},'')}catch{}
+
+  toast('PDF wird erstellt …');
+  try{
+    const resp=await fetch('/api/pdf',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({page1:p1,page2:p2,css,filename})
+    });
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error||resp.statusText);}
+    const blob=await resp.blob();
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=filename+'.pdf';a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),10000);
+    toast('PDF heruntergeladen ✓');
   }catch(e){
-    console.info('Matches nicht geladen (Tabelle fehlt noch?):',e.message);
+    console.error('PDF-Fehler:',e);
+    toast('PDF-Fehler: '+e.message);
   }
 }
 
-// ── BELEGE AUS DB LADEN ────────────────────────────────────
-async function loadReceiptsFromDB(){
-  try{
-    receipts=await DB.getReceipts();
-  }catch(e){console.info('Receipts nicht geladen:',e.message);}
-}
-
-// ── INIT ───────────────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────────
 async function init(){
   const user=await getUser();
   if(!user){window.location.href='/';return;}
-  $('nav-user').textContent=user.email||'';
 
-  // Jahr-Select – ohne setQuartal aufzurufen (das passiert am Ende)
-  const ySel=$('sel-year');
-  const curYear=new Date().getFullYear();
-  ySel.innerHTML='';
-  [curYear,curYear-1,curYear-2].forEach(y=>{
-    const o=document.createElement('option');o.value=y;o.textContent=y;
-    if(y===curYear)o.selected=true;ySel.appendChild(o);
-  });
-  selectedYear=curYear;
+  try{
+    [customers,library,history,customEmailTpl]=await Promise.all([
+      DB.getCustomers(),DB.getLibrary(),DB.getDocuments(),DB.getEmailTemplates()
+    ]);
+  }catch(err){
+    console.error('Ladefehler:',err);
+    toast('Fehler beim Laden der Daten');
+  }
 
-  // Quartal bestimmen aber NICHT setQuartal aufrufen (das würde loadMatchesFromDB triggern bevor CSV geladen)
-  const curQ=Math.ceil((new Date().getMonth()+1)/3);
-  selectedQuartal=curQ;
-  // Quartal-Buttons manuell setzen
-  document.querySelectorAll('.q-btn').forEach(b=>b.classList.remove('active'));
-  if(curQ===0)$('qjahr').classList.add('active');
-  else $(`q${curQ}`)?.classList.add('active');
+  const today=new Date();
+  $('f_datum').value=today.getFullYear()+'-'+pad(today.getMonth()+1)+'-'+pad(today.getDate());
+  const inM=new Date(today);inM.setMonth(inM.getMonth()+1);
+  $('f_gueltig').value=inM.getFullYear()+'-'+pad(inM.getMonth()+1)+'-'+pad(inM.getDate());
+  $('f_nr').value=nextDocNr('angebot');
 
-  // Rechnungen laden
-  try{allDocs=await DB.getDocuments();}
-  catch(e){console.error(e);}
-  refreshReList();
+  renderCustomerList();
+  renderLibraryList();
+  renderHistory();
+  updateDataStats();
 
-  // CSV + Matches + Belege parallel laden
-  await Promise.all([
-    (async()=>{
-      try{
-        const txs=await DB.getTransactions(curYear);
-        if(txs.length){
-          csvTransactions=txs.map(t=>({
-            // WICHTIG: ID als 'tx'+t.id damit Matching-Algorithmus IDs konsistent findet
-            id:'tx'+t.id,
-            _dbId: t.id,  // Original-UUID aus DB
-            datum:t.datum||'', empfaenger:t.empfaenger||'',
-            verwendungszweck:t.verwendungszweck||'',
-            beschreibung:t.beschreibung||(t.empfaenger||'')+(t.verwendungszweck?' – '+t.verwendungszweck:''),
-            betrag:parseFloat(t.betrag)||0, isEinnahme:!!t.is_einnahme, quelle:'csv', _fromDB:true
-          }));
-          const ein=csvTransactions.filter(t=>t.isEinnahme).length;
-          const aus=csvTransactions.filter(t=>!t.isEinnahme).length;
-          const st=$('csv-status');
-          st.style.display='block';
-          st.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} Buchungen</strong> aus ${curYear}: ${ein} Eingänge, ${aus} Ausgaben. <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="clearCSVData()"><i data-lucide="trash-2"></i> Löschen</button></div></div>`;
-        }
-      }catch(e){console.info('CSV nicht geladen:',e.message);}
-    })(),
-    loadMatchesFromDB(curYear,curQ),
-    loadReceiptsFromDB(),
-  ]);
-
-  // ERST nach beiden Loads: neue CSV-Buchungen ohne Match hinzufügen (kein Doppeleintrag)
-  if(csvTransactions.length) buildMatchesFromCSV();
-
-  renderManualIncomes();
-  updateUploadSummary();
-  updateSidebar();
-  $('loading-screen').style.display='none';
+  // Aus Dashboard aufgerufen? Dann Dokument direkt laden
+  const loadId=sessionStorage.getItem('loadDocId');
+  if(loadId){
+    sessionStorage.removeItem('loadDocId');
+    const idx=history.findIndex(h=>h.id===loadId);
+    if(idx>-1){loadDoc(idx);}
+    else{addPos();update();}
+  }else{
+    addPos();update();
+  }
   lucide.createIcons();
 }
-
-async function doSignOut(){await signOut();}
 
 init();
 </script>
