@@ -743,29 +743,32 @@ async function onPeriodChange(){
 }
 function inPeriod(datum){
   if(!datum)return false;
+  if(selectedQuartal===0){
+    // Ganzes Jahr + 14 Tage Jahreswechsel-Puffer
+    return datum>=`${selectedYear-1}-12-18`&&datum<=`${selectedYear+1}-01-14`;
+  }
+  // Quartal: nur exaktes Jahr
   if(!datum.startsWith(String(selectedYear)))return false;
-  if(selectedQuartal===0)return true;
   const m=parseInt(datum.slice(5,7));
   return{1:[1,2,3],2:[4,5,6],3:[7,8,9],4:[10,11,12]}[selectedQuartal].includes(m);
 }
 
-// Wie inPeriod, aber mit ±14 Tage Puffer am Quartalsbeginn/-ende
-// (für Monatswechsel: Rechnung 31.03. → Transaktion 01.04.)
+// Wie inPeriod, aber mit ±14 Tage Puffer an allen Grenzen
+// (für Monatswechsel: Rechnung 31.03. → Transaktion 01.04.,
+//  Jahreswechsel: Transaktion 27.12. → Rechnung 04.01.)
 function inPeriodLoose(datum){
   if(!datum)return false;
+  if(selectedQuartal===0){
+    // Ganzes Jahr + großzügiger Jahreswechsel-Puffer (schon in inPeriod enthalten)
+    return datum>=`${selectedYear-1}-12-18`&&datum<=`${selectedYear+1}-01-14`;
+  }
   const qDates={
     1:[`${selectedYear}-01-01`,`${selectedYear}-03-31`],
     2:[`${selectedYear}-04-01`,`${selectedYear}-06-30`],
     3:[`${selectedYear}-07-01`,`${selectedYear}-09-30`],
     4:[`${selectedYear}-10-01`,`${selectedYear}-12-31`],
   };
-  if(datum.startsWith(String(selectedYear))&&selectedQuartal===0)return true;
-  if(selectedQuartal===0){
-    // Ganzes Jahr → auch Vorjahr Dezember / nächstes Jahr Januar mit 14 Tagen
-    return datum>=`${selectedYear-1}-12-18`&&datum<=`${selectedYear+1}-01-14`;
-  }
   const [from,to]=qDates[selectedQuartal];
-  // 14 Tage Puffer vor und nach dem Quartal
   const fromD=new Date(from); fromD.setDate(fromD.getDate()-14);
   const toD=new Date(to); toD.setDate(toD.getDate()+14);
   const d=new Date(datum);
@@ -965,22 +968,29 @@ function renderBelegList(){
   wrap.style.display='flex';
   wrap.innerHTML=belegFiles.map((b,i)=>{
     const ext=b.file.name.split('.').pop().toLowerCase();
-    const icon=ext==='pdf'?'FILE':'IMG';
-    const st=b.status==='done'?`<span class="file-item-status ok">✓ Ausgelesen</span>`:
-              b.status==='err'?`<span class="file-item-status err">Fehler</span>`:
-              b.status==='loading'?`<span class="file-item-status loading">⟳ Lese …</span>`:
-              `<span class="file-item-status">Ausstehend</span>`;
-    return`<div class="file-item">
+    const icon=ext==='pdf'?'PDF':'IMG';
+    const errMsg=b.error?` – ${b.error.slice(0,50)}`:'';
+    const st=b.status==='done'
+      ?`<span class="file-item-status ok">✓ Ausgelesen</span>`
+      :b.status==='err'
+        ?`<span class="file-item-status err" title="${b.error||''}">✗ Fehler${errMsg}</span>
+          <button class="btn btn-ghost btn-sm" style="padding:3px 8px;font-size:10px;margin-left:4px;" onclick="retryBeleg(${i})" title="Erneut versuchen">
+            <i data-lucide="rotate-ccw"></i> Retry
+          </button>`
+        :b.status==='loading'
+          ?`<span class="file-item-status loading">⟳ Lese …</span>`
+          :`<span class="file-item-status">Ausstehend</span>`;
+    return`<div class="file-item" style="flex-wrap:wrap;gap:6px;">
       <div class="file-item-icon">${icon}</div>
       <span class="file-item-name" title="${b.file.name}">${b.file.name}</span>
       <span class="file-item-size">${fmtSize(b.file.size)}</span>
-      ${st}
+      <span style="display:flex;align-items:center;gap:4px;margin-left:auto;">${st}</span>
       <button class="file-item-del" onclick="removeBelegFile(${i})"><i data-lucide="x"></i></button>
     </div>`;
   }).join('');
   lucide.createIcons();
-  // KI-Button: zeige wenn ausstehende Belege vorhanden
-  const hasPending=belegFiles.some(b=>b.status==='pending');
+  // KI-Button: zeige wenn ausstehende ODER fehlgeschlagene Belege vorhanden
+  const hasPending=belegFiles.some(b=>b.status==='pending'||b.status==='err');
   if(kiBtn){kiBtn.style.display=hasPending?'inline-flex':'none';}
   if(skipHint){skipHint.style.display=(!hasPending&&belegFiles.length)?'inline':'none';}
 }
@@ -1114,15 +1124,27 @@ async function createThumbnail(file){
   });
 }
 
+// ── RETRY EINZELNER BELEG ──────────────────────────────────
+async function retryBeleg(idx){
+  const b=belegFiles[idx];
+  if(!b)return;
+  b.status='pending';
+  b.error=null;
+  renderBelegList();
+  await readBelege();
+}
+
 // ── BELEGE AUSLESEN (KI) ───────────────────────────────────
 async function readBelege(){
-  const pending=belegFiles.filter(b=>b.status==='pending');
+  // Verarbeite pending UND fehlgeschlagene (err) Einträge
+  const pending=belegFiles.filter(b=>b.status==='pending'||b.status==='err');
   if(!pending.length){toast('Alle Belege bereits ausgelesen.');return;}
   $('beleg-loading').classList.add('show');
   $('btn-read-belege').disabled=true;
   for(let i=0;i<belegFiles.length;i++){
     const b=belegFiles[i];
-    if(b.status!=='pending')continue;
+    if(b.status!=='pending'&&b.status!=='err')continue;
+    b.error=null; // Fehler zurücksetzen für neuen Versuch
     b.status='loading';
     renderBelegList();
     $('beleg-loading-text').textContent=`Lese ${b.file.name} …`;
@@ -1658,6 +1680,7 @@ function toggleReason(idx){
 async function onCatChange(idx,newCat){
   matches[idx].kategorie=newCat;
   matches[idx].kategorie_info=CATEGORIES[newCat]||CATEGORIES.sonstiges;
+  matches[idx]._localEdit=true; // Schützt vor Überschreiben beim nächsten loadMatchesFromDB
   updateSidebar();
   // In DB speichern
   if(matches[idx].id){
@@ -2032,19 +2055,43 @@ function exportElsterXML(){
 async function loadMatchesFromDB(year,quartal){
   try{
     const dbMatches=await DB.getMatches(year,quartal||0);
-    matches=dbMatches.map(m=>({
-      ...m,
-      id:m.id,
-      is_einnahme:!!m.is_einnahme,
-      unklar:!!m.unklar,
-      bestaetigt:!!m.bestaetigt,
-      kategorie_info:CATEGORIES[m.kategorie]||CATEGORIES.sonstiges,
-      receipts:m.receipts||null,
-    }));
+    // Lokale Änderungen preservieren: wenn ein Match lokal bereits bestaetigt/geändert wurde
+    // und die DB-Version noch den alten Stand hat → lokale Version bevorzugen
+    const localByTxId=new Map(matches.map(m=>[m.transaction_id,m]));
+    matches=dbMatches.map(m=>{
+      const local=localByTxId.get(m.transaction_id);
+      // Lokale Version hat Vorrang wenn: sie bestaetigt ist ODER eine manuell gesetzte Kategorie hat
+      // (erkennbar daran dass local.bestaetigt=true oder local._localEdit=true)
+      if(local&&(local.bestaetigt||local._localEdit)){
+        // DB-Werte als Basis, aber lokale Änderungen drüber legen
+        return{
+          ...m,
+          id:m.id||local.id,
+          kategorie:       local.kategorie||m.kategorie,
+          kategorie_info:  CATEGORIES[local.kategorie||m.kategorie]||CATEGORIES.sonstiges,
+          konfidenz:       local.konfidenz||m.konfidenz,
+          unklar:          !!local.unklar,
+          bestaetigt:      !!local.bestaetigt,
+          begruendung:     local.begruendung||m.begruendung,
+          betrag_netto:    local.betrag_netto||m.betrag_netto,
+          mwst_satz:       local.mwst_satz??m.mwst_satz,
+          mwst_betrag:     local.mwst_betrag||m.mwst_betrag,
+          receipt_id:      local.receipt_id||m.receipt_id,
+          receipts:        local.receipts||m.receipts||null,
+          is_einnahme:     !!m.is_einnahme,
+          _localEdit:      false, // Reset nach Merge
+        };
+      }
+      return{
+        ...m,
+        is_einnahme:!!m.is_einnahme,
+        unklar:!!m.unklar,
+        bestaetigt:!!m.bestaetigt,
+        kategorie_info:CATEGORIES[m.kategorie]||CATEGORIES.sonstiges,
+        receipts:m.receipts||null,
+      };
+    });
     aiResults=matches;
-    // Hinweis: buildMatchesFromCSV() wird NICHT hier aufgerufen.
-    // Es wird nach dem parallelen Laden von Transactions + Matches separat aufgerufen,
-    // um Race conditions zu vermeiden (csvTransactions muss bereits befüllt sein).
     const reviewCount=matches.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
     $('badge-review').textContent=reviewCount;
     $('badge-review').classList.toggle('show',reviewCount>0);

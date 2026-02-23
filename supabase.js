@@ -281,24 +281,26 @@ const DB = {
   async getMatches(year, quartal) {
     // Kein FK-JOIN (FK fehlt in Schema) → zwei separate Queries + client-seitiges Mergen
     let q = db.from('matches').select('*').order('datum', { ascending: false });
-    if (year) {
-      q = q.eq('year', year);
-    }
+    const fmtD = d => d.toISOString().slice(0, 10);
+
     if (quartal && quartal > 0) {
-      // Exakte Quartalsgrenzen + 14 Tage Puffer für Monatswechsel-Rechnungen
-      // (Rechnung 31.03. → Transaktion 01.04. soll in Q2 sichtbar sein)
+      // Quartal: exakte Grenzen + 14 Tage Puffer für Monatswechsel-Rechnungen
       const qDates = {
         1: [`${year}-01-01`, `${year}-03-31`],
         2: [`${year}-04-01`, `${year}-06-30`],
         3: [`${year}-07-01`, `${year}-09-30`],
         4: [`${year}-10-01`, `${year}-12-31`],
       };
-      const [dFrom, dTo] = qDates[quartal] || [`${year}-01-01`, `${year}-12-31`];
-      // 14 Tage vor Quartalsstart und nach Quartalende laden
-      const fromWithBuffer = new Date(dFrom); fromWithBuffer.setDate(fromWithBuffer.getDate() - 14);
-      const toWithBuffer   = new Date(dTo);   toWithBuffer.setDate(toWithBuffer.getDate() + 14);
-      const fmt = d => d.toISOString().slice(0, 10);
-      q = q.gte('datum', fmt(fromWithBuffer)).lte('datum', fmt(toWithBuffer));
+      const [dFrom, dTo] = qDates[quartal];
+      const fromBuf = new Date(dFrom); fromBuf.setDate(fromBuf.getDate() - 14);
+      const toBuf   = new Date(dTo);   toBuf.setDate(toBuf.getDate() + 14);
+      q = q.gte('datum', fmtD(fromBuf)).lte('datum', fmtD(toBuf));
+    } else if (year) {
+      // Ganzes Jahr: 14 Tage Puffer zu Jahresanfang/-ende für Jahreswechsel-Rechnungen
+      // (z.B. Transaktion 27.12. → Rechnung 04.01. des Folgejahres)
+      const fromBuf = new Date(`${year}-01-01`); fromBuf.setDate(fromBuf.getDate() - 14);
+      const toBuf   = new Date(`${year}-12-31`); toBuf.setDate(toBuf.getDate() + 14);
+      q = q.gte('datum', fmtD(fromBuf)).lte('datum', fmtD(toBuf));
     }
     const { data: matchData, error } = await q;
     if (error) throw error;
