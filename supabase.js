@@ -371,4 +371,78 @@ const DB = {
     const { error } = await db.from('tx_rules').delete().eq('id', id);
     if (error) throw error;
   },
+
+  // ── GENERIERTE RECHNUNGS-PDFS ALS BELEGE SPEICHERN ────────
+  // Wird nach jedem PDF-Download aufgerufen (nur für Rechnungen).
+  // Storage-Pfad ist deterministisch (doc.id), daher kein Duplikat-Problem:
+  // zweimaliger Download überschreibt die Datei, der DB-Eintrag wird geupdated.
+  async saveGeneratedReceipt(blob, doc) {
+    const user = await getUser();
+    if (doc.typ !== 'rechnung' || !doc.id) return null;
+
+    const firma  = doc.firma || doc.ansprechpartner || '';
+    const docNr  = doc.nr || 'Dokument';
+    const filename    = `${docNr}${firma ? ' – ' + firma : ''}.pdf`;
+    const storagePath = `${user.id}/docs/${doc.id}.pdf`;
+
+    // Beträge berechnen (unterstützt deutsches Format "1.234,56" und englisches "1234.56")
+    const parseP = s => {
+      if (!s) return 0;
+      s = String(s).trim();
+      if (/^\d{1,3}(\.\d{3})*(,\d+)?$/.test(s))
+        return parseFloat(s.replace(/\./g, '').replace(',', '.'));
+      return parseFloat(String(s).replace(',', '.').replace(/[^\d.-]/g, '')) || 0;
+    };
+    const pos      = doc.positionen || [];
+    const netto    = pos.reduce((s, p) => s + parseP(p.menge) * parseP(p.preis), 0);
+    const mwstRate = doc.tax === 'de' ? 0.19 : 0;
+    const mwst     = netto * mwstRate;
+    const brutto   = netto + mwst;
+
+    // 1) Storage-Upload (upsert überschreibt vorhandene Datei)
+    const { error: upErr } = await db.storage.from('receipts').upload(storagePath, blob, {
+      cacheControl: '3600',
+      upsert: true,
+      contentType: 'application/pdf',
+    });
+    if (upErr) throw new Error(`Storage-Upload fehlgeschlagen: ${upErr.message}`);
+
+    // 2) Signed URL (1 Jahr gültig)
+    const { data: urlData, error: urlErr } = await db.storage
+      .from('receipts').createSignedUrl(storagePath, 60 * 60 * 24 * 365);
+    if (urlErr) throw urlErr;
+
+    const meta = {
+      user_id:      user.id,
+      filename,
+      storage_path: storagePath,
+      signed_url:   urlData.signedUrl,
+      size_bytes:   blob.size,
+      mime_type:    'application/pdf',
+      datum:        doc.datum || null,
+      beschreibung: `${docNr}${doc.betreff ? ' · ' + doc.betreff : ''}${firma ? ' (' + firma + ')' : ''}`,
+      kategorie:    'betriebseinnahmen',
+      betrag:       brutto  || null,
+      mwst_satz:    mwstRate > 0 ? 19 : 0,
+      betrag_netto: netto   || null,
+      mwst_betrag:  mwst    || null,
+      thumbnail_data: null,
+    };
+
+    // 3) DB-Record: update wenn vorhanden, sonst insert
+    const { data: existing } = await db.from('receipts')
+      .select('id').eq('storage_path', storagePath).maybeSingle();
+
+    if (existing) {
+      const { data, error } = await db.from('receipts')
+        .update(meta).eq('id', existing.id).select().single();
+      if (error) throw error;
+      return data;
+    } else {
+      const { data, error } = await db.from('receipts')
+        .insert(meta).select().single();
+      if (error) throw error;
+      return data;
+    }
+  },
 };
