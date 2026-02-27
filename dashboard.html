@@ -779,6 +779,12 @@ async function previewDownload(){
     a.href=url; a.download=filename; a.click();
     setTimeout(()=>URL.revokeObjectURL(url),10000);
     toast('PDF heruntergeladen ✓');
+    // Rechnung automatisch als Beleg speichern
+    if(doc.typ==='rechnung' && doc.id){
+      DB.saveGeneratedReceipt(blob, doc)
+        .then(r=>{if(r)toast('Rechnung als Beleg gespeichert ✓');})
+        .catch(e=>console.warn('Beleg-Speichern fehlgeschlagen:',e));
+    }
   }catch(e){
     console.error('PDF-Fehler:',e); toast('PDF-Fehler: '+e.message);
   }finally{
