@@ -344,6 +344,16 @@ const DB = {
     if (error) throw error;
   },
 
+  // ── ALLE MATCHES FÜR DASHBOARD (ohne Receipt-Join, leichtgewichtig) ──
+  async getAllMatches() {
+    const { data, error } = await db.from('matches')
+      .select('transaction_id,betrag_brutto,betrag_netto,datum,kategorie,is_einnahme,beschreibung,bestaetigt')
+      .order('datum', { ascending: false })
+      .limit(5000);
+    if (error) throw error;
+    return data || [];
+  },
+
   // ── TX-REGELN (wiederkehrende Kategorisierungen) ──────────
   async getRules() {
     const user = await getUser();
