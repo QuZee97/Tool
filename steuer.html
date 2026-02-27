@@ -427,6 +427,9 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
       <span style="font-size:12px;font-weight:600;">Gespeicherte Belege</span>
       <span style="flex:1;"></span>
       <span id="beleg-uebersicht-count" style="font-size:11px;color:var(--text3);"></span>
+      <button class="btn btn-ghost btn-sm" onclick="rematchAllBelege()" id="btn-rematch" title="Alle Belege erneut den Transaktionen zuordnen (auch bereits abgespeicherte)">
+        <i data-lucide="git-merge"></i> Erneut zuordnen
+      </button>
     </div>
     <div id="beleg-uebersicht-list">
       <div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">Lade …</div>
@@ -1398,6 +1401,78 @@ function autoMatchBelege(){
   return changed;
 }
 
+// ── ERNEUT ZUORDNEN (alle DB-Belege) ───────────────────────
+// Matched alle gespeicherten Belege (mit KI-Daten) erneut gegen csvTransactions.
+// Nützlich nach: Beleg-Entknüpfung im Review, Jahreswechsel, neuer CSV-Upload.
+async function rematchAllBelege(){
+  if(!csvTransactions.length){toast('Keine Transaktionen geladen – bitte zuerst CSV importieren.');return;}
+  const btn=$('btn-rematch');
+  if(btn){btn.disabled=true;btn.innerHTML='<i data-lucide="loader"></i> Läuft …';lucide.createIcons();}
+
+  // Alle Belege mit nutzbaren KI-Daten (betrag + datum vorhanden)
+  const allRecs=[...receipts];
+  // Auch Session-Belege die noch nicht in receipts sind
+  belegFiles.filter(b=>b.receiptRecord&&!allRecs.find(r=>r.id===b.receiptRecord.id))
+    .forEach(b=>allRecs.push(b.receiptRecord));
+
+  let matchedCount=0;
+  for(const rec of allRecs){
+    if(!rec?.id||!rec.betrag||!rec.datum)continue; // Ohne Betrag+Datum kein Match möglich
+    // Beleg-Ergebnis wie bei autoMatchBelege aufbauen
+    const belegResult={
+      betrag_brutto: parseFloat(rec.betrag)||0,
+      datum:         rec.datum||null,
+      beschreibung:  rec.beschreibung||rec.filename||'',
+      kategorie:     rec.kategorie||null,
+    };
+    const m=matchBelegToTransactions(belegResult,rec.id,csvTransactions);
+    if(!m)continue;
+
+    const existing=matches.find(mx=>mx.transaction_id===m.transaction_id);
+    if(!existing)continue;
+    if(existing.receipt_id&&existing.receipt_id!==rec.id)continue; // Schon anderer Beleg zugeordnet
+
+    // Nur verknüpfen wenn noch kein Beleg (oder derselbe)
+    if(!existing.receipt_id){
+      existing.receipt_id=rec.id;
+      existing.receipts=receipts.find(r=>r.id===rec.id)||null;
+      existing.konfidenz=m.konfidenz;
+      existing.begruendung=`Beleg "${rec.filename||rec.beschreibung}" zugeordnet (${m.konfidenz}) – Rematch.`;
+      // KI-Daten vom Beleg übernehmen
+      if(rec.betrag)existing.betrag_brutto=parseFloat(rec.betrag);
+      if(rec.mwst_satz!=null)existing.mwst_satz=rec.mwst_satz;
+      if(rec.betrag_netto)existing.betrag_netto=parseFloat(rec.betrag_netto);
+      if(rec.mwst_betrag)existing.mwst_betrag=parseFloat(rec.mwst_betrag);
+      if(rec.kategorie&&CATEGORIES[rec.kategorie]&&!existing.bestaetigt){
+        existing.kategorie=rec.kategorie;
+        existing.kategorie_info=CATEGORIES[rec.kategorie];
+      }
+      matchedCount++;
+      if(existing.id){
+        DB.updateMatch(existing.id,{
+          receipt_id:   rec.id,
+          konfidenz:    existing.konfidenz,
+          begruendung:  existing.begruendung,
+          betrag_brutto:existing.betrag_brutto,
+          betrag_netto: existing.betrag_netto,
+          mwst_satz:    existing.mwst_satz,
+          mwst_betrag:  existing.mwst_betrag,
+          kategorie:    existing.kategorie,
+        }).catch(()=>{});
+      }
+    }
+  }
+
+  if(btn){btn.disabled=false;btn.innerHTML='<i data-lucide="git-merge"></i> Erneut zuordnen';lucide.createIcons();}
+  if(matchedCount>0){
+    toast(`✓ ${matchedCount} Beleg${matchedCount>1?'e':''} erneut zugeordnet`);
+    renderBelegUebersicht();
+    updateSidebar();
+  } else {
+    toast('Keine neuen Zuordnungen gefunden');
+  }
+}
+
 // ── KATEGORISIERUNGS-REGELN ─────────────────────────────────
 // Normalisiert einen Empfänger-String für Regelvergleich
 function normalizeEmpf(s){return(s||'').toLowerCase().trim().replace(/\s+/g,' ');}
@@ -1558,24 +1633,20 @@ function renderThumb(m,idx){
   if(rec){
     const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
     const confDot=m.unklar?'niedrig':(m.konfidenz||'hoch');
-    // Klick-Aktion: signed_url → direkt im neuen Tab öffnen; sonst Modal
-    const clickAction=rec.signed_url
-      ?`openReceiptUrl('${rec.signed_url.replace(/'/g,"\\'")}')`
-      :`openBelegModal(${idx})`;
+    // Immer Modal öffnen (Modal hat iframe-PDF-Viewer + "Im Browser öffnen"-Button)
     if(isPDF){
-      return`<div class="thumb-slot has-thumb" onclick="${clickAction}" title="${rec.filename||'PDF'} – Klick zum Öffnen">
+      return`<div class="thumb-slot has-thumb" onclick="openBelegModal(${idx})" title="${rec.filename||'PDF'}">
         <div class="pdf-lbl"><i data-lucide="file-text" style="width:14px;height:14px;margin-bottom:2px;"></i><br>${(rec.filename||'').replace(/\.[^.]+$/,'').slice(0,7)}</div>
         <div class="conf-dot ${confDot}"></div>
       </div>`;
     }
     if(rec.thumbnail_data){
-      return`<div class="thumb-slot has-thumb" onclick="${clickAction}" title="${rec.filename||'Beleg'} – Klick zum Öffnen">
+      return`<div class="thumb-slot has-thumb" onclick="openBelegModal(${idx})" title="${rec.filename||'Beleg'}">
         <img src="${rec.thumbnail_data}" alt="Beleg">
         <div class="conf-dot ${confDot}"></div>
       </div>`;
     }
-    // Hat Receipt aber kein Thumbnail (z.B. nur Metadaten)
-    return`<div class="thumb-slot has-thumb" onclick="${clickAction}" title="${rec.filename||'Beleg'} – Klick zum Öffnen">
+    return`<div class="thumb-slot has-thumb" onclick="openBelegModal(${idx})" title="${rec.filename||'Beleg'}">
       <div class="pdf-lbl"><i data-lucide="paperclip" style="width:14px;height:14px;margin-bottom:2px;"></i><br>${(rec.filename||'').slice(0,7)}</div>
       <div class="conf-dot ${confDot}"></div>
     </div>`;
@@ -1584,11 +1655,6 @@ function renderThumb(m,idx){
   return`<div class="thumb-slot" onclick="openPicker(${idx})" title="Beleg zuordnen">
     <div class="add-lbl">+</div>
   </div>`;
-}
-
-function openReceiptUrl(url){
-  if(!url)return;
-  window.open(url,'_blank','noopener,noreferrer');
 }
 
 function renderReview(){

@@ -132,10 +132,9 @@ const DB = {
   },
   async getTransactions(year, quartal) {
     let q = db.from('transactions').select('*').order('datum', { ascending: false });
-    if (year) {
-      q = q.gte('datum', `${year}-01-01`).lte('datum', `${year}-12-31`);
-    }
+    const fmtD = d => d.toISOString().slice(0, 10);
     if (quartal && quartal > 0) {
+      // Quartal mit ±14 Tage Puffer
       const qDates = {
         1: [`${year}-01-01`, `${year}-03-31`],
         2: [`${year}-04-01`, `${year}-06-30`],
@@ -143,7 +142,15 @@ const DB = {
         4: [`${year}-10-01`, `${year}-12-31`],
       };
       const [dFrom, dTo] = qDates[quartal] || [`${year}-01-01`, `${year}-12-31`];
-      q = q.gte('datum', dFrom).lte('datum', dTo);
+      const fromBuf = new Date(dFrom); fromBuf.setDate(fromBuf.getDate() - 14);
+      const toBuf   = new Date(dTo);   toBuf.setDate(toBuf.getDate() + 14);
+      q = q.gte('datum', fmtD(fromBuf)).lte('datum', fmtD(toBuf));
+    } else if (year) {
+      // Ganzes Jahr + ±14 Tage Puffer für Jahreswechsel-Rechnungen
+      // (Transaktion 27.12. soll beim Matchen einer Rechnung vom 04.01. gefunden werden)
+      const fromBuf = new Date(`${year}-01-01`); fromBuf.setDate(fromBuf.getDate() - 14);
+      const toBuf   = new Date(`${year}-12-31`); toBuf.setDate(toBuf.getDate() + 14);
+      q = q.gte('datum', fmtD(fromBuf)).lte('datum', fmtD(toBuf));
     }
     const { data, error } = await q;
     if (error) throw error;
