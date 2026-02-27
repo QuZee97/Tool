@@ -360,6 +360,9 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
     <div class="sb-stat-label">USt-Zahllast</div>
     <div class="sb-stat-val blue" id="sb-zahllast">–</div>
   </div>
+  <button onclick="hardResetMatches()" style="margin-top:14px;width:100%;padding:7px 10px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text3);font-size:11px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">
+    <i data-lucide="refresh-cw" style="width:12px;height:12px;stroke-width:2;flex-shrink:0"></i> Kategorisierungen zurücksetzen
+  </button>
 </div>
 
 <div id="main">
@@ -1521,32 +1524,36 @@ function applyRulesToMatches(){
   return count;
 }
 
-// ── PRIVATENTNAHMEN AUF BESTEHENDE MATCHES ANWENDEN ────────
-// Scannt alle In-Memory Matches und setzt kategorie='privatentnahme' wenn der
-// Empfänger dem Unternehmer-Namen entspricht. Speichert Änderungen in der DB.
+// ── PRIVATENTNAHMEN AUF BESTEHENDE MATCHES ANWENDEN/KORRIGIEREN ────────
+// Scannt alle In-Memory Matches bidirektional:
+//   - Empfänger stimmt mit Unternehmer überein → Privatentnahme setzen
+//   - Bereits als Privatentnahme markiert aber Empfänger stimmt NICHT überein → zurücksetzen
+// Bestätigte Matches (bestaetigt=true) werden nie angefasst.
 function applyPrivatentnahmenToMatches(){
-  if(!ownerName)return 0;
-  const ownerKey=normalizeEmpf(ownerName);
-  if(!ownerKey)return 0;
+  const ownerKey=ownerName?normalizeEmpf(ownerName):'';
   let count=0;
   matches.forEach(m=>{
-    if(m.is_einnahme)return; // Einnahmen nie als Privatentnahme
-    if(m.bestaetigt)return;  // Manuell bestätigte Matches nicht überschreiben
-    if(m.kategorie==='privatentnahme')return; // bereits korrekt
-    // Nur Empfänger prüfen – nicht Beschreibung/Betreff (eigener Name kann im Verwendungszweck stehen)
+    if(m.is_einnahme)return;  // Einnahmen nie als Privatentnahme
+    if(m.bestaetigt)return;   // Manuell bestätigte Matches nie überschreiben
     const empfKey=normalizeEmpf(m.empfaenger||'');
-    if(!empfKey||!empfKey.includes(ownerKey))return;
-    m.kategorie='privatentnahme';
-    m.kategorie_info=CATEGORIES['privatentnahme'];
-    m.konfidenz='hoch';
-    m.begruendung=`Empfänger "${m.empfaenger}" entspricht dem Unternehmer-Namen → Privatentnahme`;
-    count++;
-    if(m.id){
-      DB.updateMatch(m.id,{
-        kategorie:'privatentnahme',
-        konfidenz:'hoch',
-        begruendung:m.begruendung,
-      }).catch(()=>{});
+    // Nur Empfänger prüfen – nie Beschreibung/Betreff
+    const shouldBePrivat=ownerKey&&empfKey&&empfKey.includes(ownerKey);
+    if(shouldBePrivat&&m.kategorie!=='privatentnahme'){
+      // Neu als Privatentnahme markieren
+      m.kategorie='privatentnahme';
+      m.kategorie_info=CATEGORIES['privatentnahme'];
+      m.konfidenz='hoch';
+      m.begruendung=`Empfänger "${m.empfaenger}" entspricht dem Unternehmer-Namen → Privatentnahme`;
+      count++;
+      if(m.id) DB.updateMatch(m.id,{kategorie:'privatentnahme',konfidenz:'hoch',begruendung:m.begruendung}).catch(()=>{});
+    } else if(!shouldBePrivat&&m.kategorie==='privatentnahme'){
+      // Falsch als Privatentnahme eingestuft → auf Sonstiges zurücksetzen
+      m.kategorie='sonstiges';
+      m.kategorie_info=CATEGORIES['sonstiges'];
+      m.konfidenz=null;
+      m.begruendung=null;
+      count--;
+      if(m.id) DB.updateMatch(m.id,{kategorie:'sonstiges',konfidenz:null,begruendung:null}).catch(()=>{});
     }
   });
   return count;
@@ -2293,6 +2300,27 @@ async function init(){
 }
 
 async function doSignOut(){await signOut();}
+
+// ── HARD RESET: Alle Kategorisierungen löschen und neu aufbauen ────────────
+async function hardResetMatches(){
+  if(!confirm(`Alle gespeicherten Kategorisierungen für ${selectedYear} löschen und aus den aktuellen CSV-Buchungen neu aufbauen?\n\nBestätigte Einträge gehen verloren.`))return;
+  try{
+    // 1) DB leeren
+    await DB.deleteMatchesByYear(selectedYear);
+    // Auch Matches ohne year-Feld (älter) per Datumsbereich löschen
+    const user=await getUser();
+    // 2) In-Memory leeren
+    matches=[];
+    aiResults=matches;
+    // 3) Aus aktuellen CSV-Transaktionen neu aufbauen (inkl. Privatentnahmen + Regeln)
+    if(csvTransactions.length) buildMatchesFromCSV();
+    updateSidebar();
+    $('badge-review').textContent='0';
+    $('badge-review').classList.remove('show');
+    if(currentPage===3)renderReview();
+    toast('Kategorisierungen zurückgesetzt ✓');
+  }catch(e){toast('Fehler beim Reset: '+e.message);}
+}
 
 // ── EINSTELLUNGEN ───────────────────────────────────────────
 function openSettings(){
