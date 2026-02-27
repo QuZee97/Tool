@@ -1829,29 +1829,33 @@ function openBelegModal(matchIdx){
   extLink.style.display='none';
 
   if(isPDF&&rec.signed_url){
-    // PDF als Blob laden → Blob-URL → iframe (umgeht CORS + Content-Disposition:attachment)
     extLink.href=rec.signed_url;
     extLink.style.display='inline-flex';
-    iframe.src='about:blank';
-    iframe.style.display='block';
-    fallback.style.display='none';
-    // Lade-Indikator
-    iframe.srcdoc='<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#1e1f22;font-family:sans-serif;color:#9a9ca5;font-size:13px;">PDF wird geladen …</body></html>';
+    // Lade-Overlay statt srcdoc (srcdoc hat Vorrang über src → weißer Block)
+    fallback.style.display='flex';
+    fallback.style.flexDirection='column';
+    $('modal-beleg-pdf-name').textContent='PDF wird geladen …';
+    $('modal-beleg-pdf-link').style.display='none';
+    iframe.style.display='none';
+    // srcdoc-Attribut vollständig entfernen, damit src funktioniert
+    iframe.removeAttribute('srcdoc');
+    // Alten Blob-URL freigeben
+    if(iframe._blobUrl){URL.revokeObjectURL(iframe._blobUrl);iframe._blobUrl=null;}
     fetch(rec.signed_url)
       .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.blob();})
       .then(blob=>{
-        // Alten Blob-URL aufräumen
-        if(iframe._blobUrl){URL.revokeObjectURL(iframe._blobUrl);}
-        const blobUrl=URL.createObjectURL(blob);
+        // Explicit application/pdf MIME type damit Browser es als PDF erkennt
+        const pdfBlob=new Blob([blob],{type:'application/pdf'});
+        const blobUrl=URL.createObjectURL(pdfBlob);
         iframe._blobUrl=blobUrl;
-        iframe.srcdoc=''; // srcdoc leeren bevor src setzen
         iframe.src=blobUrl;
+        iframe.style.display='block';
+        fallback.style.display='none';
       })
       .catch(()=>{
-        // Fallback: Link anzeigen
-        iframe.style.display='none';
         fallback.style.display='flex';
         $('modal-beleg-pdf-name').textContent=rec.filename||'PDF';
+        $('modal-beleg-pdf-link').style.display='';
         $('modal-beleg-pdf-link').href=rec.signed_url;
       });
   } else if(isPDF&&!rec.signed_url){
