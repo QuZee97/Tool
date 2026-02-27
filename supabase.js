@@ -357,9 +357,13 @@ const DB = {
   },
   async deleteMatchesByYear(year) {
     const user = await getUser();
-    const { error } = await db.from('matches')
-      .delete().eq('user_id', user.id).eq('year', year);
-    if (error) throw error;
+    // 1) Per year-Spalte löschen
+    await db.from('matches').delete().eq('user_id', user.id).eq('year', year);
+    // 2) Per Datumsbereich löschen (fängt Matches mit null/falscher year-Spalte)
+    await db.from('matches').delete().eq('user_id', user.id)
+      .gte('datum', `${year}-01-01`).lte('datum', `${year}-12-31`);
+    // 3) Null-Datum-Waisen löschen (kaputte Einträge aus früheren Uploads)
+    await db.from('matches').delete().eq('user_id', user.id).is('datum', null);
   },
 
   // ── ALLE MATCHES FÜR DASHBOARD (ohne Receipt-Join, leichtgewichtig) ──

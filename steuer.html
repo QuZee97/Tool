@@ -2302,18 +2302,55 @@ async function init(){
 async function doSignOut(){await signOut();}
 
 // ── HARD RESET: Alle Kategorisierungen löschen und neu aufbauen ────────────
+// Wichtig: DB-Save wird hier AWAITED (nicht fire-and-forget wie in buildMatchesFromCSV),
+// damit kein Race Condition entsteht wenn danach loadMatchesFromDB aufgerufen wird.
 async function hardResetMatches(){
   if(!confirm(`Alle gespeicherten Kategorisierungen für ${selectedYear} löschen und aus den aktuellen CSV-Buchungen neu aufbauen?\n\nBestätigte Einträge gehen verloren.`))return;
   try{
-    // 1) DB leeren
+    // 1) DB vollständig bereinigen (year-Spalte + Datumsbereich + null-datum Waisen)
     await DB.deleteMatchesByYear(selectedYear);
-    // Auch Matches ohne year-Feld (älter) per Datumsbereich löschen
-    const user=await getUser();
+
     // 2) In-Memory leeren
     matches=[];
     aiResults=matches;
-    // 3) Aus aktuellen CSV-Transaktionen neu aufbauen (inkl. Privatentnahmen + Regeln)
-    if(csvTransactions.length) buildMatchesFromCSV();
+
+    // 3) Matches aus CSV neu aufbauen (gleiche Logik wie buildMatchesFromCSV,
+    //    aber mit await auf den DB-Save um Race Conditions zu verhindern)
+    if(csvTransactions.length){
+      const ownerKey=ownerName?normalizeEmpf(ownerName):'';
+      const newM=csvTransactions.map(t=>{
+        const empfKeyOwner=normalizeEmpf(t.empfaenger||'');
+        const isPrivatentnahme=!t.isEinnahme&&ownerKey&&empfKeyOwner&&empfKeyOwner.includes(ownerKey);
+        const empfKey=normalizeEmpf(t.empfaenger||t.beschreibung||'');
+        const rule=!isPrivatentnahme&&txRules.find(r=>r.empfaenger_key&&(empfKey===r.empfaenger_key||(r.empfaenger_key.length>=5&&empfKey.includes(r.empfaenger_key))));
+        let kategorie,konfidenz,begruendung;
+        if(isPrivatentnahme){
+          kategorie='privatentnahme';konfidenz='hoch';
+          begruendung=`Empfänger "${t.empfaenger}" entspricht dem Unternehmer-Namen → Privatentnahme`;
+        }else if(rule){
+          kategorie=rule.kategorie;konfidenz='hoch';
+          begruendung=`Regel: ${rule.empfaenger_raw||rule.empfaenger_key} → ${CATEGORIES[rule.kategorie]?.label||rule.kategorie}`;
+        }else{
+          kategorie=t.isEinnahme?'einnahmen_19':'sonstiges';konfidenz=null;begruendung=null;
+        }
+        return{
+          transaction_id:t.id,receipt_id:null,
+          beschreibung:t.beschreibung||t.empfaenger||'',empfaenger:t.empfaenger||'',
+          datum:t.datum||null,betrag_brutto:Math.abs(t.betrag),betrag_netto:Math.abs(t.betrag),
+          mwst_satz:0,mwst_betrag:0,kategorie,konfidenz,
+          unklar:false,bestaetigt:false,quelle:'csv',is_einnahme:t.isEinnahme,begruendung,receipts:null,
+        };
+      });
+      matches=[...newM];
+      aiResults=matches;
+      // Synchron speichern – kein fire-and-forget
+      const saved=await DB.saveMatches(newM.map(m=>({...m})));
+      saved.forEach(s=>{
+        const l=matches.find(m=>m.transaction_id===s.transaction_id);
+        if(l){l.id=s.id;l.kategorie_info=CATEGORIES[l.kategorie]||CATEGORIES.sonstiges;}
+      });
+    }
+
     updateSidebar();
     $('badge-review').textContent='0';
     $('badge-review').classList.remove('show');
