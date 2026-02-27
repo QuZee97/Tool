@@ -326,10 +326,33 @@ table.dash-table tbody td.r{text-align:right;}
   </button>
   <div class="nav-sep"></div>
   <span style="font-size:11px;color:var(--text3);padding:0 6px;" id="nav-user-email"></span>
+  <button class="nav-icon-btn" onclick="openSettings()" title="Einstellungen">
+    <i data-lucide="settings"></i>
+  </button>
   <button class="nav-icon-btn" onclick="doSignOut()" title="Abmelden">
     <i data-lucide="log-out"></i>
   </button>
 </nav>
+
+<!-- ── EINSTELLUNGEN MODAL ── -->
+<div id="settings-overlay" onclick="if(event.target===this)closeSettings()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:28px 32px;width:360px;max-width:90vw;">
+    <div style="font-size:15px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px;">
+      <i data-lucide="settings" style="width:16px;height:16px;stroke-width:1.8;color:var(--text2)"></i>
+      Einstellungen
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Dein Name (für Privatentnahmen-Erkennung)</div>
+    <div style="display:flex;gap:8px;margin-bottom:20px;">
+      <input id="settings-vorname" placeholder="Vorname" style="flex:1;background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px;">
+      <input id="settings-nachname" placeholder="Nachname" style="flex:1;background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px;">
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:18px;line-height:1.5;">Transaktionen an diesen Namen werden als <strong>Privatentnahme</strong> kategorisiert und aus den Ausgaben herausgerechnet.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeSettings()">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Speichern</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── CONTENT ── -->
 <div id="content">
@@ -519,6 +542,7 @@ lucide.createIcons();
 // ── STATE ─────────────────────────────────────────────────
 let allDocs = [];
 let allMatches = []; // Alle kategorisierten Buchungen (aus Steuer-Tool)
+let ownerName  = ''; // Vor+Nachname des Unternehmers (für Privatentnahmen-Filterung)
 let filteredDocs = [];
 let viewMode = 'netto'; // 'netto' | 'brutto'
 let monthChart = null;
@@ -990,6 +1014,26 @@ function buildDocHTMLForPDF(doc, lang, tax, isRe){
 function goNew(){sessionStorage.removeItem('loadDocId');window.location.href='/tool';}
 async function doSignOut(){await signOut();}
 
+// ── EINSTELLUNGEN ───────────────────────────────────────────
+function openSettings(){
+  $('settings-vorname').value=ownerName.split(' ')[0]||'';
+  $('settings-nachname').value=ownerName.split(' ').slice(1).join(' ')||'';
+  const ov=$('settings-overlay');
+  ov.style.display='flex';
+  lucide.createIcons();
+}
+function closeSettings(){$('settings-overlay').style.display='none';}
+async function saveSettings(){
+  const v=$('settings-vorname').value.trim();
+  const n=$('settings-nachname').value.trim();
+  try{
+    await DB.saveUserProfile(v,n);
+    ownerName=[v,n].filter(Boolean).join(' ');
+    toast('Einstellungen gespeichert ✓');
+    closeSettings();
+  }catch(e){toast('Fehler: '+e.message);}
+}
+
 // ── JAHRES-FILTER ──────────────────────────────────────────
 function buildYearFilter(){
   const years=[...new Set(allDocs.map(d=>d.datum?d.datum.slice(0,4):null).filter(Boolean))].sort().reverse();
@@ -1016,8 +1060,8 @@ function buildKPIs(){
   if(csvIncomeMatches.length) einSubParts.push(`${csvIncomeMatches.length} CSV-Eingänge`);
   $('kpi-year-sub').textContent=einSubParts.join(' · ')||'–';
 
-  // Ausgaben im gewählten Zeitraum (aus kategorisierten Buchungen)
-  const expenses=allMatches.filter(m=>!m.is_einnahme&&m.datum&&inRange(m.datum));
+  // Ausgaben im gewählten Zeitraum (Privatentnahmen ausschließen)
+  const expenses=allMatches.filter(m=>!m.is_einnahme&&m.datum&&inRange(m.datum)&&m.kategorie!=='privatentnahme');
   const totalAusgaben=expenses.reduce((s,m)=>s+Math.abs(m.betrag_brutto||0),0);
   $('kpi-ausgaben').textContent=fmt(totalAusgaben);
   $('kpi-ausgaben-sub').textContent=expenses.length
@@ -1091,7 +1135,7 @@ function getIncomeChartValues(){
 function getExpenseChartValues(){
   return Array.from({length:12},(_,m)=>{
     const mStr=`${rangeYear}-${String(m+1).padStart(2,'0')}`;
-    return allMatches.filter(x=>!x.is_einnahme&&x.datum&&x.datum.startsWith(mStr)&&inRange(x.datum))
+    return allMatches.filter(x=>!x.is_einnahme&&x.datum&&x.datum.startsWith(mStr)&&inRange(x.datum)&&x.kategorie!=='privatentnahme')
       .reduce((s,x)=>s+Math.abs(x.betrag_brutto||0),0);
   });
 }
@@ -1123,7 +1167,7 @@ function buildTopCustomers(){
 
 // ── AUSGABEN NACH KATEGORIE ────────────────────────────────
 function buildAusgabenByKategorie(){
-  const expenses=allMatches.filter(m=>!m.is_einnahme&&m.datum&&inRange(m.datum));
+  const expenses=allMatches.filter(m=>!m.is_einnahme&&m.datum&&inRange(m.datum)&&m.kategorie!=='privatentnahme');
   const map={};
   expenses.forEach(m=>{
     const cat=m.kategorie||'sonstiges';
@@ -1165,6 +1209,8 @@ async function init(){
   const user=await getUser();
   if(!user){window.location.href='/';return;}
   $('nav-user-email').textContent=user.email||'';
+  const meta=user.user_metadata||{};
+  ownerName=[meta.vorname||'',meta.nachname||''].filter(Boolean).join(' ');
 
   // Daten parallel laden
   const [docs,matches]=await Promise.allSettled([

@@ -286,8 +286,29 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
   <a class="nav-btn active" href="/steuer"><i data-lucide="calculator"></i> Steuer</a>
   <div class="nav-spacer"></div>
   <span style="font-size:11px;color:var(--text3);padding:0 6px;" id="nav-user"></span>
+  <button class="nav-icon-btn" onclick="openSettings()" title="Einstellungen"><i data-lucide="settings"></i></button>
   <button class="nav-icon-btn" onclick="doSignOut()" title="Abmelden"><i data-lucide="log-out"></i></button>
 </nav>
+
+<!-- ── EINSTELLUNGEN MODAL ─────────────────────────────────── -->
+<div id="settings-overlay" onclick="if(event.target===this)closeSettings()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:28px 32px;width:360px;max-width:90vw;">
+    <div style="font-size:15px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px;">
+      <i data-lucide="settings" style="width:16px;height:16px;stroke-width:1.8;color:var(--text2)"></i>
+      Einstellungen
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;">Dein Name (für Privatentnahmen-Erkennung)</div>
+    <div style="display:flex;gap:8px;margin-bottom:20px;">
+      <input id="settings-vorname" placeholder="Vorname" style="flex:1;background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px;">
+      <input id="settings-nachname" placeholder="Nachname" style="flex:1;background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--text);font-size:13px;">
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:18px;line-height:1.5;">Transaktionen an diesen Namen werden automatisch als <strong>Privatentnahme</strong> kategorisiert und in den Auswertungen herausgerechnet.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeSettings()">Abbrechen</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Speichern</button>
+    </div>
+  </div>
+</div>
 
 <div id="app">
 
@@ -638,6 +659,7 @@ const CATEGORIES = {
   bankgebuehr:{label:'Bankgebühren',type:'expense',vat:0},
   sonstiges:{label:'Sonstiges',type:'expense',vat:0.19},
   privat:{label:'Privat (nicht absetzbar)',type:'private',vat:0},
+  privatentnahme:{label:'Privatentnahme',type:'private',vat:0},
 };
 
 // ── STATE ──────────────────────────────────────────────────
@@ -650,6 +672,7 @@ let receipts        = [];   // Aus DB geladene Belege (mit thumbnail_data)
 let matches         = [];   // Aus DB geladene Matches (persistent) – ersetzt aiResults
 let aiResults       = [];   // Legacy-Alias → zeigt auf matches
 let txRules         = [];   // Kategorisierungs-Regeln: [{empfaenger_key, kategorie, ...}]
+let ownerName       = '';   // Vor- und Nachname des Unternehmers (für Privatentnahmen-Erkennung)
 let filterReview    = false;
 // Modal-State
 let modalMatchIdx   = null; // welcher Match ist gerade im Modal
@@ -1265,10 +1288,23 @@ function buildMatchesFromCSV(){
   matches=[...seen.values()];
 
   const existing=new Set(matches.map(m=>m.transaction_id));
+  const ownerKey=ownerName?normalizeEmpf(ownerName):'';
   const newM=csvTransactions.filter(t=>!existing.has(t.id)).map(t=>{
-    // Regel direkt beim Erstellen anwenden
+    // Privatentnahme erkennen: Empfänger entspricht dem Unternehmer-Namen
     const empfKey=normalizeEmpf(t.empfaenger||t.beschreibung||'');
-    const rule=txRules.find(r=>r.empfaenger_key&&(empfKey===r.empfaenger_key||(r.empfaenger_key.length>=5&&empfKey.includes(r.empfaenger_key))));
+    const isPrivatentnahme=!t.isEinnahme&&ownerKey&&empfKey&&empfKey.includes(ownerKey);
+    // Regel anwenden (nur wenn keine Privatentnahme)
+    const rule=!isPrivatentnahme&&txRules.find(r=>r.empfaenger_key&&(empfKey===r.empfaenger_key||(r.empfaenger_key.length>=5&&empfKey.includes(r.empfaenger_key))));
+    let kategorie,konfidenz,begruendung;
+    if(isPrivatentnahme){
+      kategorie='privatentnahme';konfidenz='hoch';
+      begruendung=`Empfänger "${t.empfaenger}" entspricht dem Unternehmer-Namen → Privatentnahme`;
+    }else if(rule){
+      kategorie=rule.kategorie;konfidenz='hoch';
+      begruendung=`Regel: ${rule.empfaenger_raw||rule.empfaenger_key} → ${CATEGORIES[rule.kategorie]?.label||rule.kategorie}`;
+    }else{
+      kategorie=t.isEinnahme?'einnahmen_19':'sonstiges';konfidenz=null;begruendung=null;
+    }
     return{
       transaction_id:t.id,
       receipt_id:null,
@@ -1278,12 +1314,11 @@ function buildMatchesFromCSV(){
       betrag_brutto:Math.abs(t.betrag),
       betrag_netto:Math.abs(t.betrag),
       mwst_satz:0,mwst_betrag:0,
-      kategorie:rule?rule.kategorie:(t.isEinnahme?'einnahmen_19':'sonstiges'),
-      konfidenz:rule?'hoch':null,
+      kategorie,konfidenz,
       unklar:false,bestaetigt:false,
       quelle:'csv',
       is_einnahme:t.isEinnahme,
-      begruendung:rule?`Regel: ${rule.empfaenger_raw||rule.empfaenger_key} → ${CATEGORIES[rule.kategorie]?.label||rule.kategorie}`:null,
+      begruendung,
       receipts:null,
     };
   });
@@ -2154,6 +2189,9 @@ async function init(){
   const user=await getUser();
   if(!user){window.location.href='/';return;}
   $('nav-user').textContent=user.email||'';
+  // Owner-Name für Privatentnahmen-Erkennung laden
+  const meta=user.user_metadata||{};
+  ownerName=[meta.vorname||'',meta.nachname||''].filter(Boolean).join(' ');
 
   // Jahr-Select – Vorauswahl aus localStorage (Zeitraum beim Reload beibehalten)
   const savedYear=parseInt(localStorage.getItem('steuer_year'))||new Date().getFullYear();
@@ -2211,6 +2249,28 @@ async function init(){
 }
 
 async function doSignOut(){await signOut();}
+
+// ── EINSTELLUNGEN ───────────────────────────────────────────
+function openSettings(){
+  $('settings-vorname').value=ownerName.split(' ')[0]||'';
+  $('settings-nachname').value=ownerName.split(' ').slice(1).join(' ')||'';
+  const ov=$('settings-overlay');
+  ov.style.display='flex';
+  lucide.createIcons();
+}
+function closeSettings(){$('settings-overlay').style.display='none';}
+async function saveSettings(){
+  const v=$('settings-vorname').value.trim();
+  const n=$('settings-nachname').value.trim();
+  try{
+    await DB.saveUserProfile(v,n);
+    ownerName=[v,n].filter(Boolean).join(' ');
+    toast('Einstellungen gespeichert ✓');
+    closeSettings();
+    // Matches neu aufbauen damit Privatentnahmen sofort greifen
+    if(csvTransactions.length){buildMatchesFromCSV();if(currentPage===3)renderReview();}
+  }catch(e){toast('Fehler: '+e.message);}
+}
 
 init();
 </script>

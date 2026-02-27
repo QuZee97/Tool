@@ -108,13 +108,24 @@ const DB = {
   async saveTransactions(rows) {
     const user = await getUser();
     if (!rows.length) return [];
-    // Erst alle Transaktionen derselben Quelldatei löschen (verhindert Duplikate beim erneuten Hochladen)
-    const quellDatei = rows[0]?.quellDatei;
-    if (quellDatei) {
+    // Löschen nach Datumsbereich der hochgeladenen Zeilen (verhindert Datenüberschreibung
+    // wenn mehrere Dateien mit gleichem Namen aus verschiedenen Quartalen hochgeladen werden)
+    const dates = rows.map(r => r.datum).filter(Boolean).sort();
+    if (dates.length) {
       await db.from('transactions')
         .delete()
         .eq('user_id', user.id)
-        .eq('quelle_datei', quellDatei);
+        .gte('datum', dates[0])
+        .lte('datum', dates[dates.length - 1]);
+    } else {
+      // Fallback: löschen per Dateiname wenn keine Datumsangaben vorhanden
+      const quellDatei = rows[0]?.quellDatei;
+      if (quellDatei) {
+        await db.from('transactions')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('quelle_datei', quellDatei);
+      }
     }
     const payload = rows.map(r => ({
       user_id:          user.id,
@@ -380,6 +391,22 @@ const DB = {
   async deleteRule(id) {
     const { error } = await db.from('tx_rules').delete().eq('id', id);
     if (error) throw error;
+  },
+
+  // ── USER-PROFIL (Vor-/Nachname in user_metadata) ──────────
+  async getUserProfile() {
+    const user = await getUser();
+    return {
+      vorname:  user?.user_metadata?.vorname  || '',
+      nachname: user?.user_metadata?.nachname || '',
+    };
+  },
+  async saveUserProfile(vorname, nachname) {
+    const { data, error } = await db.auth.updateUser({
+      data: { vorname: vorname.trim(), nachname: nachname.trim() },
+    });
+    if (error) throw error;
+    return data;
   },
 
   // ── GENERIERTE RECHNUNGS-PDFS ALS BELEGE SPEICHERN ────────
