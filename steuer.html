@@ -1024,7 +1024,8 @@ function renderBelegUebersicht(){
     if(!r.thumbnail_data){const bf=belegFiles.find(b=>b.receiptId===r.id&&b.thumbnail);if(bf)r.thumbnail_data=bf.thumbnail;}
   });
   // Nur Belege im gewählten Zeitraum (kein Datum → immer anzeigen)
-  const filtered=allRecs.filter(r=>!r.datum||inPeriod(r.datum));
+  // inPeriodLoose: ±14 Tage Puffer an Quartal-/Jahresgrenzen (z.B. Beleg 04.01. bei Q4-Ansicht)
+  const filtered=allRecs.filter(r=>!r.datum||inPeriodLoose(r.datum));
   cnt.textContent=filtered.length?`${filtered.length} Beleg${filtered.length>1?'e':''}` :'';
   if(!filtered.length){
     el.innerHTML=`<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">${allRecs.length?'Keine Belege im gewählten Zeitraum.':'Keine Belege vorhanden. Lade Belege in Schritt 1 hoch und lasse sie von der KI auslesen.'}</div>`;
@@ -1828,21 +1829,31 @@ function openBelegModal(matchIdx){
   extLink.style.display='none';
 
   if(isPDF&&rec.signed_url){
-    // PDF inline im iframe anzeigen
-    // Supabase signed URLs haben Content-Disposition:attachment – wir bauen eine eigene Viewer-URL
-    const viewerUrl=`https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(rec.signed_url)}`;
-    iframe.src=viewerUrl;
-    iframe.style.display='block';
-    // Fallback-Button für direkten Download/Öffnen
+    // PDF als Blob laden → Blob-URL → iframe (umgeht CORS + Content-Disposition:attachment)
     extLink.href=rec.signed_url;
     extLink.style.display='inline-flex';
-    // Fehler-Fallback: wenn iframe lädt nicht (CORS/CSP) → Fallback zeigen
-    iframe.onerror=()=>{
-      iframe.style.display='none';
-      fallback.style.display='flex';
-      $('modal-beleg-pdf-name').textContent=rec.filename||'PDF';
-      $('modal-beleg-pdf-link').href=rec.signed_url;
-    };
+    iframe.src='about:blank';
+    iframe.style.display='block';
+    fallback.style.display='none';
+    // Lade-Indikator
+    iframe.srcdoc='<html><body style="display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#1e1f22;font-family:sans-serif;color:#9a9ca5;font-size:13px;">PDF wird geladen …</body></html>';
+    fetch(rec.signed_url)
+      .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.blob();})
+      .then(blob=>{
+        // Alten Blob-URL aufräumen
+        if(iframe._blobUrl){URL.revokeObjectURL(iframe._blobUrl);}
+        const blobUrl=URL.createObjectURL(blob);
+        iframe._blobUrl=blobUrl;
+        iframe.srcdoc=''; // srcdoc leeren bevor src setzen
+        iframe.src=blobUrl;
+      })
+      .catch(()=>{
+        // Fallback: Link anzeigen
+        iframe.style.display='none';
+        fallback.style.display='flex';
+        $('modal-beleg-pdf-name').textContent=rec.filename||'PDF';
+        $('modal-beleg-pdf-link').href=rec.signed_url;
+      });
   } else if(isPDF&&!rec.signed_url){
     // Kein signed_url → Fallback
     fallback.style.display='flex';
@@ -1892,10 +1903,13 @@ async function unlinkReceipt(){
 
 function closeModal(id){
   $(`${id}`).classList.remove('open');
-  // iframe src leeren um PDF-Laden zu stoppen
+  // iframe src leeren und Blob-URL freigeben
   if(id==='modal-beleg'){
     const f=$('modal-beleg-iframe');
-    if(f){f.src='about:blank';}
+    if(f){
+      if(f._blobUrl){URL.revokeObjectURL(f._blobUrl);f._blobUrl=null;}
+      f.src='about:blank';
+    }
   }
 }
 
