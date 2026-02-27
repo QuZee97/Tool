@@ -1299,10 +1299,12 @@ function buildMatchesFromCSV(){
   const existing=new Set(matches.map(m=>m.transaction_id));
   const ownerKey=ownerName?normalizeEmpf(ownerName):'';
   const newM=csvTransactions.filter(t=>!existing.has(t.id)).map(t=>{
-    // Privatentnahme erkennen: Empfänger entspricht dem Unternehmer-Namen
+    // Privatentnahme: NUR Empfänger prüfen, nie Betreff/Beschreibung —
+    // sonst werden Überweisungen (z.B. Miete) falsch erkannt wenn der eigene Name im Verwendungszweck steht
+    const empfKeyOwner=normalizeEmpf(t.empfaenger||'');
+    const isPrivatentnahme=!t.isEinnahme&&ownerKey&&empfKeyOwner&&empfKeyOwner.includes(ownerKey);
+    // Für Regel-Lookup: Empfänger + Beschreibung als Fallback (Regeln können auf beide greifen)
     const empfKey=normalizeEmpf(t.empfaenger||t.beschreibung||'');
-    const isPrivatentnahme=!t.isEinnahme&&ownerKey&&empfKey&&empfKey.includes(ownerKey);
-    // Regel anwenden (nur wenn keine Privatentnahme)
     const rule=!isPrivatentnahme&&txRules.find(r=>r.empfaenger_key&&(empfKey===r.empfaenger_key||(r.empfaenger_key.length>=5&&empfKey.includes(r.empfaenger_key))));
     let kategorie,konfidenz,begruendung;
     if(isPrivatentnahme){
@@ -1531,12 +1533,13 @@ function applyPrivatentnahmenToMatches(){
     if(m.is_einnahme)return; // Einnahmen nie als Privatentnahme
     if(m.bestaetigt)return;  // Manuell bestätigte Matches nicht überschreiben
     if(m.kategorie==='privatentnahme')return; // bereits korrekt
-    const empfKey=normalizeEmpf(m.empfaenger||m.beschreibung||'');
+    // Nur Empfänger prüfen – nicht Beschreibung/Betreff (eigener Name kann im Verwendungszweck stehen)
+    const empfKey=normalizeEmpf(m.empfaenger||'');
     if(!empfKey||!empfKey.includes(ownerKey))return;
     m.kategorie='privatentnahme';
     m.kategorie_info=CATEGORIES['privatentnahme'];
     m.konfidenz='hoch';
-    m.begruendung=`Empfänger "${m.empfaenger||m.beschreibung}" entspricht dem Unternehmer-Namen → Privatentnahme`;
+    m.begruendung=`Empfänger "${m.empfaenger}" entspricht dem Unternehmer-Namen → Privatentnahme`;
     count++;
     if(m.id){
       DB.updateMatch(m.id,{
