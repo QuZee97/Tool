@@ -112,6 +112,13 @@ const DB = {
     // wenn mehrere Dateien mit gleichem Namen aus verschiedenen Quartalen hochgeladen werden)
     const dates = rows.map(r => r.datum).filter(Boolean).sort();
     if (dates.length) {
+      // Erst die zugehörigen Matches löschen (datum in Matches = Transaction-datum),
+      // sonst bleiben verwaiste Matches mit alten transaction_ids in der DB → Doppelzählung im Dashboard
+      await db.from('matches')
+        .delete()
+        .eq('user_id', user.id)
+        .gte('datum', dates[0])
+        .lte('datum', dates[dates.length - 1]);
       await db.from('transactions')
         .delete()
         .eq('user_id', user.id)
@@ -357,8 +364,10 @@ const DB = {
 
   // ── ALLE MATCHES FÜR DASHBOARD (ohne Receipt-Join, leichtgewichtig) ──
   async getAllMatches() {
+    const user = await getUser();
     const { data, error } = await db.from('matches')
       .select('transaction_id,betrag_brutto,betrag_netto,datum,kategorie,is_einnahme,beschreibung,bestaetigt')
+      .eq('user_id', user.id)
       .order('datum', { ascending: false })
       .limit(5000);
     if (error) throw error;

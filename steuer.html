@@ -856,6 +856,13 @@ async function parseAndSaveCSV(file){
     }catch(e){console.warn('CSV-Speicherung fehlgeschlagen:',e.message);}
     // IDs aus DB übernehmen damit Matching konsistent ist
     if(savedRows.length){
+      // In-Memory Matches für den re-uploadetem Datumsbereich bereinigen:
+      // Die DB hat deren Matches bereits gelöscht – alte In-Memory-Einträge hätten veraltete transaction_ids
+      const uploadDates=savedRows.map(r=>r.datum).filter(Boolean).sort();
+      if(uploadDates.length){
+        const dMin=uploadDates[0], dMax=uploadDates[uploadDates.length-1];
+        matches=matches.filter(m=>!m.datum||m.datum<dMin||m.datum>dMax);
+      }
       csvTransactions=savedRows.map(t=>({
         id:'tx'+t.id, _dbId:t.id,
         datum:t.datum||'', empfaenger:t.empfaenger||'',
@@ -874,6 +881,8 @@ async function parseAndSaveCSV(file){
     updateUploadSummary();
     // Sofort Match-Objekte erstellen → Review zeigt Buchungen ohne KI-Klick
     buildMatchesFromCSV();
+    // Bereits hochgeladene Belege nochmal gegen neue Transaktionen matchen
+    if(belegFiles.some(b=>b.status==='done'&&b.receiptId)) autoMatchBelege();
     if(currentPage===3)renderReview();
   }catch(e){
     status.innerHTML=`<div class="hinweis warn"><i data-lucide="alert-triangle"></i><div>Fehler: ${e.message}</div></div>`;
@@ -1505,6 +1514,36 @@ function applyRulesToMatches(){
           begruendung:m.begruendung,
         }).catch(()=>{});
       }
+    }
+  });
+  return count;
+}
+
+// ── PRIVATENTNAHMEN AUF BESTEHENDE MATCHES ANWENDEN ────────
+// Scannt alle In-Memory Matches und setzt kategorie='privatentnahme' wenn der
+// Empfänger dem Unternehmer-Namen entspricht. Speichert Änderungen in der DB.
+function applyPrivatentnahmenToMatches(){
+  if(!ownerName)return 0;
+  const ownerKey=normalizeEmpf(ownerName);
+  if(!ownerKey)return 0;
+  let count=0;
+  matches.forEach(m=>{
+    if(m.is_einnahme)return; // Einnahmen nie als Privatentnahme
+    if(m.bestaetigt)return;  // Manuell bestätigte Matches nicht überschreiben
+    if(m.kategorie==='privatentnahme')return; // bereits korrekt
+    const empfKey=normalizeEmpf(m.empfaenger||m.beschreibung||'');
+    if(!empfKey||!empfKey.includes(ownerKey))return;
+    m.kategorie='privatentnahme';
+    m.kategorie_info=CATEGORIES['privatentnahme'];
+    m.konfidenz='hoch';
+    m.begruendung=`Empfänger "${m.empfaenger||m.beschreibung}" entspricht dem Unternehmer-Namen → Privatentnahme`;
+    count++;
+    if(m.id){
+      DB.updateMatch(m.id,{
+        kategorie:'privatentnahme',
+        konfidenz:'hoch',
+        begruendung:m.begruendung,
+      }).catch(()=>{});
     }
   });
   return count;
@@ -2168,6 +2207,8 @@ async function loadMatchesFromDB(year,quartal){
       };
     });
     aiResults=matches;
+    // Privatentnahmen auf geladene Matches anwenden (Name kann bereits gesetzt sein)
+    if(ownerName) applyPrivatentnahmenToMatches();
     const reviewCount=matches.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
     $('badge-review').textContent=reviewCount;
     $('badge-review').classList.toggle('show',reviewCount>0);
@@ -2265,10 +2306,17 @@ async function saveSettings(){
   try{
     await DB.saveUserProfile(v,n);
     ownerName=[v,n].filter(Boolean).join(' ');
-    toast('Einstellungen gespeichert ✓');
     closeSettings();
-    // Matches neu aufbauen damit Privatentnahmen sofort greifen
-    if(csvTransactions.length){buildMatchesFromCSV();if(currentPage===3)renderReview();}
+    // Auf bestehende Matches sofort anwenden (in-memory + DB-Update im Hintergrund)
+    const updated=applyPrivatentnahmenToMatches();
+    // Neue CSV-Buchungen (noch nicht in matches) ebenfalls erfassen
+    if(csvTransactions.length)buildMatchesFromCSV();
+    if(updated>0||csvTransactions.length){
+      toast(`Einstellungen gespeichert · ${updated} Privatentnahme(n) erkannt ✓`);
+    }else{
+      toast('Einstellungen gespeichert ✓');
+    }
+    if(currentPage===3)renderReview();
   }catch(e){toast('Fehler: '+e.message);}
 }
 
