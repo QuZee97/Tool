@@ -787,13 +787,19 @@ function inPeriodLoose(datum){
   return d>=fromD&&d<=toD;
 }
 async function clearCSVData(){
-  if(!confirm(`Alle gespeicherten CSV-Buchungen aus ${selectedYear} löschen?`))return;
+  if(!confirm(`Alle gespeicherten CSV-Buchungen und Kategorisierungen aus ${selectedYear} löschen?`))return;
   try{
+    // Matches ZUERST löschen (hängen an Transaktions-IDs)
+    await DB.deleteMatchesByYear(selectedYear);
     await DB.deleteAllTransactions(selectedYear);
     csvTransactions=[];
+    matches=[];
+    aiResults=matches;
     $('csv-status').style.display='none';
     updateUploadSummary();
-    toast('CSV-Daten gelöscht ✓');
+    updateSidebar();
+    if(currentPage===3)renderReview();
+    toast('CSV-Daten und Kategorisierungen gelöscht ✓');
   }catch(e){toast('Fehler: '+e.message);}
 }
 
