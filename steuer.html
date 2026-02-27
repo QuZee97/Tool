@@ -380,19 +380,6 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
     </div>
   </div>
 
-  <!-- Rechnungen aus dem Tool -->
-  <div class="card">
-    <div class="card-title">Rechnungen aus dem Tool <span style="font-weight:400;color:var(--text3);font-size:11px;" id="re-count"></span></div>
-    <div class="card-sub">Automatisch geladen. Setze Haken für Rechnungen die in den gewählten Zeitraum fallen.</div>
-    <div id="re-list">
-      <div style="color:var(--text3);font-size:11px;padding:8px 0;">Lade …</div>
-    </div>
-    <div style="display:flex;gap:6px;margin-top:8px;">
-      <button class="btn btn-ghost btn-sm" onclick="selectAllRe(true)"><i data-lucide="check-square"></i> Alle</button>
-      <button class="btn btn-ghost btn-sm" onclick="selectAllRe(false)"><i data-lucide="square"></i> Keine</button>
-    </div>
-  </div>
-
   <!-- Manuelle Einnahmen -->
   <div class="card">
     <div class="card-title">Manuelle Einnahmen <span style="font-weight:400;color:var(--text3);font-size:11px;">(Bargeschäfte, Nebeneinnahmen)</span></div>
@@ -656,8 +643,6 @@ const CATEGORIES = {
 // ── STATE ──────────────────────────────────────────────────
 let selectedYear    = new Date().getFullYear();
 let selectedQuartal = 0;
-let allDocs         = [];   // Dokumente aus dem Tool
-let reChecked       = {};   // {id: bool} – welche Rechnungen sind angehakt
 let manualIncomes   = [];   // {id, desc, datum, brutto}
 let csvTransactions = [];   // Rohdaten aus CSV (nach Import)
 let belegFiles      = [];   // {file, status, result, thumbnail} – Session-only
@@ -699,7 +684,6 @@ async function setQuartal(q){
   document.querySelectorAll('.q-btn').forEach(b=>b.classList.remove('active'));
   if(q===0)$('qjahr').classList.add('active');
   else $(`q${q}`).classList.add('active');
-  refreshReList();
   updateUploadSummary();
   // Matches für neues Quartal laden, dann neue CSV-Einträge ergänzen
   await loadMatchesFromDB(selectedYear,q);
@@ -739,7 +723,6 @@ async function onPeriodChange(){
   ]);
   // ERST nach beiden Loads: neue CSV-Buchungen ohne Match hinzufügen
   if(csvTransactions.length) buildMatchesFromCSV();
-  refreshReList();
   updateUploadSummary();
   updateSidebar();
   if(currentPage===3)renderReview();
@@ -804,30 +787,6 @@ function updateSidebar(){
   $('sb-gewinn').textContent=fmt(ein-aus);
   $('sb-zahllast').textContent=fmt(Math.max(0,zl));
 }
-
-// ── RECHNUNGEN AUS DEM TOOL ────────────────────────────────
-function refreshReList(){
-  const el=$('re-list');
-  const relevant=allDocs.filter(d=>d.typ==='rechnung'&&inPeriod(d.datum));
-  $('re-count').textContent=`(${relevant.length})`;
-  if(!relevant.length){el.innerHTML='<div style="color:var(--text3);font-size:11px;padding:8px 0;">Keine Rechnungen im gewählten Zeitraum.</div>';return;}
-  // Init: alle angehakt die noch nicht explizit abgehakt wurden
-  relevant.forEach(d=>{if(reChecked[d.id]===undefined)reChecked[d.id]=true;});
-  el.innerHTML=relevant.map(d=>{
-    const netto=d.positionen?.reduce((s,p)=>s+parseFloat(p.menge||1)*parseFloat(p.preis||0),0)||0;
-    const brutto=d.tax==='de'?netto*1.19:netto;
-    return`<label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;font-size:11px;">
-      <input type="checkbox" ${reChecked[d.id]?'checked':''} onchange="reChecked['${d.id}']=this.checked;updateUploadSummary();" style="accent-color:var(--accent);width:14px;height:14px;flex-shrink:0;">
-      <div style="flex:1;min-width:0;">
-        <div style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${d.firma||d.kunde||'–'}</div>
-        <div style="color:var(--text3);font-size:10px;">${d.nr||''} · ${fmtDate(d.datum)}</div>
-      </div>
-      <span style="font-weight:600;color:var(--green);flex-shrink:0;">${fmt(brutto)}</span>
-    </label>`;
-  }).join('');
-  updateUploadSummary();
-}
-function selectAllRe(v){allDocs.filter(d=>d.typ==='rechnung'&&inPeriod(d.datum)).forEach(d=>reChecked[d.id]=v);refreshReList();}
 
 // ── MANUELLE EINNAHMEN ─────────────────────────────────────
 function addManualIncome(){
@@ -999,11 +958,9 @@ function renderBelegList(){
 }
 
 function updateUploadSummary(){
-  const reCount=allDocs.filter(d=>d.typ==='rechnung'&&inPeriod(d.datum)&&reChecked[d.id]).length;
-  const csvCount=csvTransactions.filter(t=>inPeriod(t.datum)||!t.datum).length; // nur im Zeitraum
+  const csvCount=csvTransactions.filter(t=>inPeriod(t.datum)||!t.datum).length;
   const belegCount=belegFiles.length;
   const parts=[];
-  if(reCount)parts.push(`${reCount} Rechnung${reCount>1?'en':''}`);
   if(csvCount)parts.push(`${csvCount} Bankbuchungen`);
   if(belegCount)parts.push(`${belegCount} Beleg${belegCount>1?'e':''}`);
   if(manualIncomes.length)parts.push(`${manualIncomes.length} manuelle Einnahmen`);
@@ -2215,11 +2172,6 @@ async function init(){
   document.querySelectorAll('.q-btn').forEach(b=>b.classList.remove('active'));
   if(savedQ===0)$('qjahr').classList.add('active');
   else $(`q${savedQ}`)?.classList.add('active');
-
-  // Rechnungen laden
-  try{allDocs=await DB.getDocuments();}
-  catch(e){console.error(e);}
-  refreshReList();
 
   // CSV + Matches + Belege + Regeln parallel laden
   await Promise.all([
