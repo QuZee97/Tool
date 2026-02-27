@@ -365,24 +365,24 @@ table.dash-table tbody td.r{text-align:right;}
   <!-- KPI Cards -->
   <div class="kpi-grid">
     <div class="kpi-card">
-      <div class="kpi-label" id="lbl-year">Umsatz dieses Jahr (Netto)</div>
+      <div class="kpi-label" id="lbl-year">Einnahmen (Netto)</div>
       <div class="kpi-value kpi-accent" id="kpi-year">–</div>
       <div class="kpi-sub" id="kpi-year-sub">–</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label" id="lbl-month">Umsatz diesen Monat (Netto)</div>
-      <div class="kpi-value kpi-green" id="kpi-month">–</div>
-      <div class="kpi-sub" id="kpi-month-sub">–</div>
+      <div class="kpi-label" id="lbl-ausgaben">Ausgaben (Brutto)</div>
+      <div class="kpi-value kpi-orange" id="kpi-ausgaben">–</div>
+      <div class="kpi-sub" id="kpi-ausgaben-sub">–</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label" id="lbl-gewinn">Gewinn / Verlust</div>
+      <div class="kpi-value" id="kpi-gewinn" style="color:var(--green);">–</div>
+      <div class="kpi-sub" id="kpi-gewinn-sub">Einnahmen − Ausgaben</div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Offene Angebote</div>
-      <div class="kpi-value kpi-orange" id="kpi-open">–</div>
+      <div class="kpi-value kpi-blue" id="kpi-open">–</div>
       <div class="kpi-sub" id="kpi-open-sub">–</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Conversion Rate</div>
-      <div class="kpi-value kpi-blue" id="kpi-conv">–</div>
-      <div class="kpi-sub">Angebote → Rechnungen</div>
     </div>
   </div>
 
@@ -390,7 +390,7 @@ table.dash-table tbody td.r{text-align:right;}
   <div class="chart-grid">
     <div class="chart-card">
       <div class="chart-title-row">
-        <span class="chart-title" id="chart-title">Umsatz pro Monat – Netto (aktuelles Jahr)</span>
+        <span class="chart-title" id="chart-title">Einnahmen & Ausgaben pro Monat</span>
       </div>
       <div class="chart-wrap">
         <canvas id="chart-monthly"></canvas>
@@ -402,6 +402,26 @@ table.dash-table tbody td.r{text-align:right;}
       </div>
       <div class="top-list" id="top-customers">
         <div style="color:var(--text3);font-size:11px;">Lade …</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ausgaben nach Kategorien -->
+  <div class="chart-grid" style="grid-template-columns:1fr 1fr;margin-top:0;">
+    <div class="chart-card">
+      <div class="chart-title-row">
+        <span class="chart-title" id="kat-title">Ausgaben nach Kategorie</span>
+      </div>
+      <div class="top-list" id="ausgaben-by-kat" style="margin-top:4px;">
+        <div style="color:var(--text3);font-size:11px;">Keine Buchungen vorhanden.</div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title-row">
+        <span class="chart-title">Offene Angebote</span>
+      </div>
+      <div class="top-list" id="open-angebote-list" style="margin-top:4px;">
+        <div style="color:var(--text3);font-size:11px;">Keine offenen Angebote.</div>
       </div>
     </div>
   </div>
@@ -498,12 +518,25 @@ lucide.createIcons();
 
 // ── STATE ─────────────────────────────────────────────────
 let allDocs = [];
+let allMatches = []; // Alle kategorisierten Buchungen (aus Steuer-Tool)
 let filteredDocs = [];
 let viewMode = 'netto'; // 'netto' | 'brutto'
 let monthChart = null;
 let rangeFrom = null; // 'YYYY-MM-DD' or null = unbounded
 let rangeTo   = null;
 let rangeYear = new Date().getFullYear(); // which year to show in the bar chart
+
+// Kategorie-Labels für Ausgaben
+const KAT_LABELS = {
+  betriebseinnahmen:'Betriebseinnahmen', betriebsausgaben:'Betriebsausgaben',
+  werbung_marketing:'Werbung & Marketing', reisekosten:'Reise & Fahrt',
+  bueromaterial:'Büromaterial', software_abo:'Software & Abos',
+  versicherungen:'Versicherungen', beratung:'Beratung & Honorare',
+  personal:'Personal', miete:'Miete & Raum', fahrzeug:'Fahrzeug',
+  telekommunikation:'Telekommunikation', bewirtung:'Bewirtung',
+  weiterbildung:'Weiterbildung', bank:'Bank & Gebühren',
+  steuern:'Steuern & Abgaben', sonstiges:'Sonstiges',
+};
 
 const fmt = n => n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+'\u00a0€';
 const fmtDate = v => {if(!v)return'–';const[y,m,d]=v.split('-');return`${d}.${m}.${y}`;};
@@ -528,7 +561,7 @@ function setMode(mode, btn){
   document.querySelectorAll('#kpi-toggle button').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   refreshKPILabels();
-  buildKPIs(); updateMonthChart(); buildTopCustomers();
+  buildKPIs(); updateMonthChart(); buildTopCustomers(); buildAusgabenByKategorie(); buildOpenAngebote();
 }
 
 // ── DATE RANGE ─────────────────────────────────────────────
@@ -560,7 +593,7 @@ function setQuickRange(key, btn){
   $('range-from').value=from||'';
   $('range-to').value=to||'';
   refreshKPILabels();
-  buildKPIs(); updateMonthChart(); buildTopCustomers();
+  buildKPIs(); updateMonthChart(); buildTopCustomers(); buildAusgabenByKategorie(); buildOpenAngebote();
 }
 function onRangeChange(){
   // Custom date range – deactivate quick buttons
@@ -570,7 +603,7 @@ function onRangeChange(){
   // Determine chart year from rangeFrom
   if(rangeFrom) rangeYear=parseInt(rangeFrom.slice(0,4));
   refreshKPILabels();
-  buildKPIs(); updateMonthChart(); buildTopCustomers();
+  buildKPIs(); updateMonthChart(); buildTopCustomers(); buildAusgabenByKategorie(); buildOpenAngebote();
 }
 function inRange(datum){
   if(!datum) return false;
@@ -589,10 +622,12 @@ function rangeLabel(){
 function refreshKPILabels(){
   const label=viewMode==='brutto'?'Brutto':'Netto';
   const rl=rangeLabel();
-  $('lbl-year').textContent=`Umsatz (${rl}, ${label})`;
-  $('lbl-month').textContent=`Ø pro Monat (${label})`;
-  $('chart-title').textContent=`Umsatz pro Monat – ${label} (${rangeYear})`;
+  $('lbl-year').textContent=`Einnahmen (${rl}, ${label})`;
+  $('lbl-ausgaben').textContent=`Ausgaben (${rl}, Brutto)`;
+  $('lbl-gewinn').textContent=`Gewinn / Verlust (${rl})`;
+  $('chart-title').textContent=`Einnahmen & Ausgaben pro Monat (${rangeYear})`;
   $('top-title').textContent=`Top Kunden – ${label} (${rl})`;
+  $('kat-title').textContent=`Ausgaben nach Kategorie (${rl})`;
 }
 
 // ── STATUS ─────────────────────────────────────────────────
@@ -969,46 +1004,60 @@ function buildKPIs(){
   const re=allDocs.filter(d=>d.typ==='rechnung');
   const ang=allDocs.filter(d=>d.typ==='angebot');
 
-  // Umsatz im gewählten Zeitraum
-  const reRange=re.filter(d=>!rangeFrom&&!rangeTo ? d.datum?.startsWith(String(rangeYear)) : inRange(d.datum));
+  // Einnahmen im gewählten Zeitraum (aus Rechnungen)
+  const reRange=re.filter(d=>inRange(d.datum));
   const valRange=reRange.reduce((s,d)=>s+docVal(d),0);
   $('kpi-year').textContent=fmt(valRange);
   $('kpi-year-sub').textContent=`${reRange.length} Rechnung${reRange.length!==1?'en':''}`;
 
-  // Ø pro Monat im Zeitraum
-  const months=new Set(reRange.map(d=>d.datum?.slice(0,7)).filter(Boolean));
-  const avgMonth=months.size?valRange/months.size:0;
-  $('kpi-month').textContent=fmt(avgMonth);
-  $('kpi-month-sub').textContent=`Ø über ${months.size} Monat${months.size!==1?'e':''}`;
+  // Ausgaben im gewählten Zeitraum (aus kategorisierten Buchungen)
+  const expenses=allMatches.filter(m=>!m.is_einnahme && m.datum && inRange(m.datum));
+  const totalAusgaben=expenses.reduce((s,m)=>s+Math.abs(m.betrag_brutto||0),0);
+  $('kpi-ausgaben').textContent=fmt(totalAusgaben);
+  $('kpi-ausgaben-sub').textContent=expenses.length
+    ? `${expenses.length} Buchung${expenses.length!==1?'en':''}`
+    : 'Keine Buchungen importiert';
+
+  // Gewinn / Verlust
+  const einnahmenBrutto = reRange.reduce((s,d)=>s+docBrutto(d),0);
+  const gewinn = einnahmenBrutto - totalAusgaben;
+  const gwEl = $('kpi-gewinn');
+  gwEl.textContent = fmt(Math.abs(gewinn));
+  gwEl.style.color = gewinn >= 0 ? 'var(--green)' : 'var(--red)';
+  $('kpi-gewinn-sub').textContent = gewinn >= 0
+    ? `Einnahmen ${fmt(einnahmenBrutto)} − Ausgaben ${fmt(totalAusgaben)}`
+    : `Verlust: Ausgaben übersteigen Einnahmen`;
 
   // Offene Angebote (zeitraumunabhängig – immer aktuell)
   const openAng=ang.filter(d=>{const s=getActiveStatus(d);return!s||s==='sent';});
   const openVol=openAng.reduce((s,d)=>s+docBrutto(d),0);
   $('kpi-open').textContent=String(openAng.length);
   $('kpi-open-sub').textContent=openVol?`Volumen: ${fmt(openVol)}`:'Kein Volumen';
-
-  // Conversion
-  const rate=ang.length?Math.round(ang.filter(d=>getActiveStatus(d)==='accepted').length/ang.length*100):0;
-  $('kpi-conv').textContent=`${rate}\u202f%`;
 }
 
 // ── MONATS-CHART ──────────────────────────────────────────
 function buildMonthChart(){
   const months=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
-  const values=getChartValues();
   const ctx=$('chart-monthly').getContext('2d');
   monthChart=new Chart(ctx,{
     type:'bar',
-    data:{labels:months,datasets:[{
-      label:'Umsatz',data:values,
-      backgroundColor:'rgba(212,204,46,0.5)',borderColor:'rgba(212,204,46,0.9)',
-      borderWidth:1.5,borderRadius:4,borderSkipped:false,
-    }]},
+    data:{labels:months,datasets:[
+      {
+        label:'Einnahmen',data:getIncomeChartValues(),
+        backgroundColor:'rgba(212,204,46,0.5)',borderColor:'rgba(212,204,46,0.9)',
+        borderWidth:1.5,borderRadius:4,borderSkipped:false,
+      },
+      {
+        label:'Ausgaben',data:getExpenseChartValues(),
+        backgroundColor:'rgba(224,85,85,0.35)',borderColor:'rgba(224,85,85,0.75)',
+        borderWidth:1.5,borderRadius:4,borderSkipped:false,
+      }
+    ]},
     options:{
       responsive:true,maintainAspectRatio:false,
       plugins:{
-        legend:{display:false},
-        tooltip:{callbacks:{label:c=>`${c.parsed.y.toLocaleString('de-DE',{minimumFractionDigits:2})} €`},
+        legend:{display:true,labels:{color:'#9a9ca5',font:{size:10},boxWidth:12,padding:10}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y.toLocaleString('de-DE',{minimumFractionDigits:2})} €`},
           backgroundColor:'#27282c',borderColor:'#3d3f45',borderWidth:1,titleColor:'#9a9ca5',bodyColor:'#e2e3e8'}
       },
       scales:{
@@ -1020,17 +1069,25 @@ function buildMonthChart(){
   });
 }
 
-function getChartValues(){
+function getIncomeChartValues(){
   return Array.from({length:12},(_,m)=>{
     const mStr=`${rangeYear}-${String(m+1).padStart(2,'0')}`;
     return allDocs.filter(d=>d.typ==='rechnung'&&d.datum&&d.datum.startsWith(mStr)&&inRange(d.datum))
       .reduce((s,d)=>s+docVal(d),0);
   });
 }
+function getExpenseChartValues(){
+  return Array.from({length:12},(_,m)=>{
+    const mStr=`${rangeYear}-${String(m+1).padStart(2,'0')}`;
+    return allMatches.filter(x=>!x.is_einnahme&&x.datum&&x.datum.startsWith(mStr)&&inRange(x.datum))
+      .reduce((s,x)=>s+Math.abs(x.betrag_brutto||0),0);
+  });
+}
 
 function updateMonthChart(){
   if(!monthChart)return;
-  monthChart.data.datasets[0].data=getChartValues();
+  monthChart.data.datasets[0].data=getIncomeChartValues();
+  monthChart.data.datasets[1].data=getExpenseChartValues();
   monthChart.update('active');
 }
 
@@ -1052,12 +1109,60 @@ function buildTopCustomers(){
     </div>`).join('');
 }
 
+// ── AUSGABEN NACH KATEGORIE ────────────────────────────────
+function buildAusgabenByKategorie(){
+  const expenses=allMatches.filter(m=>!m.is_einnahme&&m.datum&&inRange(m.datum));
+  const map={};
+  expenses.forEach(m=>{
+    const cat=m.kategorie||'sonstiges';
+    map[cat]=(map[cat]||0)+Math.abs(m.betrag_brutto||0);
+  });
+  const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  const max=sorted[0]?.[1]||1;
+  const el=$('ausgaben-by-kat');
+  if(!sorted.length){
+    el.innerHTML='<div style="color:var(--text3);font-size:11px;">Keine Buchungen im Zeitraum.<br><span style="font-size:10px;">CSV in Steuer → Schritt 1 importieren.</span></div>';
+    return;
+  }
+  el.innerHTML=sorted.map(([cat,val])=>`
+    <div class="top-item">
+      <span class="top-name" title="${KAT_LABELS[cat]||cat}">${KAT_LABELS[cat]||cat}</span>
+      <div class="top-bar-wrap"><div class="top-bar" style="width:${Math.round(val/max*100)}%;background:var(--orange);opacity:.8;"></div></div>
+      <span class="top-val">${fmt(val)}</span>
+    </div>`).join('');
+}
+
+// ── OFFENE ANGEBOTE LISTE ──────────────────────────────────
+function buildOpenAngebote(){
+  const open=allDocs.filter(d=>d.typ==='angebot'&&(!getActiveStatus(d)||getActiveStatus(d)==='sent'))
+    .sort((a,b)=>(b.datum||'').localeCompare(a.datum||'')).slice(0,6);
+  const el=$('open-angebote-list');
+  if(!open.length){el.innerHTML='<div style="color:var(--text3);font-size:11px;">Keine offenen Angebote.</div>';return;}
+  el.innerHTML=open.map(d=>{
+    const val=docBrutto(d);
+    return`<div class="top-item" style="cursor:pointer;" onclick="previewEdit_id('${d.id}')">
+      <span class="top-name" title="${d.firma||''}">${d.firma||'–'}</span>
+      <div class="top-bar-wrap"><div class="top-bar" style="width:100%;opacity:.4;"></div></div>
+      <span class="top-val">${val?fmt(val):'–'} <span style="color:var(--text3);font-size:10px;">${fmtDate(d.datum)}</span></span>
+    </div>`;
+  }).join('');
+}
+
 // ── INIT ──────────────────────────────────────────────────
 async function init(){
   const user=await getUser();
   if(!user){window.location.href='/';return;}
   $('nav-user-email').textContent=user.email||'';
-  try{allDocs=await DB.getDocuments();}catch(e){console.error(e);toast('Fehler beim Laden');}
+
+  // Daten parallel laden
+  const [docs,matches]=await Promise.allSettled([
+    DB.getDocuments(),
+    DB.getAllMatches(),
+  ]);
+  allDocs   = docs.status==='fulfilled'   ? docs.value   : [];
+  allMatches= matches.status==='fulfilled' ? matches.value : [];
+  if(docs.status==='rejected') console.error('Dokumente nicht geladen:',docs.reason);
+
   buildYearFilter();
   applyFilter();
   // Init date range to current year
@@ -1068,6 +1173,8 @@ async function init(){
   buildKPIs();
   buildMonthChart();
   buildTopCustomers();
+  buildAusgabenByKategorie();
+  buildOpenAngebote();
   $('loading').style.display='none';
   lucide.createIcons();
 }
