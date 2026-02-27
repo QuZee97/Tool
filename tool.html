@@ -1649,6 +1649,18 @@ async function printPDF(){
     a.href=url;a.download=filename+'.pdf';a.click();
     setTimeout(()=>URL.revokeObjectURL(url),10000);
     toast('PDF heruntergeladen ✓');
+    // Rechnung automatisch als Beleg speichern (nur wenn bereits in DB gespeichert)
+    if(typ==='rechnung' && currentDocId){
+      const docObj={
+        id:currentDocId, typ, nr, datum:val('f_datum'),
+        firma:val('f_firma'), ansprechpartner:val('f_ansprechpartner'),
+        betreff:val('f_betreff'), tax,
+        positionen:positionen.map(p=>({menge:p.menge,preis:p.preis})),
+      };
+      DB.saveGeneratedReceipt(blob,docObj)
+        .then(r=>{if(r)toast('Rechnung als Beleg gespeichert ✓');})
+        .catch(e=>console.warn('Beleg-Speichern fehlgeschlagen:',e));
+    }
   }catch(e){
     console.error('PDF-Fehler:',e);
     toast('PDF-Fehler: '+e.message);
