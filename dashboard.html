@@ -1004,28 +1004,37 @@ function buildKPIs(){
   const re=allDocs.filter(d=>d.typ==='rechnung');
   const ang=allDocs.filter(d=>d.typ==='angebot');
 
-  // Einnahmen im gewählten Zeitraum (aus Rechnungen)
+  // Einnahmen: Rechnungen aus dem Tool + CSV-Eingänge (allMatches is_einnahme=true)
   const reRange=re.filter(d=>inRange(d.datum));
-  const valRange=reRange.reduce((s,d)=>s+docVal(d),0);
-  $('kpi-year').textContent=fmt(valRange);
-  $('kpi-year-sub').textContent=`${reRange.length} Rechnung${reRange.length!==1?'en':''}`;
+  const invoiceIncome=reRange.reduce((s,d)=>s+docVal(d),0);
+  const csvIncomeMatches=allMatches.filter(m=>!!m.is_einnahme&&m.datum&&inRange(m.datum));
+  const csvIncomeTotal=csvIncomeMatches.reduce((s,m)=>s+Math.abs(m.betrag_brutto||0),0);
+  const totalEinnahmen=invoiceIncome+csvIncomeTotal;
+  $('kpi-year').textContent=fmt(totalEinnahmen);
+  const einSubParts=[];
+  if(reRange.length) einSubParts.push(`${reRange.length} Rechnung${reRange.length!==1?'en':''}`);
+  if(csvIncomeMatches.length) einSubParts.push(`${csvIncomeMatches.length} CSV-Eingänge`);
+  $('kpi-year-sub').textContent=einSubParts.join(' · ')||'–';
 
   // Ausgaben im gewählten Zeitraum (aus kategorisierten Buchungen)
-  const expenses=allMatches.filter(m=>!m.is_einnahme && m.datum && inRange(m.datum));
+  const expenses=allMatches.filter(m=>!m.is_einnahme&&m.datum&&inRange(m.datum));
   const totalAusgaben=expenses.reduce((s,m)=>s+Math.abs(m.betrag_brutto||0),0);
   $('kpi-ausgaben').textContent=fmt(totalAusgaben);
   $('kpi-ausgaben-sub').textContent=expenses.length
     ? `${expenses.length} Buchung${expenses.length!==1?'en':''}`
     : 'Keine Buchungen importiert';
 
-  // Gewinn / Verlust
-  const einnahmenBrutto = reRange.reduce((s,d)=>s+docBrutto(d),0);
-  const gewinn = einnahmenBrutto - totalAusgaben;
-  const gwEl = $('kpi-gewinn');
-  gwEl.textContent = fmt(Math.abs(gewinn));
-  gwEl.style.color = gewinn >= 0 ? 'var(--green)' : 'var(--red)';
-  $('kpi-gewinn-sub').textContent = gewinn >= 0
-    ? `Einnahmen ${fmt(einnahmenBrutto)} − Ausgaben ${fmt(totalAusgaben)}`
+  // Gewinn / Verlust — immer Netto
+  const invoiceNetto=reRange.reduce((s,d)=>s+docNetto(d),0);
+  const csvIncomeNetto=csvIncomeMatches.reduce((s,m)=>s+Math.abs(m.betrag_netto||m.betrag_brutto||0),0);
+  const expenseNetto=expenses.reduce((s,m)=>s+Math.abs(m.betrag_netto||m.betrag_brutto||0),0);
+  const totalEinnahmenNetto=invoiceNetto+csvIncomeNetto;
+  const gewinn=totalEinnahmenNetto-expenseNetto;
+  const gwEl=$('kpi-gewinn');
+  gwEl.textContent=fmt(Math.abs(gewinn));
+  gwEl.style.color=gewinn>=0?'var(--green)':'var(--red)';
+  $('kpi-gewinn-sub').textContent=gewinn>=0
+    ? `${fmt(totalEinnahmenNetto)} Netto − ${fmt(expenseNetto)} Ausg.`
     : `Verlust: Ausgaben übersteigen Einnahmen`;
 
   // Offene Angebote (zeitraumunabhängig – immer aktuell)
@@ -1072,8 +1081,11 @@ function buildMonthChart(){
 function getIncomeChartValues(){
   return Array.from({length:12},(_,m)=>{
     const mStr=`${rangeYear}-${String(m+1).padStart(2,'0')}`;
-    return allDocs.filter(d=>d.typ==='rechnung'&&d.datum&&d.datum.startsWith(mStr)&&inRange(d.datum))
+    const invoiceInc=allDocs.filter(d=>d.typ==='rechnung'&&d.datum&&d.datum.startsWith(mStr)&&inRange(d.datum))
       .reduce((s,d)=>s+docVal(d),0);
+    const csvInc=allMatches.filter(x=>!!x.is_einnahme&&x.datum&&x.datum.startsWith(mStr)&&inRange(x.datum))
+      .reduce((s,x)=>s+Math.abs(x.betrag_brutto||0),0);
+    return invoiceInc+csvInc;
   });
 }
 function getExpenseChartValues(){
