@@ -570,13 +570,13 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 
 <!-- ── BELEG-VOLLANSICHT MODAL ── -->
 <div class="modal-overlay" id="modal-beleg">
-  <div class="modal-box" style="max-width:940px;width:95vw;">
+  <div class="modal-box" style="max-width:940px;width:95vw;height:95vh;">
     <div class="modal-head">
       <h3 id="modal-beleg-title">Beleg</h3>
       <a id="modal-beleg-extlink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm" style="display:none;margin-right:4px;"><i data-lucide="external-link"></i> Im Browser öffnen</a>
       <button class="modal-close" onclick="closeModal('modal-beleg')">×</button>
     </div>
-    <div class="modal-body" style="display:grid;grid-template-columns:1fr 240px;gap:0;padding:0;overflow:hidden;height:72vh;">
+    <div class="modal-body" style="display:grid;grid-template-columns:1fr 240px;gap:0;padding:0;overflow:hidden;flex:1;min-height:0;">
       <!-- Linke Spalte: Beleg-Vorschau -->
       <div style="border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;">
         <img id="modal-beleg-img" src="" alt="" style="width:100%;height:100%;object-fit:contain;display:none;padding:16px;">
