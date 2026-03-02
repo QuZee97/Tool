@@ -363,6 +363,9 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
   <button onclick="hardResetMatches()" style="margin-top:14px;width:100%;padding:7px 10px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text3);font-size:11px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">
     <i data-lucide="refresh-cw" style="width:12px;height:12px;stroke-width:2;flex-shrink:0"></i> Kategorisierungen zurücksetzen
   </button>
+  <button onclick="bereinigeDuplicateMatches()" style="margin-top:6px;width:100%;padding:7px 10px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text3);font-size:11px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px;" onmouseover="this.style.borderColor='var(--orange,#f59e0b)';this.style.color='var(--orange,#f59e0b)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">
+    <i data-lucide="database" style="width:12px;height:12px;stroke-width:2;flex-shrink:0"></i> DB-Duplikate bereinigen
+  </button>
 </div>
 
 <div id="main">
@@ -713,7 +716,10 @@ async function setQuartal(q){
   updateUploadSummary();
   // Matches für neues Quartal laden, dann neue CSV-Einträge ergänzen
   await loadMatchesFromDB(selectedYear,q);
-  if(csvTransactions.length) buildMatchesFromCSV();
+  // Nur für FRISCH hochgeladene Transaktionen (nicht DB-geladen) ergänzen –
+  // sonst werden beim Quartalwechsel Duplikate erstellt, weil loadMatchesFromDB
+  // nur das aktuelle Quartal lädt und andere Quartal-Transaktionen als "neu" erscheinen
+  if(csvTransactions.some(t=>!t._fromDB)) buildMatchesFromCSV();
   updateSidebar();
   if(currentPage===2)renderBelegUebersicht();
   if(currentPage===3)renderReview();
@@ -747,8 +753,10 @@ async function onPeriodChange(){
     })(),
     loadMatchesFromDB(selectedYear,selectedQuartal),
   ]);
-  // ERST nach beiden Loads: neue CSV-Buchungen ohne Match hinzufügen
-  if(csvTransactions.length) buildMatchesFromCSV();
+  // ERST nach beiden Loads: neue CSV-Buchungen ohne Match hinzufügen.
+  // Nur für frisch hochgeladene Transaktionen – DB-geladene haben _fromDB:true
+  // und ihre Matches existieren bereits in der DB (wären sonst Duplikate)
+  if(csvTransactions.some(t=>!t._fromDB)) buildMatchesFromCSV();
   updateUploadSummary();
   updateSidebar();
   if(currentPage===3)renderReview();
@@ -1298,6 +1306,8 @@ function matchBelegToTransactions(belegResult,belegReceiptId,txList){
 
 // ── MATCHES AUS CSV AUFBAUEN (kein KI-Call) ────────────────
 function buildMatchesFromCSV(){
+  const freshCount=csvTransactions.filter(t=>!t._fromDB).length;
+  console.log(`[buildMatchesFromCSV] csvTransactions=${csvTransactions.length} (fresh=${freshCount}, fromDB=${csvTransactions.length-freshCount}), matches=${matches.length}`);
   // Dedupliziere matches zuerst (falls Race condition doppelte Einträge hinterlassen hat)
   const seen=new Map();
   matches.forEach(m=>{
@@ -2295,8 +2305,9 @@ async function init(){
     (async()=>{ try{ txRules=await DB.getRules(); }catch(e){ console.info('Regeln nicht geladen:',e.message); txRules=[]; } })(),
   ]);
 
-  // ERST nach beiden Loads: neue CSV-Buchungen ohne Match hinzufügen (kein Doppeleintrag)
-  if(csvTransactions.length) buildMatchesFromCSV();
+  // ERST nach beiden Loads: neue CSV-Buchungen ohne Match hinzufügen (kein Doppeleintrag).
+  // Nur für frisch hochgeladene Transaktionen – DB-geladene (_fromDB:true) haben bereits Matches.
+  if(csvTransactions.some(t=>!t._fromDB)) buildMatchesFromCSV();
 
   renderManualIncomes();
   updateUploadSummary();
@@ -2363,6 +2374,29 @@ async function hardResetMatches(){
     if(currentPage===3)renderReview();
     toast('Kategorisierungen zurückgesetzt ✓');
   }catch(e){toast('Fehler beim Reset: '+e.message);}
+}
+
+// ── DB-DUPLIKATE BEREINIGEN ──────────────────────────────────
+// Erkennt und löscht doppelte Match-Einträge in der DB (entstanden durch den
+// buildMatchesFromCSV-Bug bei Quartal-Wechseln) und lädt Matches danach neu.
+async function bereinigeDuplicateMatches(){
+  try{
+    toast('Analysiere Datenbank …');
+    const result=await DB.deduplicateMatchesInDB();
+    console.log('[bereinigeDuplicateMatches]',result);
+    if(result.duplicatesRemoved===0){
+      toast(`DB ist sauber ✓ – ${result.totalRows} Matches, keine Duplikate`);
+    }else{
+      toast(`${result.duplicatesRemoved} Duplikate entfernt ✓ – ${result.uniqueTxIds} eindeutige Buchungen`);
+      // Matches neu laden damit Anzeige stimmt
+      await loadMatchesFromDB(selectedYear,selectedQuartal);
+      updateSidebar();
+      if(currentPage===3)renderReview();
+    }
+  }catch(e){
+    toast('Fehler beim Bereinigen: '+e.message);
+    console.error('[bereinigeDuplicateMatches]',e);
+  }
 }
 
 // ── EINSTELLUNGEN ───────────────────────────────────────────

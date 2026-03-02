@@ -366,6 +366,62 @@ const DB = {
     await db.from('matches').delete().eq('user_id', user.id).is('datum', null);
   },
 
+  // ── DB-DUPLIKATE BEREINIGEN ──────────────────────────────
+  // Löscht doppelte Match-Zeilen für dieselbe transaction_id.
+  // Entsteht wenn der DB-Unique-Constraint auf (user_id, transaction_id) fehlt
+  // und buildMatchesFromCSV() mehrfach für dieselbe Transaktion aufgerufen wurde.
+  async deduplicateMatchesInDB() {
+    const user = await getUser();
+    // Alle Matches laden (nur die Felder die wir zum Entscheiden brauchen)
+    const { data: allMatches, error } = await db.from('matches')
+      .select('id,transaction_id,bestaetigt,konfidenz,updated_at,datum,betrag_brutto')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false });
+    if (error) throw error;
+
+    // Gruppieren nach transaction_id
+    const grouped = {};
+    (allMatches || []).forEach(m => {
+      if (!grouped[m.transaction_id]) grouped[m.transaction_id] = [];
+      grouped[m.transaction_id].push(m);
+    });
+
+    // Diagnose-Info zusammenstellen
+    const totalRows = (allMatches || []).length;
+    const uniqueTxIds = Object.keys(grouped).length;
+    const duplicateGroups = Object.values(grouped).filter(g => g.length > 1).length;
+
+    console.log(`[deduplicateMatchesInDB] ${totalRows} Matches total, ${uniqueTxIds} unique tx_ids, ${duplicateGroups} Gruppen mit Duplikaten`);
+
+    // IDs zum Löschen sammeln (bester Eintrag bleibt, Rest wird gelöscht)
+    const toDelete = [];
+    Object.values(grouped).forEach(group => {
+      if (group.length <= 1) return;
+      // Sortierung: bestaetigt > hoch-Konfidenz > neueste updated_at
+      group.sort((a, b) => {
+        if (a.bestaetigt !== b.bestaetigt) return (b.bestaetigt ? 1 : 0) - (a.bestaetigt ? 1 : 0);
+        const kScore = { hoch: 3, mittel: 2, niedrig: 1 };
+        const ka = kScore[a.konfidenz] || 0, kb = kScore[b.konfidenz] || 0;
+        if (ka !== kb) return kb - ka;
+        return new Date(b.updated_at || 0) - new Date(a.updated_at || 0);
+      });
+      // Besten behalten (index 0), Rest löschen
+      toDelete.push(...group.slice(1).map(m => m.id));
+    });
+
+    if (toDelete.length > 0) {
+      // In Batches à 50 löschen
+      for (let i = 0; i < toDelete.length; i += 50) {
+        const batch = toDelete.slice(i, i + 50);
+        const { error: delErr } = await db.from('matches')
+          .delete().eq('user_id', user.id).in('id', batch);
+        if (delErr) console.warn('[deduplicateMatchesInDB] Fehler beim Löschen:', delErr.message);
+      }
+    }
+
+    return { totalRows, uniqueTxIds, duplicateGroups, duplicatesRemoved: toDelete.length };
+  },
+
   // ── ALLE MATCHES FÜR DASHBOARD (ohne Receipt-Join, leichtgewichtig) ──
   async getAllMatches() {
     const user = await getUser();
@@ -375,7 +431,23 @@ const DB = {
       .order('datum', { ascending: false })
       .limit(5000);
     if (error) throw error;
-    return data || [];
+
+    // Client-seitig deduplizieren – Schutz falls DB-Unique-Constraint auf (user_id,transaction_id) fehlt.
+    // Ohne diese Deduplication würden Duplikate doppelt in Dashboard-Summen einfließen.
+    const seen = new Map();
+    (data || []).forEach(m => {
+      const existing = seen.get(m.transaction_id);
+      if (!existing) { seen.set(m.transaction_id, m); return; }
+      // Besseren Eintrag bevorzugen: bestaetigt > konfidenz hoch > neuerer Eintrag
+      const wins = (m.bestaetigt && !existing.bestaetigt) ||
+        (!existing.bestaetigt && m.konfidenz === 'hoch' && existing.konfidenz !== 'hoch');
+      if (wins) seen.set(m.transaction_id, m);
+    });
+    const deduped = [...seen.values()];
+    if (deduped.length < (data || []).length) {
+      console.warn(`[getAllMatches] ${(data||[]).length - deduped.length} Duplikate client-seitig entfernt (${(data||[]).length} → ${deduped.length})`);
+    }
+    return deduped;
   },
 
   // ── TX-REGELN (wiederkehrende Kategorisierungen) ──────────
