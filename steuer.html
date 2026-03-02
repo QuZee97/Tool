@@ -2263,7 +2263,19 @@ function exportElsterXML(){
 // ── MATCHES AUS DB LADEN ───────────────────────────────────
 async function loadMatchesFromDB(year,quartal){
   try{
-    const dbMatches=await DB.getMatches(year,quartal||0);
+    const rawMatches=await DB.getMatches(year,quartal||0);
+    // Client-seitige Dedup: Falls kein DB-Unique-Constraint auf (user_id,transaction_id),
+    // können mehrere Zeilen für dieselbe Transaktion existieren. Besten Eintrag behalten.
+    const dedupMap=new Map();
+    rawMatches.forEach(m=>{
+      const ex=dedupMap.get(m.transaction_id);
+      if(!ex)return dedupMap.set(m.transaction_id,m);
+      const wins=(m.bestaetigt&&!ex.bestaetigt)||
+        (!ex.bestaetigt&&(m.konfidenz==='hoch'&&ex.konfidenz!=='hoch'))||
+        (!ex.bestaetigt&&m.konfidenz===ex.konfidenz&&m.kategorie!=='sonstiges'&&ex.kategorie==='sonstiges');
+      if(wins)dedupMap.set(m.transaction_id,m);
+    });
+    const dbMatches=[...dedupMap.values()];
     // Lokale Änderungen preservieren: wenn ein Match lokal bereits bestaetigt/geändert wurde
     // und die DB-Version noch den alten Stand hat → lokale Version bevorzugen
     const localByTxId=new Map(matches.map(m=>[m.transaction_id,m]));
@@ -2478,11 +2490,12 @@ async function saveSettings(){
     await DB.saveUserProfile(v,n);
     ownerName=[v,n].filter(Boolean).join(' ');
     closeSettings();
-    // Auf bestehende Matches sofort anwenden (in-memory + DB-Update im Hintergrund)
-    const updated=applyPrivatentnahmenToMatches();
-    // Neue CSV-Buchungen (noch nicht in matches) ebenfalls erfassen
-    if(csvTransactions.length)buildMatchesFromCSV();
-    if(updated>0||csvTransactions.length){
+    // Auf bestehende (geladene) Matches anwenden – AWAITED damit DB sofort aktuell ist.
+    // buildMatchesFromCSV() wird hier NICHT aufgerufen – das würde Kategorisierungen
+    // auf dem aktuellen Quartal-Stand überschreiben (falscher existing-Set für andere Quartale).
+    const updated=await applyPrivatentnahmenToMatches();
+    updateSidebar();
+    if(updated>0){
       toast(`Einstellungen gespeichert · ${updated} Privatentnahme(n) erkannt ✓`);
     }else{
       toast('Einstellungen gespeichert ✓');

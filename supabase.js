@@ -312,8 +312,9 @@ const DB = {
     return data || [];
   },
   async getMatches(year, quartal) {
+    const user = await getUser();
     // Kein FK-JOIN (FK fehlt in Schema) → zwei separate Queries + client-seitiges Mergen
-    let q = db.from('matches').select('*').order('datum', { ascending: false });
+    let q = db.from('matches').select('*').eq('user_id', user.id).order('datum', { ascending: false });
     const fmtD = d => d.toISOString().slice(0, 10);
 
     if (quartal && quartal > 0) {
