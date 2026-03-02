@@ -714,12 +714,11 @@ async function setQuartal(q){
   if(q===0)$('qjahr').classList.add('active');
   else $(`q${q}`).classList.add('active');
   updateUploadSummary();
-  // Matches für neues Quartal laden, dann neue CSV-Einträge ergänzen
+  // Matches für das neue Quartal aus DB laden.
+  // buildMatchesFromCSV() wird hier NICHT aufgerufen – läuft nur nach echtem CSV-Upload.
+  // Jeder Aufruf hier würde Kategorisierungen mit Default-Werten überschreiben.
   await loadMatchesFromDB(selectedYear,q);
-  // Nur für FRISCH hochgeladene Transaktionen (nicht DB-geladen) ergänzen –
-  // sonst werden beim Quartalwechsel Duplikate erstellt, weil loadMatchesFromDB
-  // nur das aktuelle Quartal lädt und andere Quartal-Transaktionen als "neu" erscheinen
-  if(csvTransactions.some(t=>!t._fromDB)) buildMatchesFromCSV();
+  updateCSVStatus();
   updateSidebar();
   if(currentPage===2)renderBelegUebersicht();
   if(currentPage===3)renderReview();
@@ -734,29 +733,22 @@ async function onPeriodChange(){
         const txs=await DB.getTransactions(selectedYear);
         if(txs.length){
           csvTransactions=txs.map(t=>({
-            id:'tx'+t.id, datum:t.datum||'', empfaenger:t.empfaenger||'',
+            id:'tx'+t.id, _dbId:t.id,
+            datum:t.datum||'', empfaenger:t.empfaenger||'',
             verwendungszweck:t.verwendungszweck||'',
             beschreibung:t.beschreibung||(t.empfaenger||'')+(t.verwendungszweck?' – '+t.verwendungszweck:''),
-            betrag:parseFloat(t.betrag)||0, isEinnahme:!!t.is_einnahme, quelle:'csv', _fromDB:true
+            betrag:parseFloat(t.betrag)||0, isEinnahme:!!t.is_einnahme,
+            quelle:'csv', quellDatei:t.quelle_datei||'', _fromDB:true
           }));
-          const ein=csvTransactions.filter(t=>t.isEinnahme).length;
-          const aus=csvTransactions.filter(t=>!t.isEinnahme).length;
-          const st=$('csv-status');
-          st.style.display='block';
-          st.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} Buchungen</strong> aus ${selectedYear}: ${ein} Eingänge, ${aus} Ausgaben. <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="clearCSVData()"><i data-lucide="trash-2"></i> Löschen</button></div></div>`;
-          lucide.createIcons();
         } else {
           csvTransactions=[];
-          $('csv-status').style.display='none';
         }
       }catch(e){console.info('CSV nicht geladen:',e.message);}
     })(),
     loadMatchesFromDB(selectedYear,selectedQuartal),
   ]);
-  // ERST nach beiden Loads: neue CSV-Buchungen ohne Match hinzufügen.
-  // Nur für frisch hochgeladene Transaktionen – DB-geladene haben _fromDB:true
-  // und ihre Matches existieren bereits in der DB (wären sonst Duplikate)
-  if(csvTransactions.some(t=>!t._fromDB)) buildMatchesFromCSV();
+  // buildMatchesFromCSV() wird hier NICHT aufgerufen – Matches kommen aus der DB.
+  updateCSVStatus();
   updateUploadSummary();
   updateSidebar();
   if(currentPage===3)renderReview();
@@ -803,7 +795,7 @@ async function clearCSVData(){
     csvTransactions=[];
     matches=[];
     aiResults=matches;
-    $('csv-status').style.display='none';
+    updateCSVStatus();
     updateUploadSummary();
     updateSidebar();
     if(currentPage===3)renderReview();
@@ -811,12 +803,81 @@ async function clearCSVData(){
   }catch(e){toast('Fehler: '+e.message);}
 }
 
+// ── CSV STATUS (pro Quartal) ────────────────────────────────
+// Zeigt welche CSV-Datei(en) für den aktuell gewählten Zeitraum importiert wurden.
+// Wird nach jedem Quartalwechsel, Jahreswechsel und CSV-Upload aufgerufen.
+function updateCSVStatus(){
+  const st=$('csv-status');
+  // Nur Transaktionen im aktuellen Zeitraum betrachten
+  const periodTxs=csvTransactions.filter(t=>inPeriod(t.datum));
+  if(!periodTxs.length){
+    // Prüfen ob überhaupt irgendwelche Transaktionen vorhanden sind (anderes Quartal)
+    if(csvTransactions.length){
+      const label=selectedQuartal===0?`${selectedYear}`:`Q${selectedQuartal} ${selectedYear}`;
+      st.style.display='block';
+      st.innerHTML=`<div class="hinweis" style="border-color:var(--border);background:var(--bg2);"><i data-lucide="info" style="width:16px;height:16px;flex-shrink:0;color:var(--text3)"></i><div style="color:var(--text2);">Keine CSV-Buchungen für <strong>${label}</strong>. <span style="color:var(--text3);font-size:12px;">CSV für diesen Zeitraum hochladen.</span></div></div>`;
+    }else{
+      st.style.display='none';
+    }
+    lucide.createIcons();return;
+  }
+  // Dateien gruppieren
+  const files={};
+  periodTxs.forEach(t=>{
+    const f=t.quellDatei||'Importierte Buchungen';
+    if(!files[f])files[f]={ein:0,aus:0,count:0};
+    files[f].count++;
+    if(t.isEinnahme)files[f].ein++;else files[f].aus++;
+  });
+  const fileEntries=Object.entries(files);
+  let inner='';
+  fileEntries.forEach(([name,info])=>{
+    inner+=`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      <strong>${info.count} Buchungen</strong> aus <em style="font-style:normal;color:var(--text2);">${name}</em>:
+      ${info.ein} Eingänge, ${info.aus} Ausgaben.
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto;" onclick="clearCSVDataPeriod()"><i data-lucide="trash-2"></i> Löschen</button>
+    </div>`;
+  });
+  st.style.display='block';
+  st.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div style="width:100%;">${inner}</div></div>`;
+  lucide.createIcons();
+}
+
+// ── CSV ZEITRAUM LÖSCHEN (aktuelles Quartal/Jahr) ──────────
+async function clearCSVDataPeriod(){
+  const label=selectedQuartal===0?`${selectedYear}`:`Q${selectedQuartal} ${selectedYear}`;
+  if(!confirm(`Alle CSV-Buchungen und Kategorisierungen für ${label} löschen?`))return;
+  const qDates={
+    0:[`${selectedYear}-01-01`,`${selectedYear}-12-31`],
+    1:[`${selectedYear}-01-01`,`${selectedYear}-03-31`],
+    2:[`${selectedYear}-04-01`,`${selectedYear}-06-30`],
+    3:[`${selectedYear}-07-01`,`${selectedYear}-09-30`],
+    4:[`${selectedYear}-10-01`,`${selectedYear}-12-31`],
+  };
+  const[dateFrom,dateTo]=qDates[selectedQuartal];
+  try{
+    await DB.deleteByDateRange(dateFrom,dateTo);
+    // In-Memory bereinigen
+    csvTransactions=csvTransactions.filter(t=>!t.datum||t.datum<dateFrom||t.datum>dateTo);
+    matches=matches.filter(m=>!m.datum||m.datum<dateFrom||m.datum>dateTo);
+    aiResults=matches;
+    updateCSVStatus();
+    updateUploadSummary();
+    updateSidebar();
+    if(currentPage===3)renderReview();
+    toast(`CSV-Daten für ${label} gelöscht ✓`);
+  }catch(e){toast('Fehler: '+e.message);}
+}
+
 // ── SIDEBAR-STATS ──────────────────────────────────────────
 function updateSidebar(){
   const src=matches.length?matches:aiResults;
-  if(!src.length){$('sb-einnahmen').textContent='–';$('sb-ausgaben').textContent='–';$('sb-gewinn').textContent='–';$('sb-zahllast').textContent='–';return;}
+  // Nur Matches im aktuellen Zeitraum zählen – Puffer-Einträge aus anderen Quartalen
+  // (±14 Tage aus loadMatchesFromDB) dürfen die Sidebar-Summen nicht verfälschen
+  const periodSrc=src.filter(r=>inPeriod(r.datum)||!r.datum);
+  if(!periodSrc.length){$('sb-einnahmen').textContent='–';$('sb-ausgaben').textContent='–';$('sb-gewinn').textContent='–';$('sb-zahllast').textContent='–';return;}
   let ein=0,aus=0,zl=0;
-  src.forEach(r=>{
+  periodSrc.forEach(r=>{
     const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
     const netto=r.betrag_netto||0;const mwst=r.mwst_betrag||0;
     if(cat.type==='income'){ein+=netto;zl+=mwst;}
@@ -885,19 +946,19 @@ async function parseAndSaveCSV(file){
         datum:t.datum||'', empfaenger:t.empfaenger||'',
         verwendungszweck:t.verwendungszweck||'',
         beschreibung:t.beschreibung||(t.empfaenger||'')+(t.verwendungszweck?' – '+t.verwendungszweck:''),
-        betrag:parseFloat(t.betrag)||0, isEinnahme:!!t.is_einnahme, quelle:'csv'
+        betrag:parseFloat(t.betrag)||0, isEinnahme:!!t.is_einnahme,
+        quelle:'csv', quellDatei:t.quelle_datei||file.name
       }));
     } else {
       // Fallback: ohne DB-IDs (Offline / Tabelle fehlt)
-      csvTransactions=parsed;
+      csvTransactions=parsed.map(t=>({...t,quellDatei:file.name}));
     }
-    const ein=csvTransactions.filter(t=>t.isEinnahme).length;
-    const aus=csvTransactions.filter(t=>!t.isEinnahme).length;
-    status.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} Buchungen</strong> aus ${file.name}: ${ein} Eingänge, ${aus} Ausgaben. <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="clearCSVData()"><i data-lucide="trash-2"></i> Löschen</button></div></div>`;
-    lucide.createIcons();
     updateUploadSummary();
-    // Sofort Match-Objekte erstellen → Review zeigt Buchungen ohne KI-Klick
-    buildMatchesFromCSV();
+    // Matches erstellen und AWAITEN – erst danach kann der Nutzer Quartale wechseln
+    // ohne dass die DB-Basis noch fehlt (kein fire-and-forget mehr)
+    await buildMatchesFromCSV();
+    updateCSVStatus();
+    updateSidebar();
     // Bereits hochgeladene Belege nochmal gegen neue Transaktionen matchen
     if(belegFiles.some(b=>b.status==='done'&&b.receiptId)) autoMatchBelege();
     if(currentPage===3)renderReview();
@@ -1305,9 +1366,9 @@ function matchBelegToTransactions(belegResult,belegReceiptId,txList){
 }
 
 // ── MATCHES AUS CSV AUFBAUEN (kein KI-Call) ────────────────
-function buildMatchesFromCSV(){
-  const freshCount=csvTransactions.filter(t=>!t._fromDB).length;
-  console.log(`[buildMatchesFromCSV] csvTransactions=${csvTransactions.length} (fresh=${freshCount}, fromDB=${csvTransactions.length-freshCount}), matches=${matches.length}`);
+// WICHTIG: Diese Funktion wird NUR in parseAndSaveCSV() aufgerufen (nach echtem CSV-Upload).
+// NIEMALS in setQuartal/onPeriodChange/init – das würde Kategorisierungen überschreiben.
+async function buildMatchesFromCSV(){
   // Dedupliziere matches zuerst (falls Race condition doppelte Einträge hinterlassen hat)
   const seen=new Map();
   matches.forEach(m=>{
@@ -1354,13 +1415,15 @@ function buildMatchesFromCSV(){
   });
   if(!newM.length)return;
   matches=[...matches,...newM];
-  // Im Hintergrund in DB speichern (upsert → kein Duplikat möglich)
-  DB.saveMatches(newM.map(m=>({...m}))).then(saved=>{
+  // AWAITED (kein fire-and-forget mehr) – Quartalwechsel nach Upload hat dadurch
+  // immer eine vollständige DB-Basis und überschreibt keine Kategorisierungen
+  try{
+    const saved=await DB.saveMatches(newM.map(m=>({...m})));
     saved.forEach(s=>{
       const l=matches.find(m=>m.transaction_id===s.transaction_id);
       if(l){l.id=s.id;l.kategorie_info=CATEGORIES[l.kategorie]||CATEGORIES.sonstiges;}
     });
-  }).catch(e=>console.warn('Match-Speicherung (CSV):',e.message));
+  }catch(e){console.warn('Match-Speicherung (CSV):',e.message);}
 }
 
 // ── BELEGE AUTOMATISCH MATCHEN (kein KI-Call) ─────────────
@@ -1545,9 +1608,12 @@ function applyRulesToMatches(){
 //   - Empfänger stimmt mit Unternehmer überein → Privatentnahme setzen
 //   - Bereits als Privatentnahme markiert aber Empfänger stimmt NICHT überein → zurücksetzen
 // Bestätigte Matches (bestaetigt=true) werden nie angefasst.
-function applyPrivatentnahmenToMatches(){
+// ASYNC + AWAITED: DB-Updates werden per Promise.all gewartet, damit beim nächsten
+// loadMatchesFromDB() die DB bereits die korrekten Kategorien enthält (kein Flackern).
+async function applyPrivatentnahmenToMatches(){
   const ownerKey=ownerName?normalizeEmpf(ownerName):'';
   let count=0;
+  const dbUpdates=[];
   matches.forEach(m=>{
     if(m.is_einnahme)return;  // Einnahmen nie als Privatentnahme
     if(m.bestaetigt)return;   // Manuell bestätigte Matches nie überschreiben
@@ -1561,7 +1627,7 @@ function applyPrivatentnahmenToMatches(){
       m.konfidenz='hoch';
       m.begruendung=`Empfänger "${m.empfaenger}" entspricht dem Unternehmer-Namen → Privatentnahme`;
       count++;
-      if(m.id) DB.updateMatch(m.id,{kategorie:'privatentnahme',konfidenz:'hoch',begruendung:m.begruendung}).catch(()=>{});
+      if(m.id) dbUpdates.push(DB.updateMatch(m.id,{kategorie:'privatentnahme',konfidenz:'hoch',begruendung:m.begruendung}));
     } else if(!shouldBePrivat&&m.kategorie==='privatentnahme'){
       // Falsch als Privatentnahme eingestuft → auf Sonstiges zurücksetzen
       m.kategorie='sonstiges';
@@ -1569,9 +1635,11 @@ function applyPrivatentnahmenToMatches(){
       m.konfidenz=null;
       m.begruendung=null;
       count--;
-      if(m.id) DB.updateMatch(m.id,{kategorie:'sonstiges',konfidenz:null,begruendung:null}).catch(()=>{});
+      if(m.id) dbUpdates.push(DB.updateMatch(m.id,{kategorie:'sonstiges',konfidenz:null,begruendung:null}));
     }
   });
+  // Alle DB-Updates gemeinsam awaiten – kein fire-and-forget mehr
+  if(dbUpdates.length) await Promise.all(dbUpdates.map(p=>p.catch(e=>console.warn('Privatentnahme DB-Update:',e.message))));
   return count;
 }
 
@@ -2233,8 +2301,9 @@ async function loadMatchesFromDB(year,quartal){
       };
     });
     aiResults=matches;
-    // Privatentnahmen auf geladene Matches anwenden (Name kann bereits gesetzt sein)
-    if(ownerName) applyPrivatentnahmenToMatches();
+    // Privatentnahmen auf geladene Matches anwenden und DB-Updates awaiten –
+    // so hat die DB beim nächsten Reload bereits die korrekte Kategorisierung
+    if(ownerName) await applyPrivatentnahmenToMatches();
     const reviewCount=matches.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
     $('badge-review').textContent=reviewCount;
     $('badge-review').classList.toggle('show',reviewCount>0);
@@ -2285,18 +2354,13 @@ async function init(){
         const txs=await DB.getTransactions(savedYear);
         if(txs.length){
           csvTransactions=txs.map(t=>({
-            id:'tx'+t.id,
-            _dbId: t.id,
+            id:'tx'+t.id, _dbId:t.id,
             datum:t.datum||'', empfaenger:t.empfaenger||'',
             verwendungszweck:t.verwendungszweck||'',
             beschreibung:t.beschreibung||(t.empfaenger||'')+(t.verwendungszweck?' – '+t.verwendungszweck:''),
-            betrag:parseFloat(t.betrag)||0, isEinnahme:!!t.is_einnahme, quelle:'csv', _fromDB:true
+            betrag:parseFloat(t.betrag)||0, isEinnahme:!!t.is_einnahme,
+            quelle:'csv', quellDatei:t.quelle_datei||'', _fromDB:true
           }));
-          const ein=csvTransactions.filter(t=>t.isEinnahme).length;
-          const aus=csvTransactions.filter(t=>!t.isEinnahme).length;
-          const st=$('csv-status');
-          st.style.display='block';
-          st.innerHTML=`<div class="hinweis ok"><i data-lucide="check-circle"></i><div><strong>${csvTransactions.length} Buchungen</strong> aus ${savedYear}: ${ein} Eingänge, ${aus} Ausgaben. <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="clearCSVData()"><i data-lucide="trash-2"></i> Löschen</button></div></div>`;
         }
       }catch(e){console.info('CSV nicht geladen:',e.message);}
     })(),
@@ -2305,11 +2369,10 @@ async function init(){
     (async()=>{ try{ txRules=await DB.getRules(); }catch(e){ console.info('Regeln nicht geladen:',e.message); txRules=[]; } })(),
   ]);
 
-  // ERST nach beiden Loads: neue CSV-Buchungen ohne Match hinzufügen (kein Doppeleintrag).
-  // Nur für frisch hochgeladene Transaktionen – DB-geladene (_fromDB:true) haben bereits Matches.
-  if(csvTransactions.some(t=>!t._fromDB)) buildMatchesFromCSV();
-
+  // buildMatchesFromCSV() hier NICHT aufrufen – alle Transaktionen sind _fromDB:true,
+  // ihre Matches existieren bereits in der DB und werden von loadMatchesFromDB geladen.
   renderManualIncomes();
+  updateCSVStatus();
   updateUploadSummary();
   updateSidebar();
   $('loading-screen').style.display='none';

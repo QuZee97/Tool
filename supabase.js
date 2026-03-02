@@ -181,6 +181,14 @@ const DB = {
     const { error } = await q;
     if (error) throw error;
   },
+  // Löscht Matches + Transaktionen für einen bestimmten Datumsbereich (z.B. ein Quartal)
+  async deleteByDateRange(dateFrom, dateTo) {
+    const user = await getUser();
+    await db.from('matches').delete().eq('user_id', user.id)
+      .gte('datum', dateFrom).lte('datum', dateTo);
+    await db.from('transactions').delete().eq('user_id', user.id)
+      .gte('datum', dateFrom).lte('datum', dateTo);
+  },
   async deleteTransaction(id) {
     const { error } = await db.from('transactions').delete().eq('id', id);
     if (error) throw error;
