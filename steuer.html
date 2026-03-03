@@ -311,6 +311,24 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 .chat-sug-btn{background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:5px 9px;font-size:10.5px;color:var(--text2);cursor:pointer;text-align:left;font-family:var(--font);transition:border-color .12s,color .12s;}
 .chat-sug-btn:hover{border-color:var(--accent);color:var(--text);}
 
+/* ── EXTRAS TAB (Homeoffice, Reisen, AfA) ────────────── */
+.extras-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+.extras-kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.extras-kpi-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+.extras-kpi-val{font-size:20px;font-weight:700;color:var(--accent);}
+.extras-kpi-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+.extras-progress{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:6px;}
+.extras-progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s;}
+.extras-tag-list{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0 6px;}
+.extras-tag{display:inline-flex;align-items:center;gap:5px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:3px 8px;font-size:11px;color:var(--text2);}
+.extras-tag-del{border:none;background:none;color:var(--text3);cursor:pointer;padding:0;display:inline-flex;align-items:center;line-height:1;font-size:15px;transition:color .1s;margin-left:1px;}
+.extras-tag-del:hover{color:var(--red);}
+.extras-form-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin-top:6px;}
+.efg{display:flex;flex-direction:column;gap:3px;}
+.efg label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;}
+.efg input,.efg select{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:5px 8px;outline:none;font-family:var(--font);}
+.efg input:focus,.efg select:focus{border-color:var(--accent);}
+
 /* ── INVOICE SIDEBAR WIDGET ──────────────────────────── */
 .sb-invoice{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:6px;text-decoration:none;display:block;transition:border-color .12s;}
 .sb-invoice:hover{border-color:var(--border2);}
@@ -394,6 +412,9 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
   </button>
   <button class="step-btn" id="step-btn-4" onclick="goPage(4)">
     <span class="step-num">4</span> Ergebnis
+  </button>
+  <button class="step-btn" id="step-btn-5" onclick="goPage(5)">
+    <span class="step-num">5</span> Steuersparen
   </button>
 
   <div class="sb-section">Übersicht</div>
@@ -658,8 +679,131 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
     <button class="btn" style="background:var(--blue);color:#fff;border:none;" onclick="exportElsterXML()"><i data-lucide="file-code-2"></i> ELSTER XML herunterladen</button>
   </div>
 
-  <div style="margin-top:4px;">
+  <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap;align-items:center;">
     <button class="btn btn-ghost" onclick="goPage(3)"><i data-lucide="arrow-left"></i> Zurück</button>
+    <button class="btn btn-ghost" onclick="goPage(5)"><i data-lucide="piggy-bank"></i> Steuersparen (Extras)</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SEITE 5: STEUERSPAREN / EXTRAS
+     ═══════════════════════════════════════════════════════ -->
+<div class="page" id="page-5">
+  <div class="page-title">Steuersparen</div>
+  <div class="page-sub">Erfasse Extras die nicht im Bankkonto auftauchen: Homeoffice-Tage, Dienstreisen und Anlagen-Abschreibungen. Diese Beträge sind zusätzlich in deiner EÜR absetzbar.</div>
+
+  <!-- KPI-Kacheln -->
+  <div class="extras-grid">
+    <div class="extras-kpi">
+      <div class="extras-kpi-label">Homeoffice</div>
+      <div class="extras-kpi-val" id="extras-ho-val">–</div>
+      <div class="extras-kpi-sub" id="extras-ho-sub">0 Tage × 6 €</div>
+      <div class="extras-progress"><div class="extras-progress-fill" id="extras-ho-bar" style="width:0%"></div></div>
+    </div>
+    <div class="extras-kpi">
+      <div class="extras-kpi-label">Dienstreisen</div>
+      <div class="extras-kpi-val" id="extras-re-val">–</div>
+      <div class="extras-kpi-sub" id="extras-re-sub">0 Fahrten</div>
+    </div>
+    <div class="extras-kpi">
+      <div class="extras-kpi-label">AfA Anlagen</div>
+      <div class="extras-kpi-val" id="extras-afa-val">–</div>
+      <div class="extras-kpi-sub" id="extras-afa-sub">0 Anlagen</div>
+    </div>
+  </div>
+
+  <!-- HOMEOFFICE -->
+  <div class="card">
+    <div class="card-title">🏠 Homeoffice-Pauschale</div>
+    <div class="card-sub">6 €/Tag · max. 210 Tage/Jahr = max. 1.260 €. Auch wenn du nur stundenweise zuhause arbeitest, zählt der Tag vollständig.</div>
+    <div class="extras-form-row" style="margin-bottom:10px;">
+      <div class="efg">
+        <label>Datum</label>
+        <input type="date" id="ho-datum" style="width:148px;">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addHoTag()"><i data-lucide="plus"></i> Hinzufügen</button>
+      <button class="btn btn-ghost btn-sm" onclick="addHoTagHeute()"><i data-lucide="calendar"></i> Heute</button>
+      <button class="btn btn-ghost btn-sm" onclick="addHoTagWoche()" title="Aktuelle Arbeitswoche eintragen (Mo–Fr)"><i data-lucide="calendar-days"></i> Diese Woche</button>
+    </div>
+    <div id="ho-list"><div style="color:var(--text3);font-size:11px;">Noch keine Homeoffice-Tage eingetragen.</div></div>
+  </div>
+
+  <!-- DIENSTREISEN -->
+  <div class="card">
+    <div class="card-title">🚗 Dienstreisen & Fahrtkosten</div>
+    <div class="card-sub">Km-Pauschale 0,30 €/km (Privatfahrzeug). Verpflegungspauschale: 14 €/Tag (≥ 8h Abwesenheit), 28 €/Tag (24h / voller Reisetag).</div>
+    <div class="extras-form-row" style="margin-bottom:10px;">
+      <div class="efg">
+        <label>Datum</label>
+        <input type="date" id="re-datum" style="width:140px;">
+      </div>
+      <div class="efg" style="flex:1;min-width:140px;">
+        <label>Ziel / Beschreibung</label>
+        <input type="text" id="re-ziel" placeholder="z.B. Kundentermin Frankfurt" style="min-width:180px;">
+      </div>
+      <div class="efg">
+        <label>km (einfach)</label>
+        <input type="number" id="re-km" min="0" step="1" placeholder="0" style="width:72px;">
+      </div>
+      <div class="efg">
+        <label>Abwesenheit</label>
+        <select id="re-dauer" style="width:160px;">
+          <option value="0">Kurz (&lt; 8h) – 0 €</option>
+          <option value="14">Halbtag (≥ 8h) – 14 €</option>
+          <option value="28">Ganzer Tag (24h) – 28 €</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addReise()" style="align-self:flex-end;"><i data-lucide="plus"></i> Hinzufügen</button>
+    </div>
+    <div id="re-list"><div style="color:var(--text3);font-size:11px;">Noch keine Reisen für diesen Zeitraum eingetragen.</div></div>
+  </div>
+
+  <!-- ANLAGEN / AfA -->
+  <div class="card">
+    <div class="card-title">📦 Anlagen & Abschreibungen (AfA)</div>
+    <div class="card-sub">Wirtschaftsgüter über 800 € netto werden über die Nutzungsdauer linear abgeschrieben. GWG bis 800 € netto können sofort abgesetzt werden (trage diese als Ausgabe in Step 1 ein).</div>
+    <div class="extras-form-row" style="margin-bottom:10px;">
+      <div class="efg" style="flex:1;min-width:140px;">
+        <label>Bezeichnung</label>
+        <input type="text" id="an-bez" placeholder="z.B. MacBook Pro M3" style="min-width:160px;">
+      </div>
+      <div class="efg">
+        <label>Kaufdatum</label>
+        <input type="date" id="an-datum" style="width:140px;">
+      </div>
+      <div class="efg">
+        <label>Nettowert €</label>
+        <input type="number" id="an-wert" min="0" step="0.01" placeholder="0.00" style="width:88px;">
+      </div>
+      <div class="efg">
+        <label>Nutzungsdauer</label>
+        <select id="an-nd" style="width:170px;">
+          <option value="3">PC / Laptop (3 J.)</option>
+          <option value="5">Tablet / Smartphone (5 J.)</option>
+          <option value="7">Kamera / Foto (7 J.)</option>
+          <option value="3">Software-Lizenz (3 J.)</option>
+          <option value="13">Büromöbel (13 J.)</option>
+          <option value="6">PKW (6 J.)</option>
+          <option value="5">Sonstiges (5 J.)</option>
+          <option value="custom">Eigene Eingabe …</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addAnlage()" style="align-self:flex-end;"><i data-lucide="plus"></i> Hinzufügen</button>
+    </div>
+    <div id="an-list"><div style="color:var(--text3);font-size:11px;">Noch keine Anlagen eingetragen.</div></div>
+  </div>
+
+  <!-- ZUSAMMENFASSUNG -->
+  <div class="card" style="background:var(--accent-bg);border-color:var(--accent);">
+    <div class="card-title">Gesamt zusätzlich absetzbar (EÜR)</div>
+    <table class="detail-table" id="extras-summary-table"><tbody></tbody></table>
+    <div style="padding:8px 14px 0;font-size:11px;color:var(--text3);line-height:1.6;">
+      Diese Beträge sind Betriebsausgaben in der EÜR (Einkommensteuer). Sie sind <strong>nicht</strong> in der UStVA (Umsatzsteuer) berücksichtigt und müssen separat in der Anlage EÜR angegeben werden.
+    </div>
+  </div>
+
+  <div style="margin-top:4px;">
+    <button class="btn btn-ghost" onclick="goPage(4)"><i data-lucide="arrow-left"></i> Zurück zum Ergebnis</button>
   </div>
 </div>
 
@@ -768,6 +912,9 @@ let aiResults       = [];   // Legacy-Alias → zeigt auf matches
 let txRules         = [];   // Kategorisierungs-Regeln: [{empfaenger_key, kategorie, ...}]
 let ownerName       = '';   // Vor- und Nachname des Unternehmers (für Privatentnahmen-Erkennung)
 let filterReview    = false;
+// Extras State (Homeoffice, Reisen, AfA)
+const EXTRAS_LS_KEY = 'steuer_extras_v2';
+let extrasData = { homeoffice:[], reisen:[], anlagen:[] };
 // Modal-State
 let modalMatchIdx   = null; // welcher Match ist gerade im Modal
 let pickerSelected  = null; // ausgewählter Receipt im Picker
@@ -791,6 +938,7 @@ function goPage(n){
   if(n===2) renderBelegUebersicht();
   if(n===3) renderReview();
   if(n===4) buildUStVA();
+  if(n===5) renderExtras();
   lucide.createIcons();
 }
 
@@ -2423,12 +2571,23 @@ function buildUStVA(){
     <tr><td><strong>Kz 83 – ${zahllast>=0?'Zahllast':'Erstattungsüberhang'}</strong></td><td><strong style="color:${zahllast>=0?'var(--red)':'var(--green)'};">${fmt(Math.abs(zahllast))}</strong></td></tr>
   `;
 
+  // Extras einbeziehen
+  const extras=calcExtrasForPeriod();
+  const extrasTotal=extras.hoBetrag+extras.reBetrag+extras.afaBetrag;
+  const gewinnMitExtras=gewinn-extrasTotal;
   $('euer-table').querySelector('tbody').innerHTML=`
     <tr><td>Betriebseinnahmen Netto</td><td style="color:var(--green);">${fmt(einNetto)}</td></tr>
-    <tr><td>Betriebsausgaben Netto</td><td style="color:var(--red);">${fmt(ausNetto)}</td></tr>
-    <tr><td><strong>Gewinn / Verlust</strong></td><td><strong style="color:${gewinn>=0?'var(--green)':'var(--red)'};">${fmt(gewinn)}</strong></td></tr>
+    <tr><td>Betriebsausgaben Netto (aus Bankkonto)</td><td style="color:var(--red);">${fmt(ausNetto)}</td></tr>
+    <tr><td><strong>Vorläufiger Gewinn / Verlust</strong></td><td><strong style="color:${gewinn>=0?'var(--green)':'var(--red)'};">${fmt(gewinn)}</strong></td></tr>
+    ${extrasTotal>0?`
+    <tr><td colspan="2" style="padding:6px 14px 2px;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;background:var(--surface2);">Zusätzliche Betriebsausgaben (Steuersparen-Tab)</td></tr>
+    ${extras.hoBetrag>0?`<tr><td style="padding-left:20px;">Homeoffice-Pauschale (${Math.min(extras.hoDaysYear,210)} Tage × 6 €)</td><td style="color:var(--red);">− ${fmt(extras.hoBetrag)}</td></tr>`:''}
+    ${extras.reBetrag>0?`<tr><td style="padding-left:20px;">Dienstreisen (${extras.reCount} Fahrten)</td><td style="color:var(--red);">− ${fmt(extras.reBetrag)}</td></tr>`:''}
+    ${extras.afaBetrag>0?`<tr><td style="padding-left:20px;">AfA Anlagen (${extras.afaCount} Anlagen)</td><td style="color:var(--red);">− ${fmt(extras.afaBetrag)}</td></tr>`:''}
+    <tr style="font-weight:700;"><td><strong>Gewinn / Verlust (inkl. Extras)</strong></td><td><strong style="color:${gewinnMitExtras>=0?'var(--green)':'var(--red)'};">${fmt(gewinnMitExtras)}</strong></td></tr>`:''}
     <tr><td style="color:var(--text3);">Nicht-abzugsfähig (Privat, Privatentnahmen)</td><td style="color:var(--text3);">${fmt(periodSrc.filter(r=>CATEGORIES[r.kategorie]?.type==='private').reduce((s,r)=>s+(r.betrag_brutto||0),0))}</td></tr>
     ${periodSrc.filter(r=>!r.kategorie&&!r.is_einnahme).length?`<tr><td style="color:var(--orange);">Noch unkategorisiert (offen)</td><td style="color:var(--orange);">${fmt(periodSrc.filter(r=>!r.kategorie&&!r.is_einnahme).reduce((s,r)=>s+(r.betrag_brutto||0),0))}</td></tr>`:''}
+    ${extrasTotal===0?`<tr><td style="color:var(--text3);font-size:10px;">💡 <a href="#" onclick="goPage(5);return false;" style="color:var(--accent);text-decoration:none;">Steuersparen-Tab</a> – Homeoffice, Reisen & AfA eintragen für bessere EÜR</td><td></td></tr>`:''}
   `;
 
   updateSidebar();
@@ -2614,6 +2773,7 @@ async function init(){
 
   // buildMatchesFromCSV() hier NICHT aufrufen – alle Transaktionen sind _fromDB:true,
   // ihre Matches existieren bereits in der DB und werden von loadMatchesFromDB geladen.
+  loadExtras();
   renderManualIncomes();
   updateCSVStatus();
   updateUploadSummary();
@@ -3004,6 +3164,250 @@ function showCatHint(btn, catKey){
   _hintTimeout = setTimeout(()=>{ if(document.getElementById('hint-popover')===pop) pop.remove(); }, 5000);
 }
 function hideCatHint(){ clearTimeout(_hintTimeout); _hintTimeout=setTimeout(()=>{ const p=document.getElementById('hint-popover');if(p)p.remove(); },200); }
+
+// ── EXTRAS: LOAD / SAVE ────────────────────────────────────
+function loadExtras(){
+  try{
+    const raw=JSON.parse(localStorage.getItem(EXTRAS_LS_KEY)||'{}');
+    extrasData.homeoffice=raw.homeoffice||[];
+    extrasData.reisen=raw.reisen||[];
+    extrasData.anlagen=raw.anlagen||[];
+  }catch{ extrasData={homeoffice:[],reisen:[],anlagen:[]}; }
+}
+function saveExtras(){
+  localStorage.setItem(EXTRAS_LS_KEY,JSON.stringify(extrasData));
+}
+
+// ── HOMEOFFICE ─────────────────────────────────────────────
+function addHoTag(){
+  const d=$('ho-datum').value;
+  if(!d){toast('Bitte ein Datum auswählen.');return;}
+  if(extrasData.homeoffice.find(h=>h.datum===d)){toast('Datum bereits vorhanden.');return;}
+  const yearDays=extrasData.homeoffice.filter(h=>h.datum.startsWith(d.slice(0,4))).length;
+  if(yearDays>=210){toast('Jahres-Maximum von 210 Tagen bereits erreicht.');return;}
+  extrasData.homeoffice.push({id:'ho_'+Date.now(),datum:d});
+  extrasData.homeoffice.sort((a,b)=>a.datum.localeCompare(b.datum));
+  saveExtras();renderExtras();
+}
+function addHoTagHeute(){
+  const today=new Date().toISOString().slice(0,10);
+  $('ho-datum').value=today;
+  addHoTag();
+}
+function addHoTagWoche(){
+  const now=new Date();
+  const day=now.getDay();
+  const mon=new Date(now);
+  mon.setDate(now.getDate()-(day===0?6:day-1)); // Montag
+  let added=0;
+  for(let i=0;i<5;i++){
+    const d=new Date(mon);d.setDate(mon.getDate()+i);
+    const ds=d.toISOString().slice(0,10);
+    if(!extrasData.homeoffice.find(h=>h.datum===ds)){
+      const yearDays=extrasData.homeoffice.filter(h=>h.datum.startsWith(ds.slice(0,4))).length;
+      if(yearDays<210){extrasData.homeoffice.push({id:'ho_'+Date.now()+'_'+i,datum:ds});added++;}
+    }
+  }
+  extrasData.homeoffice.sort((a,b)=>a.datum.localeCompare(b.datum));
+  saveExtras();renderExtras();
+  if(added)toast(`${added} Wochentag${added!==1?'e':''} hinzugefügt ✓`);
+  else toast('Alle Wochentage bereits eingetragen.');
+}
+function removeHoTag(id){
+  extrasData.homeoffice=extrasData.homeoffice.filter(h=>h.id!==id);
+  saveExtras();renderExtras();
+}
+
+// ── DIENSTREISEN ───────────────────────────────────────────
+function addReise(){
+  const datum=$('re-datum').value;
+  const ziel=($('re-ziel').value||'').trim();
+  const km=parseFloat($('re-km').value||0)||0;
+  const verpfl=parseInt($('re-dauer').value||0)||0;
+  if(!datum){toast('Bitte ein Datum auswählen.');return;}
+  if(!ziel){toast('Bitte Ziel / Beschreibung eingeben.');return;}
+  const kmP=Math.round(km*0.30*100)/100;
+  extrasData.reisen.push({id:'re_'+Date.now(),datum,ziel,km,verpfl,km_pauschale:kmP,total:Math.round((kmP+verpfl)*100)/100});
+  extrasData.reisen.sort((a,b)=>a.datum.localeCompare(b.datum));
+  $('re-datum').value='';$('re-ziel').value='';$('re-km').value='';$('re-dauer').value='0';
+  saveExtras();renderExtras();toast('Reise hinzugefügt ✓');
+}
+function removeReise(id){
+  extrasData.reisen=extrasData.reisen.filter(r=>r.id!==id);
+  saveExtras();renderExtras();
+}
+
+// ── ANLAGEN / AfA ──────────────────────────────────────────
+function addAnlage(){
+  const bez=($('an-bez').value||'').trim();
+  const datum=$('an-datum').value;
+  const netto=parseFloat(($('an-wert').value||'0').replace(',','.'))||0;
+  let ndSel=$('an-nd').value;
+  let nd;
+  if(ndSel==='custom'){
+    const v=prompt('Nutzungsdauer in Jahren (laut AfA-Tabelle):');
+    nd=parseInt(v)||5;
+  } else {
+    nd=parseInt(ndSel)||5;
+  }
+  if(!bez){toast('Bitte Bezeichnung eingeben.');return;}
+  if(!datum){toast('Bitte Kaufdatum eingeben.');return;}
+  if(netto<=0){toast('Bitte gültigen Nettowert eingeben.');return;}
+  if(netto<=800){
+    if(!confirm(`Nettowert ${fmt(netto)} ≤ 800 €. Das ist ein GWG und kann sofort als Betriebsausgabe abgesetzt werden (kein AfA nötig). Trotzdem als Anlage eintragen?`))return;
+  }
+  extrasData.anlagen.push({id:'an_'+Date.now(),bezeichnung:bez,kaufdatum:datum,nettowert:netto,nutzungsjahre:nd});
+  extrasData.anlagen.sort((a,b)=>a.kaufdatum.localeCompare(b.kaufdatum));
+  $('an-bez').value='';$('an-datum').value='';$('an-wert').value='';
+  saveExtras();renderExtras();toast('Anlage hinzugefügt ✓');
+}
+function removeAnlage(id){
+  extrasData.anlagen=extrasData.anlagen.filter(a=>a.id!==id);
+  saveExtras();renderExtras();
+}
+
+// ── AfA BERECHNUNG ─────────────────────────────────────────
+function calcAfAForYear(anlage,year){
+  const buyYear=parseInt(anlage.kaufdatum.slice(0,4));
+  if(year<buyYear||year>buyYear+anlage.nutzungsjahre-1)return 0;
+  const annualFull=anlage.nettowert/anlage.nutzungsjahre;
+  if(year===buyYear){
+    // Ratierlich: Monate ab Kaufmonat bis Jahresende
+    const buyMonth=parseInt(anlage.kaufdatum.slice(5,7));
+    const remainingMonths=13-buyMonth; // z.B. Kauf im März → 10 Monate
+    return Math.round(annualFull*remainingMonths/12*100)/100;
+  }
+  return Math.round(annualFull*100)/100;
+}
+function calcExtrasForPeriod(){
+  const year=selectedYear;
+  const q=selectedQuartal;
+  // Homeoffice: Jahresgesamtbetrag (nicht quartalsbezogen – Tagespauschale gilt fürs Jahr)
+  const hoDays=extrasData.homeoffice.filter(h=>h.datum.startsWith(String(year)));
+  const hoCount=Math.min(hoDays.length,210);
+  const hoBetrag=hoCount*6;
+  // Reisen: nur im aktuellen Zeitraum
+  const periodReisen=extrasData.reisen.filter(r=>inPeriod(r.datum));
+  const reBetrag=Math.round(periodReisen.reduce((s,r)=>s+r.total,0)*100)/100;
+  // AfA: Jahreszahl, dann / 4 bei Quartals-Ansicht
+  let afaBetrag=0;
+  extrasData.anlagen.forEach(a=>{
+    const annual=calcAfAForYear(a,year);
+    afaBetrag+=q===0?annual:annual/4;
+  });
+  afaBetrag=Math.round(afaBetrag*100)/100;
+  return{hoBetrag,hoCount,hoDaysYear:hoDays.length,reBetrag,reCount:periodReisen.length,afaBetrag,afaCount:extrasData.anlagen.length};
+}
+
+// ── RENDER EXTRAS ──────────────────────────────────────────
+function renderExtras(){
+  const {hoBetrag,hoCount,hoDaysYear,reBetrag,reCount,afaBetrag,afaCount}=calcExtrasForPeriod();
+  const periodLabel=selectedQuartal===0?`${selectedYear}`:`Q${selectedQuartal} ${selectedYear}`;
+  const MONATE=['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+  // KPIs
+  $('extras-ho-val').textContent=hoBetrag?fmt(hoBetrag):'0,00 €';
+  $('extras-ho-sub').textContent=`${hoDaysYear} Tage × 6 € · ${selectedYear}`;
+  $('extras-ho-bar').style.width=Math.min(hoDaysYear/210*100,100)+'%';
+  $('extras-re-val').textContent=reBetrag?fmt(reBetrag):'0,00 €';
+  $('extras-re-sub').textContent=`${reCount} Reise${reCount!==1?'n':''} · ${periodLabel}`;
+  $('extras-afa-val').textContent=afaBetrag?fmt(afaBetrag):'0,00 €';
+  $('extras-afa-sub').textContent=`${afaCount} Anlage${afaCount!==1?'n':''} · ${periodLabel}`;
+
+  // ── Homeoffice Liste ──
+  const hoList=$('ho-list');
+  const yearDays=extrasData.homeoffice.filter(h=>h.datum.startsWith(String(selectedYear)));
+  if(!yearDays.length){
+    hoList.innerHTML='<div style="color:var(--text3);font-size:11px;padding:2px 0;">Noch keine Homeoffice-Tage für '+selectedYear+' eingetragen.</div>';
+  } else {
+    const byMonth={};
+    yearDays.forEach(h=>{const m=h.datum.slice(0,7);if(!byMonth[m])byMonth[m]=[];byMonth[m].push(h);});
+    const remaining=210-yearDays.length;
+    let html=`<div style="font-size:11px;color:var(--text3);margin-bottom:8px;">`+
+      `${yearDays.length}/210 Tage ${selectedYear}`+
+      (remaining>0?` · noch <strong style="color:var(--text);">${remaining}</strong> verfügbar`:` · <span style="color:var(--green)">Maximum erreicht ✓</span>`)+
+      ` · = <strong style="color:var(--accent);">${fmt(Math.min(yearDays.length,210)*6)}</strong></div>`;
+    Object.entries(byMonth).sort().forEach(([mon,days])=>{
+      const[y,m]=mon.split('-');
+      html+=`<div style="margin-bottom:6px;">`;
+      html+=`<div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">${MONATE[parseInt(m)-1]} ${y} <span style="font-weight:400;">(${days.length} Tage)</span></div>`;
+      html+=`<div class="extras-tag-list">`;
+      days.forEach(h=>{
+        const d=fmtDate(h.datum);
+        html+=`<span class="extras-tag">${d}<button class="extras-tag-del" onclick="removeHoTag('${h.id}')" title="Entfernen">×</button></span>`;
+      });
+      html+=`</div></div>`;
+    });
+    hoList.innerHTML=html;
+  }
+
+  // ── Reisen Liste ──
+  const reList=$('re-list');
+  const periodReisen=extrasData.reisen.filter(r=>inPeriod(r.datum));
+  if(!periodReisen.length){
+    reList.innerHTML='<div style="color:var(--text3);font-size:11px;padding:2px 0;">Noch keine Reisen für '+periodLabel+' eingetragen.</div>';
+  } else {
+    reList.innerHTML=`<table class="entry-table" style="margin-top:4px;">
+      <thead><tr><th>Datum</th><th>Ziel / Beschreibung</th><th style="text-align:right;">km</th><th style="text-align:right;">km-P.</th><th style="text-align:right;">Verpfl.</th><th style="text-align:right;">Gesamt</th><th></th></tr></thead>
+      <tbody>`+
+      periodReisen.map(r=>`<tr>
+        <td>${fmtDate(r.datum)}</td><td>${r.ziel}</td>
+        <td style="text-align:right;">${r.km}&thinsp;km</td>
+        <td style="text-align:right;">${fmt(r.km_pauschale)}</td>
+        <td style="text-align:right;">${r.verpfl>0?fmt(r.verpfl):'–'}</td>
+        <td style="text-align:right;font-weight:600;">${fmt(r.total)}</td>
+        <td><button class="entry-del" onclick="removeReise('${r.id}')"><i data-lucide="trash-2"></i></button></td>
+      </tr>`).join('')+
+      `<tr style="font-weight:700;background:var(--surface2);">
+        <td colspan="5" style="text-align:right;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;">Gesamt ${periodLabel}</td>
+        <td style="text-align:right;">${fmt(reBetrag)}</td><td></td></tr>
+      </tbody></table>`;
+  }
+
+  // ── Anlagen Liste ──
+  const anList=$('an-list');
+  if(!extrasData.anlagen.length){
+    anList.innerHTML='<div style="color:var(--text3);font-size:11px;padding:2px 0;">Noch keine Anlagen eingetragen.</div>';
+  } else {
+    const year=selectedYear;
+    anList.innerHTML=`<table class="entry-table" style="margin-top:4px;">
+      <thead><tr><th>Bezeichnung</th><th>Kaufdatum</th><th style="text-align:right;">Netto</th><th style="text-align:right;">Nutzung</th><th style="text-align:right;">AfA/${year}</th><th style="text-align:right;">Restwert</th><th></th></tr></thead>
+      <tbody>`+
+      extrasData.anlagen.map(a=>{
+        const buyYear=parseInt(a.kaufdatum.slice(0,4));
+        const annualAfA=calcAfAForYear(a,year);
+        const endYear=buyYear+a.nutzungsjahre-1;
+        const isActive=year>=buyYear&&year<=endYear;
+        // Restwert: Buchwert am Anfang des gewählten Jahres minus laufende AfA
+        const yearsDepreciated=Math.max(0,year-buyYear);
+        const totalDepSoFar=extrasData.anlagen.length&&isActive? // simplified
+          Math.min(a.nettowert, (a.nettowert/a.nutzungsjahre)*yearsDepreciated) : a.nettowert;
+        const restWert=Math.max(0,Math.round((a.nettowert-totalDepSoFar-annualAfA)*100)/100);
+        return `<tr style="${isActive?'':'opacity:.5'}">
+          <td>${a.bezeichnung}${!isActive?` <span style="font-size:9px;color:var(--text3);">(abgeschrieben)</span>`:''}</td>
+          <td>${fmtDate(a.kaufdatum)}</td>
+          <td style="text-align:right;">${fmt(a.nettowert)}</td>
+          <td style="text-align:right;">${a.nutzungsjahre}&thinsp;J.</td>
+          <td style="text-align:right;font-weight:600;color:${isActive?'var(--accent)':'var(--text3)'};">${annualAfA>0?fmt(annualAfA):'–'}</td>
+          <td style="text-align:right;">${isActive?fmt(restWert):'–'}</td>
+          <td><button class="entry-del" onclick="removeAnlage('${a.id}')"><i data-lucide="trash-2"></i></button></td>
+        </tr>`;
+      }).join('')+
+      `</tbody></table>`;
+  }
+
+  // ── Zusammenfassung ──
+  const total=hoBetrag+reBetrag+afaBetrag;
+  $('extras-summary-table').querySelector('tbody').innerHTML=`
+    <tr><td>Homeoffice-Pauschale (${Math.min(hoDaysYear,210)} Tage × 6 €)</td><td>${fmt(hoBetrag)}</td></tr>
+    <tr><td>Dienstreisen / Fahrtkosten (${reCount} Fahrten · ${periodLabel})</td><td>${fmt(reBetrag)}</td></tr>
+    <tr><td>AfA Anlagen (${afaCount} Anlagen · ${periodLabel})</td><td>${fmt(afaBetrag)}</td></tr>
+    <tr style="font-weight:700;border-top:2px solid var(--border2);">
+      <td style="padding-top:10px;">Gesamt zusätzlich absetzbar</td>
+      <td style="padding-top:10px;color:var(--accent);font-size:14px;">${fmt(total)}</td>
+    </tr>`;
+
+  lucide.createIcons();
+}
 
 init();
 </script>
