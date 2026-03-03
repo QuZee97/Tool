@@ -2789,7 +2789,7 @@ async function init(){
 
   // buildMatchesFromCSV() hier NICHT aufrufen – alle Transaktionen sind _fromDB:true,
   // ihre Matches existieren bereits in der DB und werden von loadMatchesFromDB geladen.
-  loadExtras();
+  await loadExtras();
   renderManualIncomes();
   updateCSVStatus();
   updateUploadSummary();
@@ -3182,16 +3182,44 @@ function showCatHint(btn, catKey){
 function hideCatHint(){ clearTimeout(_hintTimeout); _hintTimeout=setTimeout(()=>{ const p=document.getElementById('hint-popover');if(p)p.remove(); },200); }
 
 // ── EXTRAS: LOAD / SAVE ────────────────────────────────────
-function loadExtras(){
+let _extrasSaveTimer=null;
+async function loadExtras(){
+  // 1) Zuerst aus localStorage (instant, kein Flackern beim Laden)
   try{
     const raw=JSON.parse(localStorage.getItem(EXTRAS_LS_KEY)||'{}');
-    extrasData.homeoffice=raw.homeoffice||[];
-    extrasData.reisen=raw.reisen||[];
-    extrasData.anlagen=raw.anlagen||[];
-  }catch{ extrasData={homeoffice:[],reisen:[],anlagen:[]}; }
+    if(raw.homeoffice||raw.reisen||raw.anlagen){
+      extrasData.homeoffice=raw.homeoffice||[];
+      extrasData.reisen=raw.reisen||[];
+      extrasData.anlagen=raw.anlagen||[];
+    }
+  }catch{}
+  // 2) DB laden und localStorage überschreiben (DB ist die Quelle der Wahrheit)
+  try{
+    const dbData=await DB.getExtras();
+    if(dbData){
+      extrasData.homeoffice=dbData.homeoffice||[];
+      extrasData.reisen=dbData.reisen||[];
+      extrasData.anlagen=dbData.anlagen||[];
+      // Lokalen Cache aktualisieren
+      localStorage.setItem(EXTRAS_LS_KEY,JSON.stringify(extrasData));
+    } else if(extrasData.homeoffice?.length||extrasData.reisen?.length||extrasData.anlagen?.length){
+      // localStorage hatte Daten, DB nicht → in DB migrieren
+      await DB.saveExtras(extrasData);
+      console.info('[extras] localStorage-Daten in DB migriert');
+    }
+  }catch(e){
+    console.warn('[extras] DB nicht erreichbar, nutze localStorage:',e.message);
+  }
 }
 function saveExtras(){
+  // Sofort in localStorage (kein Warten, UX bleibt schnell)
   localStorage.setItem(EXTRAS_LS_KEY,JSON.stringify(extrasData));
+  // Debounced DB-Save (verhindert zu viele DB-Calls beim schnellen Hinzufügen)
+  clearTimeout(_extrasSaveTimer);
+  _extrasSaveTimer=setTimeout(async()=>{
+    try{ await DB.saveExtras(extrasData); }
+    catch(e){ console.warn('[extras] DB-Save fehlgeschlagen:',e.message); }
+  },600);
 }
 
 // ── HOMEOFFICE ─────────────────────────────────────────────

@@ -507,6 +507,29 @@ const DB = {
     return data;
   },
 
+  // ── STEUER EXTRAS (Homeoffice, Reisen, AfA) ───────────────
+  // Tabelle: steuer_extras (id, user_id, data jsonb, updated_at)
+  // UNIQUE(user_id) – eine Zeile pro User, alle Extras als JSONB
+  async getExtras() {
+    const user = await getUser();
+    const { data, error } = await db.from('steuer_extras')
+      .select('data')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (error) throw error;
+    return data?.data || null;
+  },
+  async saveExtras(extrasData) {
+    const user = await getUser();
+    const { error } = await db.from('steuer_extras')
+      .upsert({
+        user_id:    user.id,
+        data:       extrasData,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+    if (error) throw error;
+  },
+
   // ── GENERIERTE RECHNUNGS-PDFS ALS BELEGE SPEICHERN ────────
   // Wird nach jedem PDF-Download aufgerufen (nur für Rechnungen).
   // Storage-Pfad ist deterministisch (doc.id), daher kein Duplikat-Problem:
