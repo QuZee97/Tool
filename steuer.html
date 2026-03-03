@@ -718,6 +718,8 @@ async function setQuartal(q){
   // buildMatchesFromCSV() wird hier NICHT aufgerufen – läuft nur nach echtem CSV-Upload.
   // Jeder Aufruf hier würde Kategorisierungen mit Default-Werten überschreiben.
   await loadMatchesFromDB(selectedYear,q);
+  // csvTransactions sind beim Quartalswechsel bereits geladen → sicher hier aufrufen
+  if(ownerName) await applyPrivatentnahmenToMatches();
   updateCSVStatus();
   updateSidebar();
   if(currentPage===2)renderBelegUebersicht();
@@ -747,6 +749,8 @@ async function onPeriodChange(){
     })(),
     loadMatchesFromDB(selectedYear,selectedQuartal),
   ]);
+  // Race-Condition-sicher: beide parallel-Loads sind hier fertig → csvTransactions garantiert geladen
+  if(ownerName) await applyPrivatentnahmenToMatches();
   // buildMatchesFromCSV() wird hier NICHT aufgerufen – Matches kommen aus der DB.
   updateCSVStatus();
   updateUploadSummary();
@@ -958,6 +962,11 @@ async function parseAndSaveCSV(file){
     // Matches erstellen und AWAITEN – erst danach kann der Nutzer Quartale wechseln
     // ohne dass die DB-Basis noch fehlt (kein fire-and-forget mehr)
     await buildMatchesFromCSV();
+    // Nach dem CSV-Upload: Matches aus DB neu laden um IDs für alle Einträge zu bekommen
+    // (inkl. bestehender Zeilen, die saveMatches(ignoreDuplicates) nicht zurückgibt)
+    await loadMatchesFromDB(selectedYear,selectedQuartal);
+    // Privatentnahmen sofort korrekt setzen – csvTransactions sind hier definitiv geladen
+    if(ownerName) await applyPrivatentnahmenToMatches();
     updateCSVStatus();
     updateSidebar();
     // Bereits hochgeladene Belege nochmal gegen neue Transaktionen matchen
@@ -1684,7 +1693,8 @@ async function runKIKategorisierung(){
 
   // Nur Einträge die noch keine KI-Kategorie haben (null oder kein konfidenz-Wert)
   // → Erneutes Drücken setzt nur die noch fehlenden fort, nie bereits kategorisierte
-  const toKI=matches.filter(m=>!m.konfidenz&&inPeriod(m.datum));
+  // Privatentnahmen explizit ausschließen (Sicherheitsnetz für den Fall dass konfidenz=null)
+  const toKI=matches.filter(m=>!m.konfidenz&&inPeriod(m.datum)&&m.kategorie!=='privatentnahme');
   if(!toKI.length){toast('Alle Einträge bereits analysiert.');return;}
 
   $('ki-review-loading').classList.add('show');
@@ -2359,9 +2369,10 @@ async function loadMatchesFromDB(year,quartal){
       };
     });
     aiResults=matches;
-    // Privatentnahmen auf geladene Matches anwenden und DB-Updates awaiten –
-    // so hat die DB beim nächsten Reload bereits die korrekte Kategorisierung
-    if(ownerName) await applyPrivatentnahmenToMatches();
+    // HINWEIS: applyPrivatentnahmenToMatches() wird NICHT hier aufgerufen,
+    // weil loadMatchesFromDB() manchmal in Promise.all() parallel zu csvTransactions
+    // läuft → Race Condition. Aufrufer muss applyPrivatentnahmenToMatches() selbst
+    // aufrufen, NACHDEM beide Ladeprozesse abgeschlossen sind.
     const reviewCount=matches.filter(r=>r.unklar||r.konfidenz==='niedrig').length;
     $('badge-review').textContent=reviewCount;
     $('badge-review').classList.toggle('show',reviewCount>0);
@@ -2426,6 +2437,10 @@ async function init(){
     loadReceiptsFromDB(),
     (async()=>{ try{ txRules=await DB.getRules(); }catch(e){ console.info('Regeln nicht geladen:',e.message); txRules=[]; } })(),
   ]);
+
+  // Race-Condition-sicher: alle parallel-Loads abgeschlossen → csvTransactions garantiert geladen.
+  // Privatentnahmen-Erkennung hier statt in loadMatchesFromDB() um Race Condition zu vermeiden.
+  if(ownerName) await applyPrivatentnahmenToMatches();
 
   // buildMatchesFromCSV() hier NICHT aufrufen – alle Transaktionen sind _fromDB:true,
   // ihre Matches existieren bereits in der DB und werden von loadMatchesFromDB geladen.
@@ -2511,6 +2526,7 @@ async function bereinigeDuplicateMatches(){
       toast(`${result.duplicatesRemoved} Duplikate entfernt ✓ – ${result.uniqueTxIds} eindeutige Buchungen`);
       // Matches neu laden damit Anzeige stimmt
       await loadMatchesFromDB(selectedYear,selectedQuartal);
+      if(ownerName) await applyPrivatentnahmenToMatches();
       updateSidebar();
       if(currentPage===3)renderReview();
     }

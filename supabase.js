@@ -310,7 +310,7 @@ const DB = {
       updated_at:    new Date().toISOString(),
     }));
     const { data, error } = await db.from('matches')
-      .upsert(payload, { onConflict: 'user_id,transaction_id' })
+      .upsert(payload, { onConflict: 'user_id,transaction_id', ignoreDuplicates: true })
       .select();
     if (error) throw error;
     return data || [];
