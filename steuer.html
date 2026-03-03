@@ -285,7 +285,7 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 #chat-fab svg{width:22px;height:22px;stroke:var(--bg);stroke-width:2;}
 #chat-fab .chat-badge{position:absolute;top:-3px;right:-3px;background:var(--red);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 4px;display:none;}
 #chat-fab .chat-badge.show{display:block;}
-#chat-panel{position:fixed;bottom:84px;right:24px;z-index:900;width:340px;max-height:520px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);display:none;flex-direction:column;overflow:hidden;}
+#chat-panel{position:fixed;bottom:84px;right:24px;z-index:900;width:340px;height:520px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);display:none;flex-direction:column;overflow:hidden;}
 #chat-panel.open{display:flex;}
 #chat-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;}
 #chat-head-info{flex:1;}
@@ -294,7 +294,7 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 #chat-close{width:26px;height:26px;border:none;background:none;color:var(--text3);cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;}
 #chat-close:hover{background:var(--surface3);color:var(--text);}
 #chat-close svg{width:14px;height:14px;}
-#chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+#chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:200px;}
 #chat-msgs::-webkit-scrollbar{width:3px;}
 #chat-msgs::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
 .chat-msg{max-width:88%;font-size:11.5px;line-height:1.55;padding:8px 10px;border-radius:8px;}
@@ -573,6 +573,16 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 <div class="page" id="page-3">
   <div class="page-title">Review</div>
   <div class="page-sub">Alle Bankbewegungen im Überblick. Belege werden automatisch zugeordnet. KI kategorisiert auf Knopfdruck und fügt Begründungen hinzu.</div>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+    <div style="position:relative;flex:1;min-width:200px;">
+      <svg style="position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;stroke:var(--text3);stroke-width:2;pointer-events:none;" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="review-search" type="text" placeholder="Suche nach Beschreibung, Empfänger, Kategorie …" oninput="renderReview()" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:12px;padding:7px 10px 7px 30px;outline:none;font-family:var(--font);" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'">
+    </div>
+    <select id="review-filter-kat" onchange="renderReview()" style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:7px 26px 7px 9px;outline:none;font-family:var(--font);cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%235c5f6b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 8px center;">
+      <option value="">Alle Kategorien</option>
+      <option value="__offen__">– Offen (unkategorisiert)</option>
+    </select>
+  </div>
 
   <!-- Alle Buchungen (auch ohne KI sofort sichtbar) -->
   <div class="card" style="padding:0;overflow:hidden;">
@@ -740,6 +750,8 @@ const CATEGORIES = {
   miete:{label:'Miete / Raumkosten',type:'expense',vat:0.19},
   bankgebuehr:{label:'Bankgebühren',type:'expense',vat:0},
   sonstiges:{label:'Sonstiges',type:'expense',vat:0.19},
+  einnahmen_eu:{label:'EU/Drittland (§4 Nr.1b, ohne MwSt.)',type:'income',vat:0,euLeistung:true},
+  rc_eingang:{label:'Reverse Charge Eingang (§13b)',type:'expense',vat:0.19,reverseCharge:true},
   privat:{label:'Privat (nicht absetzbar)',type:'private',vat:0},
   privatentnahme:{label:'Privatentnahme',type:'private',vat:0},
 };
@@ -958,11 +970,16 @@ function updateSidebar(){
   if(!periodSrc.length){$('sb-einnahmen').textContent='–';$('sb-ausgaben').textContent='–';$('sb-gewinn').textContent='–';$('sb-zahllast').textContent='–';return;}
   let ein=0,aus=0,zl=0;
   periodSrc.forEach(r=>{
-    if(!r.kategorie)return; // Noch keine Kategorie → nicht in Sidebar-Summen zählen
+    if(!r.kategorie){
+      // Unkategorisierte Ausgaben (noch offen) → werden als Ausgabe vorgezählt
+      if(!r.is_einnahme) aus+=r.betrag_brutto||0;
+      return;
+    }
     const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
     const netto=r.betrag_netto||0;const mwst=r.mwst_betrag||0;
     if(cat.type==='income'){ein+=netto;zl+=mwst;}
     else if(cat.type==='expense'){const f=cat.limitFactor||1;aus+=netto*f;zl-=mwst*f;}
+    // private: neither income nor expense
   });
   $('sb-einnahmen').textContent=fmt(ein);
   $('sb-ausgaben').textContent=fmt(aus);
@@ -1917,14 +1934,40 @@ function renderThumb(m,idx){
 function renderReview(){
   const list=$('review-list');
 
+  // Kategorie-Dropdown einmalig befüllen
+  const katSel=$('review-filter-kat');
+  if(katSel&&katSel.options.length<=2){
+    Object.entries(CATEGORIES).forEach(([k,v])=>{
+      const o=document.createElement('option');o.value=k;o.textContent=v.label;katSel.appendChild(o);
+    });
+  }
+
+  const searchQ=($('review-search')?.value||'').toLowerCase().trim();
+  const filterKat=$('review-filter-kat')?.value||'';
+
   // Zeige CSV-Buchungen: Transaktion im Quartal ODER Beleg im Quartal (±14 Tage Monatswechsel-Puffer)
-  const displayed=matches.filter(m=>{
+  let displayed=matches.filter(m=>{
     if(inPeriod(m.datum))return true; // Transaktionsdatum im Quartal (Normalfall)
     // Zusätzlich: Beleg-Datum im Quartal (Monatswechsel-Toleranz)
     const rec=getReceiptForMatch(m);
     if(rec?.datum&&inPeriodLoose(rec.datum))return true;
     return false;
   });
+
+  // Suchfilter anwenden
+  if(searchQ){
+    displayed=displayed.filter(m=>{
+      const desc=(m.beschreibung||'').toLowerCase();
+      const empf=(m.empfaenger||'').toLowerCase();
+      const cat=(CATEGORIES[m.kategorie]?.label||'').toLowerCase();
+      return desc.includes(searchQ)||empf.includes(searchQ)||cat.includes(searchQ)||(m.datum||'').includes(searchQ);
+    });
+  }
+  if(filterKat==='__offen__'){
+    displayed=displayed.filter(m=>!m.kategorie);
+  } else if(filterKat){
+    displayed=displayed.filter(m=>m.kategorie===filterKat);
+  }
   if(!displayed.length){
     list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">Noch keine Buchungen im gewählten Zeitraum. Bitte CSV hochladen.</div>';
     return;
@@ -2009,10 +2052,27 @@ async function onCatChange(idx,newCat){
   matches[idx].kategorie=cat;
   matches[idx].kategorie_info=cat?CATEGORIES[cat]||CATEGORIES.sonstiges:null;
   matches[idx]._localEdit=true; // Schützt vor Überschreiben beim nächsten loadMatchesFromDB
+  // Wenn Kategorie gesetzt: MwSt-Werte aus Kategorie ableiten (Fix: waren ggf. 0 aus CSV-Import)
+  const catInfo=cat?CATEGORIES[cat]:null;
+  let dbUpdate={kategorie:cat};
+  if(catInfo&&catInfo.type!=='private'){
+    const brutto=matches[idx].betrag_brutto||0;
+    const vatRate=catInfo.vat||0;
+    // Nur neu berechnen wenn betrag_netto fehlt oder gleich brutto (= nie von KI berechnet)
+    const needsCalc=!matches[idx].betrag_netto||Math.abs(matches[idx].betrag_netto-brutto)<0.01;
+    if(needsCalc&&brutto>0){
+      const netto=vatRate>0?Math.round(brutto/(1+vatRate)*100)/100:brutto;
+      const mwstAmt=Math.round((brutto-netto)*100)/100;
+      matches[idx].betrag_netto=netto;
+      matches[idx].mwst_satz=vatRate;
+      matches[idx].mwst_betrag=mwstAmt;
+      dbUpdate={...dbUpdate,mwst_satz:vatRate,betrag_netto:netto,mwst_betrag:mwstAmt};
+    }
+  }
   updateSidebar();
   // In DB speichern
   if(matches[idx].id){
-    try{await DB.updateMatch(matches[idx].id,{kategorie:cat});}
+    try{await DB.updateMatch(matches[idx].id,dbUpdate);}
     catch(e){console.warn('Kategorie-Update fehlgeschlagen:',e.message);}
   }
 }
@@ -2278,7 +2338,9 @@ async function confirmPicker(){
 // ── USTVA BERECHNUNG ───────────────────────────────────────
 function buildUStVA(){
   const src=matches.length?matches:aiResults;
-  if(!src.length){
+  // Nur Einträge im gewählten Zeitraum berechnen
+  const periodSrc=src.filter(r=>inPeriod(r.datum)||(r.is_einnahme&&!r.datum));
+  if(!periodSrc.length){
     $('ustv-kpi-grid').innerHTML='<div style="color:var(--text3);font-size:12px;padding:10px;">Noch keine Analyse. Bitte zuerst Schritte 1–3 durchführen.</div>';
     return;
   }
@@ -2286,33 +2348,54 @@ function buildUStVA(){
   const label=q?`Q${q} ${year}`:year;
   $('ustva-period-label').textContent=label;
 
-  let ein19=0,ein7=0,ein0=0,aus19=0,aus7=0,aus0=0;
-  let vor19=0,vor7=0;
+  // Umsatzsteuer-Buckets
+  let ein19=0,ein7=0,ein0=0,einEU=0;   // Kz 81,86,41,21
+  let rc52=0,rc53=0;                     // §13b Schuldner: Kz 52+53
+  let vor19=0,vor7=0,vor67=0;           // Vorsteuer: Kz 66 (= vor19+vor7), Kz 67 (§13b)
   let einNetto=0,ausNetto=0;
 
-  src.forEach(r=>{
-    const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
+  periodSrc.forEach(r=>{
+    const cat=CATEGORIES[r.kategorie];
+    if(!cat){
+      // Unkategorisiert: Ausgaben für EÜR-Übersicht als Brutto einbeziehen
+      if(!r.is_einnahme) ausNetto+=r.betrag_brutto||0;
+      return;
+    }
     if(cat.type==='private')return;
-    const netto=r.betrag_netto||0;
-    const mwst=r.mwst_betrag||0;
+
+    // VAT aus Category ableiten wenn im Match nicht gesetzt (z.B. nach manuellem Kategorisieren)
+    const vatRate=(r.mwst_satz>0)?r.mwst_satz:cat.vat;
+    const brutto=r.betrag_brutto||0;
+    const netto=(r.betrag_netto>0&&r.betrag_netto<brutto)?r.betrag_netto:
+      (vatRate>0?Math.round(brutto/(1+vatRate)*100)/100:brutto);
+    const mwstAmt=(r.mwst_betrag>0)?r.mwst_betrag:Math.round((brutto-netto)*100)/100;
     const f=cat.limitFactor||1;
+
     if(cat.type==='income'){
       einNetto+=netto;
-      if(r.mwst_satz===0.19){ein19+=netto;}
-      else if(r.mwst_satz===0.07){ein7+=netto;}
-      else{ein0+=netto;}
+      if(cat.euLeistung){einEU+=netto;}         // EU/Drittland → Kz 21
+      else if(vatRate===0.19){ein19+=netto;}     // Kz 81
+      else if(vatRate===0.07){ein7+=netto;}      // Kz 86
+      else{ein0+=netto;}                         // Kz 41 steuerfreie Inland
+    } else if(cat.reverseCharge){
+      // §13b Schuldner: Vorsteuer-Buchung ohne tatsächliche Zahlung
+      const rcNetto=netto;
+      const rcMwst=Math.round(rcNetto*0.19*100)/100;
+      ausNetto+=rcNetto*f;
+      rc52+=rcNetto;       // Kz 52: Bemessungsgrundlage
+      rc53+=rcMwst;        // Kz 53: Steuer darauf
+      vor67+=rcMwst;       // Kz 67: als Vorsteuer abziehbar
     } else {
       ausNetto+=netto*f;
-      if(r.mwst_satz===0.19){aus19+=netto*f;vor19+=mwst*f;}
-      else if(r.mwst_satz===0.07){aus7+=netto*f;vor7+=mwst*f;}
-      else{aus0+=netto*f;}
+      if(vatRate===0.19){vor19+=mwstAmt*f;}
+      else if(vatRate===0.07){vor7+=mwstAmt*f;}
     }
   });
 
   const ust19=Math.round(ein19*0.19*100)/100;
   const ust7=Math.round(ein7*0.07*100)/100;
   const vorsteuer=Math.round((vor19+vor7)*100)/100;
-  const zahllast=Math.round((ust19+ust7-vorsteuer)*100)/100;
+  const zahllast=Math.round((ust19+ust7+rc53-vorsteuer-vor67)*100)/100;
   const gewinn=Math.round((einNetto-ausNetto)*100)/100;
 
   $('ustv-kpi-grid').innerHTML=`
@@ -2323,23 +2406,29 @@ function buildUStVA(){
   `;
 
   $('detail-table').querySelector('tbody').innerHTML=`
-    <tr><th colspan="2">Umsatzsteuer</th></tr>
+    <tr><th colspan="2">Umsatzsteuer (Inland)</th></tr>
     <tr><td>Kz 81 – Umsätze 19%</td><td>${fmt(ein19)}</td></tr>
     <tr><td>Kz 86 – Umsätze 7%</td><td>${fmt(ein7)}</td></tr>
     <tr><td>Kz 35 – Steuer 19%</td><td>${fmt(ust19)}</td></tr>
     <tr><td>Kz 36 – Steuer 7%</td><td>${fmt(ust7)}</td></tr>
+    ${ein0>0?`<tr><td>Kz 41 – Steuerfreie Umsätze (ohne VSt-Abzug)</td><td>${fmt(ein0)}</td></tr>`:''}
+    ${einEU>0?`<tr><td>Kz 21 – EU/Drittland-Umsätze (§ 4 Nr. 1b UStG)</td><td>${fmt(einEU)}</td></tr>`:''}
+    ${rc52>0?`<tr><th colspan="2">§ 13b UStG (Reverse Charge)</th></tr>
+    <tr><td>Kz 52 – Empfangene Leistungen §13b Abs. 1</td><td>${fmt(rc52)}</td></tr>
+    <tr><td>Kz 53 – Steuer darauf (19%)</td><td>${fmt(rc53)}</td></tr>`:''}
     <tr><th colspan="2">Vorsteuer</th></tr>
-    <tr><td>Kz 66 – Vorsteuer gesamt</td><td>${fmt(vorsteuer)}</td></tr>
+    <tr><td>Kz 66 – Vorsteuer aus Rechnungen (Inland)</td><td>${fmt(vorsteuer)}</td></tr>
+    ${vor67>0?`<tr><td>Kz 67 – Vorsteuer aus §13b (Reverse Charge)</td><td>${fmt(vor67)}</td></tr>`:''}
     <tr><th colspan="2">Ergebnis</th></tr>
-    <tr><td><strong>Kz 83 – Zahllast</strong></td><td><strong>${fmt(Math.max(0,zahllast))}</strong></td></tr>
-    ${zahllast<0?`<tr><td>Kz 83 – Erstattungsüberhang</td><td style="color:var(--green);">${fmt(Math.abs(zahllast))}</td></tr>`:''}
+    <tr><td><strong>Kz 83 – ${zahllast>=0?'Zahllast':'Erstattungsüberhang'}</strong></td><td><strong style="color:${zahllast>=0?'var(--red)':'var(--green)'};">${fmt(Math.abs(zahllast))}</strong></td></tr>
   `;
 
   $('euer-table').querySelector('tbody').innerHTML=`
     <tr><td>Betriebseinnahmen Netto</td><td style="color:var(--green);">${fmt(einNetto)}</td></tr>
     <tr><td>Betriebsausgaben Netto</td><td style="color:var(--red);">${fmt(ausNetto)}</td></tr>
     <tr><td><strong>Gewinn / Verlust</strong></td><td><strong style="color:${gewinn>=0?'var(--green)':'var(--red)'};">${fmt(gewinn)}</strong></td></tr>
-    <tr><td style="color:var(--text3);">Nicht-abzugsfähig (Privat etc.)</td><td style="color:var(--text3);">${fmt(src.filter(r=>CATEGORIES[r.kategorie]?.type==='private').reduce((s,r)=>s+(r.betrag_brutto||0),0))}</td></tr>
+    <tr><td style="color:var(--text3);">Nicht-abzugsfähig (Privat, Privatentnahmen)</td><td style="color:var(--text3);">${fmt(periodSrc.filter(r=>CATEGORIES[r.kategorie]?.type==='private').reduce((s,r)=>s+(r.betrag_brutto||0),0))}</td></tr>
+    ${periodSrc.filter(r=>!r.kategorie&&!r.is_einnahme).length?`<tr><td style="color:var(--orange);">Noch unkategorisiert (offen)</td><td style="color:var(--orange);">${fmt(periodSrc.filter(r=>!r.kategorie&&!r.is_einnahme).reduce((s,r)=>s+(r.betrag_brutto||0),0))}</td></tr>`:''}
   `;
 
   updateSidebar();
@@ -2701,19 +2790,86 @@ function updateRuecklage(gewinn, zahllast){
 // ── KI-STEUERBERATER CHAT ──────────────────────────────────
 let taxChatMessages = [];
 let taxChatOpen = false;
+let taxChatHistory = []; // [{id, title, messages, updatedAt}]
+let taxChatCurrentId = null;
+const TAX_CHAT_LS_KEY = 'steuer_chat_history_v1';
 
+function loadChatHistory(){
+  try{ taxChatHistory=JSON.parse(localStorage.getItem(TAX_CHAT_LS_KEY)||'[]'); }catch{ taxChatHistory=[]; }
+}
+function saveChatHistory(){
+  try{ localStorage.setItem(TAX_CHAT_LS_KEY,JSON.stringify(taxChatHistory.slice(-30))); }catch{}
+}
+function startNewChat(){
+  taxChatMessages=[];
+  taxChatCurrentId='chat_'+Date.now();
+  renderChatView();
+  showChatWelcome();
+}
+function openChatFromHistory(id){
+  const entry=taxChatHistory.find(c=>c.id===id);
+  if(!entry)return;
+  taxChatCurrentId=id;
+  taxChatMessages=[...entry.messages];
+  renderChatView();
+  renderChatMessages();
+}
+function renderChatView(){
+  // If messages exist show chat, else show history list
+  const msgs=$('chat-msgs');
+  const foot=$('chat-foot');
+  if(taxChatMessages.length>0||taxChatCurrentId){
+    foot.style.display='flex';
+    $('chat-head-sub').textContent='Basierend auf deinen aktuellen Zahlen';
+    $('chat-back-btn').style.display=taxChatHistory.length?'inline-flex':'none';
+  }
+}
 function openTaxChat(){
+  loadChatHistory();
   taxChatOpen = true;
   $('chat-panel').classList.add('open');
-  if(!taxChatMessages.length) showChatWelcome();
-  $('chat-input').focus();
+  if(!taxChatMessages.length && !taxChatCurrentId){
+    showChatHistory();
+  } else {
+    renderChatMessages();
+  }
+  $('chat-input')?.focus();
 }
 function closeTaxChat(){
   taxChatOpen = false;
   $('chat-panel').classList.remove('open');
 }
+function showChatHistory(){
+  const msgs=$('chat-msgs');
+  const foot=$('chat-foot');
+  foot.style.display='none';
+  $('chat-back-btn').style.display='none';
+  $('chat-head-sub').textContent='Deine Gespräche';
+  if(!taxChatHistory.length){
+    msgs.innerHTML=`
+      <div style="padding:12px 0;text-align:center;color:var(--text3);font-size:11.5px;">Noch keine Gespräche.</div>
+      <div class="chat-suggestions">
+        <button class="chat-sug-btn" onclick="startNewChat()">✨ Neues Gespräch starten</button>
+      </div>`;
+  } else {
+    msgs.innerHTML=`
+      <button onclick="startNewChat()" style="width:100%;padding:8px 10px;background:var(--accent-bg);border:1px solid var(--accent);border-radius:var(--radius-sm);color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Neues Gespräch
+      </button>
+      ${taxChatHistory.slice().reverse().map(c=>`
+        <div onclick="openChatFromHistory('${c.id}')" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 11px;cursor:pointer;margin-bottom:4px;transition:border-color .12s;" onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:11.5px;font-weight:600;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.title||'Gespräch'}</div>
+          <div style="font-size:10px;color:var(--text3);">${new Date(c.updatedAt).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'})} · ${c.messages.filter(m=>m.role==='assistant').length} Antworten</div>
+        </div>`).join('')}`;
+  }
+}
 function showChatWelcome(){
   const msgs = $('chat-msgs');
+  const foot = $('chat-foot');
+  foot.style.display='flex';
+  $('chat-back-btn').style.display=taxChatHistory.length?'inline-flex':'none';
+  $('chat-head-sub').textContent='Basierend auf deinen aktuellen Zahlen';
   msgs.innerHTML = `
     <div class="chat-msg bot">👋 Hallo! Ich bin dein KI-Steuerberater.
 
@@ -2782,10 +2938,26 @@ async function sendTaxMessage(){
 }
 function renderChatMessages(){
   const msgs = $('chat-msgs');
+  $('chat-foot').style.display='flex';
+  $('chat-back-btn').style.display=taxChatHistory.length||taxChatMessages.length>0?'inline-flex':'none';
   msgs.innerHTML = taxChatMessages.map(m =>
-    `<div class="chat-msg ${m.role==='user'?'user':'bot'}">${m.content.replace(/</g,'&lt;')}</div>`
+    `<div class="chat-msg ${m.role==='user'?'user':'bot'}">${m.content.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</div>`
   ).join('');
   msgs.scrollTop = msgs.scrollHeight;
+  // In History speichern
+  if(taxChatMessages.length>=2&&taxChatCurrentId){
+    const firstUser=taxChatMessages.find(m=>m.role==='user');
+    const title=firstUser?firstUser.content.slice(0,50)+(firstUser.content.length>50?'…':''):'Gespräch';
+    const existing=taxChatHistory.find(c=>c.id===taxChatCurrentId);
+    if(existing){
+      existing.messages=[...taxChatMessages];
+      existing.updatedAt=new Date().toISOString();
+      existing.title=title;
+    } else {
+      taxChatHistory.push({id:taxChatCurrentId,title,messages:[...taxChatMessages],updatedAt:new Date().toISOString()});
+    }
+    saveChatHistory();
+  }
 }
 function handleTaxKeydown(e){
   if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendTaxMessage(); }
@@ -2842,7 +3014,10 @@ init();
 </button>
 <div id="chat-panel">
   <div id="chat-head">
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--accent)" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <button id="chat-back-btn" onclick="taxChatCurrentId=null;taxChatMessages=[];showChatHistory();" style="display:none;width:26px;height:26px;border:none;background:none;color:var(--text3);cursor:pointer;border-radius:4px;display:none;align-items:center;justify-content:center;flex-shrink:0;" title="Alle Gespräche">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--accent)" stroke-width="1.8" style="flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     <div id="chat-head-info">
       <div id="chat-head-title">KI-Steuerberater</div>
       <div id="chat-head-sub">Basierend auf deinen aktuellen Zahlen</div>
