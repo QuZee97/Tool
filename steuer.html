@@ -878,6 +878,7 @@ function updateSidebar(){
   if(!periodSrc.length){$('sb-einnahmen').textContent='–';$('sb-ausgaben').textContent='–';$('sb-gewinn').textContent='–';$('sb-zahllast').textContent='–';return;}
   let ein=0,aus=0,zl=0;
   periodSrc.forEach(r=>{
+    if(!r.kategorie)return; // Noch keine Kategorie → nicht in Sidebar-Summen zählen
     const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
     const netto=r.betrag_netto||0;const mwst=r.mwst_betrag||0;
     if(cat.type==='income'){ein+=netto;zl+=mwst;}
@@ -1239,14 +1240,16 @@ async function readBelege(){
         console.log('[Vision] r0:', JSON.stringify(r0).slice(0,300));
         // KI-Metadaten die wir in den Beleg-Record schreiben wollen
         const receiptMeta={
-          beschreibung: r0.beschreibung||b.file.name,
-          datum:        r0.datum||null,
-          betrag:       r0.betrag_brutto||null,
-          betrag_netto: r0.betrag_netto||null,
-          mwst_satz:    r0.mwst_satz??null,
-          mwst_betrag:  r0.mwst_betrag||null,
-          kategorie:    r0.kategorie||null,
-          thumbnail_data: b.thumbnail||null,  // direkt im Insert
+          beschreibung:    r0.beschreibung||b.file.name,
+          datum:           r0.datum||null,
+          betrag:          r0.betrag_brutto||null,
+          betrag_netto:    r0.betrag_netto||null,
+          mwst_satz:       r0.mwst_satz??null,
+          mwst_betrag:     r0.mwst_betrag||null,
+          kategorie:       r0.kategorie||null,
+          thumbnail_data:  b.thumbnail||null,
+          absender:        r0.absender||null,        // für Matching
+          rechnungsnummer: r0.rechnungsnummer||null, // für Matching
         };
         // Existiert schon ein Beleg mit gleichem Namen und Größe?
         let uploadedReceipt=receipts.find(r=>r.filename===b.file.name&&r.size_bytes===b.file.size)||null;
@@ -1294,14 +1297,11 @@ async function readBelege(){
   $('btn-read-belege').disabled=false;
   renderBelegList(); // KI-Button ausblenden (nichts mehr pending)
   // Client-seitiges Matching (kein API-Call): Beleg → Transaktion
-  const matched=autoMatchBelege();
-  if(matched){
-    const matchedCount=belegFiles.filter(b=>b.status==='done'&&b.receiptId&&matches.some(m=>m.receipt_id===b.receiptId)).length;
-    toast(`✓ Belege ausgelesen · ${matchedCount} automatisch zugeordnet`);
-  } else {
-    toast('✓ Belege ausgelesen');
-  }
-  if(currentPage===3)renderReview();
+  autoMatchBelege();
+  const matchedCount=belegFiles.filter(b=>b.status==='done'&&b.receiptId&&matches.some(m=>m.receipt_id===b.receiptId)).length;
+  toast(matchedCount>0?`✓ Belege ausgelesen · ${matchedCount} automatisch zugeordnet`:'✓ Belege ausgelesen');
+  // Review immer aktualisieren, damit Kategorien sofort sichtbar sind
+  renderReview();
 }
 
 
@@ -1324,6 +1324,10 @@ function matchBelegToTransactions(belegResult,belegReceiptId,txList){
   const bDate=bDatum?new Date(bDatum):null;
   // Kategorie-Hinweis: Einnahme oder Ausgabe?
   const bIsIncome=belegResult.kategorie&&CATEGORIES[belegResult.kategorie]?.type==='income';
+  // Rechnungsnummer normalisiert (nur alphanumerisch, Kleinbuchstaben)
+  const bRnr=(belegResult.rechnungsnummer||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+  // Absender normalisiert
+  const bAbsender=normalizeEmpf(belegResult.absender||'');
   let best=null,bestScore=0;
   txList.forEach(tx=>{
     // Belege können Ausgaben ODER Einnahmen (Rechnungen) sein
@@ -1336,6 +1340,12 @@ function matchBelegToTransactions(belegResult,belegReceiptId,txList){
     // Richtung: Beleg-Kategorie mit TX-Typ abgleichen (wenn bekannt)
     if(bIsIncome&&!tx.isEinnahme)return;
     if(!bIsIncome&&belegResult.kategorie&&CATEGORIES[belegResult.kategorie]?.type==='expense'&&tx.isEinnahme)return;
+    // ── Rechnungsnummer-Match (stärkstes Signal – suche im Verwendungszweck) ──
+    let rnrBonus=0;
+    if(bRnr&&bRnr.length>=4){
+      const txVwz=(tx.verwendungszweck||tx.beschreibung||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+      if(txVwz.includes(bRnr))rnrBonus=1.0; // Direkt-Match → Score immer ≥1.315 → immer 'hoch'
+    }
     // Datum-Match: ±14 Tage (Rechnungsdatum ≠ Buchungsdatum, Wochenenden, Zahlungsziel)
     let datumScore=0.5;
     if(bDate&&tDate){
@@ -1345,23 +1355,35 @@ function matchBelegToTransactions(belegResult,belegReceiptId,txList){
       else if(diffDays<=7)datumScore=0.75;
       else if(diffDays<=10)datumScore=0.6;
       else if(diffDays<=14)datumScore=0.45;
-      else return; // zu weit entfernt
+      else if(!rnrBonus)return; // Nur ablehnen wenn kein Rechnungsnr-Match
     }
-    // Empfänger-Match (optional, Bonus)
+    // ── Absender/Empfänger-Match (Bonus) ──
     let empfScore=0;
-    if(belegResult.beschreibung&&tx.empfaenger){
+    const tEmpfKey=normalizeEmpf(tx.empfaenger||'');
+    if(bAbsender&&tEmpfKey){
+      // Absender gegen Empfänger: enthält oder wird enthalten
+      if(tEmpfKey.includes(bAbsender)||bAbsender.includes(tEmpfKey)){
+        empfScore=0.3;
+      }else{
+        // Wort-basiertes Matching
+        const bWords=bAbsender.split(/[^a-z0-9]+/).filter(w=>w.length>3);
+        const matchW=bWords.filter(w=>tEmpfKey.includes(w));
+        if(bWords.length)empfScore=matchW.length/bWords.length*0.3;
+      }
+    }else if(belegResult.beschreibung&&tx.empfaenger){
+      // Fallback: beschreibung-Text gegen empfaenger
       const bDesc=(belegResult.beschreibung||'').toLowerCase();
       const tEmpf=(tx.empfaenger||'').toLowerCase();
       const words=tEmpf.split(/\s+/).filter(w=>w.length>3);
       const matchWords=words.filter(w=>bDesc.includes(w));
       empfScore=words.length?matchWords.length/words.length*0.3:0;
     }
-    const score=datumScore*0.7+empfScore;
+    const score=datumScore*0.7+empfScore+rnrBonus;
     if(score>bestScore){bestScore=score;best=tx;}
   });
   if(!best)return null;
   const konfidenz=bestScore>=0.85?'hoch':bestScore>=0.65?'mittel':'niedrig';
-  console.log('[Matching]',belegResult.beschreibung||'?','→',best.empfaenger||best.beschreibung||best.id,'Score:',bestScore.toFixed(2),'Konfidenz:',konfidenz);
+  console.log('[Matching]',belegResult.beschreibung||'?','→',best.empfaenger||best.id,'Score:',bestScore.toFixed(2),'Konfidenz:',konfidenz,'RNR-Bonus:',best?'ja':'nein');
   return{transaction_id:best.id,score:bestScore,konfidenz};
 }
 
@@ -1394,7 +1416,9 @@ async function buildMatchesFromCSV(){
       kategorie=rule.kategorie;konfidenz='hoch';
       begruendung=`Regel: ${rule.empfaenger_raw||rule.empfaenger_key} → ${CATEGORIES[rule.kategorie]?.label||rule.kategorie}`;
     }else{
-      kategorie=t.isEinnahme?'einnahmen_19':'sonstiges';konfidenz=null;begruendung=null;
+      // null = noch keine Kategorie → KI wird sie später setzen (nicht als 'sonstiges' vorbelegen,
+      // sonst überschreibt ein erneuter buildMatchesFromCSV()-Aufruf korrekte Kategorisierungen)
+      kategorie=t.isEinnahme?'einnahmen_19':null;konfidenz=null;begruendung=null;
     }
     return{
       transaction_id:t.id,
@@ -1506,10 +1530,12 @@ async function rematchAllBelege(){
     if(!rec?.id||!rec.betrag||!rec.datum)continue; // Ohne Betrag+Datum kein Match möglich
     // Beleg-Ergebnis wie bei autoMatchBelege aufbauen
     const belegResult={
-      betrag_brutto: parseFloat(rec.betrag)||0,
-      datum:         rec.datum||null,
-      beschreibung:  rec.beschreibung||rec.filename||'',
-      kategorie:     rec.kategorie||null,
+      betrag_brutto:   parseFloat(rec.betrag)||0,
+      datum:           rec.datum||null,
+      beschreibung:    rec.beschreibung||rec.filename||'',
+      kategorie:       rec.kategorie||null,
+      absender:        rec.absender||null,
+      rechnungsnummer: rec.rechnungsnummer||null,
     };
     const m=matchBelegToTransactions(belegResult,rec.id,csvTransactions);
     if(!m)continue;
@@ -1614,28 +1640,35 @@ async function applyPrivatentnahmenToMatches(){
   const ownerKey=ownerName?normalizeEmpf(ownerName):'';
   let count=0;
   const dbUpdates=[];
+  // Schneller Lookup: transaction_id → csvTransaction (für empfaenger-Fallback)
+  // empfaenger wird NICHT in der matches-Tabelle gespeichert, daher nach DB-Load immer leer.
+  // Ohne diesen Fallback setzt applyPrivatentnahme() alle gespeicherten Privatentnahmen
+  // auf sonstiges zurück, weil empfKey='' → shouldBePrivat=false.
+  const txById=new Map(csvTransactions.map(t=>[t.id,t]));
   matches.forEach(m=>{
     if(m.is_einnahme)return;  // Einnahmen nie als Privatentnahme
     if(m.bestaetigt)return;   // Manuell bestätigte Matches nie überschreiben
-    const empfKey=normalizeEmpf(m.empfaenger||'');
-    // Nur Empfänger prüfen – nie Beschreibung/Betreff
+    // empfaenger aus Match-Objekt oder Fallback aus csvTransactions
+    const rawEmpf=m.empfaenger||(txById.get(m.transaction_id)?.empfaenger)||'';
+    const empfKey=normalizeEmpf(rawEmpf);
     const shouldBePrivat=ownerKey&&empfKey&&empfKey.includes(ownerKey);
     if(shouldBePrivat&&m.kategorie!=='privatentnahme'){
       // Neu als Privatentnahme markieren
       m.kategorie='privatentnahme';
       m.kategorie_info=CATEGORIES['privatentnahme'];
       m.konfidenz='hoch';
-      m.begruendung=`Empfänger "${m.empfaenger}" entspricht dem Unternehmer-Namen → Privatentnahme`;
+      m.begruendung=`Empfänger "${rawEmpf}" entspricht dem Unternehmer-Namen → Privatentnahme`;
       count++;
       if(m.id) dbUpdates.push(DB.updateMatch(m.id,{kategorie:'privatentnahme',konfidenz:'hoch',begruendung:m.begruendung}));
-    } else if(!shouldBePrivat&&m.kategorie==='privatentnahme'){
-      // Falsch als Privatentnahme eingestuft → auf Sonstiges zurücksetzen
-      m.kategorie='sonstiges';
-      m.kategorie_info=CATEGORIES['sonstiges'];
+    } else if(ownerKey&&empfKey&&m.kategorie==='privatentnahme'&&!empfKey.includes(ownerKey)){
+      // Nur zurücksetzen wenn wir den Empfänger kennen UND er definitiv nicht passt.
+      // Leerer empfKey = unbekannt (empfaenger nicht in csvTransactions) → NICHT anfassen!
+      m.kategorie=null;
+      m.kategorie_info=null;
       m.konfidenz=null;
       m.begruendung=null;
       count--;
-      if(m.id) dbUpdates.push(DB.updateMatch(m.id,{kategorie:'sonstiges',konfidenz:null,begruendung:null}));
+      if(m.id) dbUpdates.push(DB.updateMatch(m.id,{kategorie:null,konfidenz:null,begruendung:null}));
     }
   });
   // Alle DB-Updates gemeinsam awaiten – kein fire-and-forget mehr
@@ -1649,7 +1682,8 @@ async function runKIKategorisierung(){
   const rulesApplied=applyRulesToMatches();
   if(rulesApplied>0)console.log('[Regeln]',rulesApplied,'Einträge per Regel kategorisiert');
 
-  // Nur Einträge die noch keine KI-Kategorie haben
+  // Nur Einträge die noch keine KI-Kategorie haben (null oder kein konfidenz-Wert)
+  // → Erneutes Drücken setzt nur die noch fehlenden fort, nie bereits kategorisierte
   const toKI=matches.filter(m=>!m.konfidenz&&inPeriod(m.datum));
   if(!toKI.length){toast('Alle Einträge bereits analysiert.');return;}
 
@@ -1657,6 +1691,20 @@ async function runKIKategorisierung(){
   $('btn-ki-review').disabled=true;
 
   const batchSize=5;
+  let doneCount=0;
+  let errorCount=0;
+
+  // Fetch-Hilfsfunktion mit einmaligem Retry bei 502/504
+  const fetchWithRetry=async(url,opts)=>{
+    let res=await fetch(url,opts);
+    if(res.status===504||res.status===502){
+      console.warn('[KI] Timeout/Bad Gateway – warte 3s und versuche nochmal...');
+      await new Promise(r=>setTimeout(r,3000));
+      res=await fetch(url,opts);
+    }
+    return res;
+  };
+
   for(let i=0;i<toKI.length;i+=batchSize){
     const batch=toKI.slice(i,i+batchSize).map(e=>({
       id:e.transaction_id,
@@ -1665,16 +1713,6 @@ async function runKIKategorisierung(){
     }));
     $('ki-review-loading-text').textContent=`KI analysiert ${Math.min(i+batchSize,toKI.length)}/${toKI.length} …`;
     console.log('[KI] Sende Batch', i/batchSize+1, '– Einträge:', batch.map(e=>e.id+'|'+e.beschreibung.slice(0,40)));
-    // Fetch-Hilfsfunktion mit einmaligem Retry bei 504
-    const fetchWithRetry=async(url,opts)=>{
-      let res=await fetch(url,opts);
-      if(res.status===504||res.status===502){
-        console.warn('[KI] Timeout/Bad Gateway – warte 3s und versuche nochmal...');
-        await new Promise(r=>setTimeout(r,3000));
-        res=await fetch(url,opts);
-      }
-      return res;
-    };
     try{
       const res=await fetchWithRetry('/api/tax',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({entries:batch,mode:'categorize'})});
@@ -1694,16 +1732,13 @@ async function runKIKategorisierung(){
         const mwst=ki.mwst_betrag||Math.round((brutto-netto)*100)/100;
 
         if(rule&&rule.kategorie!==catKey){
-          // Konflikt: KI schlägt andere Kategorie vor als gespeicherte Regel
-          // → Regel-Kategorie bleibt aktiv, aber als Konflikt zur Prüfung markieren
-          match.kategorie=rule.kategorie; // Regel hat Vorrang
+          match.kategorie=rule.kategorie;
           match.kategorie_info=CATEGORIES[rule.kategorie];
           match.konfidenz='niedrig';
           match.unklar=true;
           const kiGrund=ki.begruendung||'';
           match.begruendung=`⚠ Konflikt: Regel → ${CATEGORIES[rule.kategorie]?.label}, KI → ${CATEGORIES[catKey]?.label||catKey}${kiGrund?' ('+kiGrund+')':''}. Bitte prüfen.`;
         } else {
-          // Kein Konflikt – KI-Ergebnis übernehmen (oder Regel bestätigt)
           match.kategorie=rule?rule.kategorie:catKey;
           match.kategorie_info=CATEGORIES[match.kategorie]||cat;
           match.betrag_brutto=brutto;
@@ -1719,7 +1754,7 @@ async function runKIKategorisierung(){
             ?(match.begruendung+(kiGrund?' – '+kiGrund:'')+regelHinweis)
             :kiGrund+regelHinweis||null;
         }
-        // In DB speichern
+        doneCount++;
         if(match.id){
           DB.updateMatch(match.id,{
             kategorie:match.kategorie,betrag_brutto:match.betrag_brutto,betrag_netto:match.betrag_netto,
@@ -1730,8 +1765,10 @@ async function runKIKategorisierung(){
         }
       });
     }catch(e){
-      toast('KI-Fehler: '+e.message);
-      break;
+      // Batch überspringen statt abbrechen – unkategorisierte Einträge bleiben ohne konfidenz
+      // und werden beim nächsten Drücken von "Neu kategorisieren" erneut versucht
+      errorCount+=batch.length;
+      console.warn('[KI] Batch',i/batchSize+1,'fehlgeschlagen:',e.message,'– übersprungen, weiter mit nächstem Batch');
     }
   }
 
@@ -1742,7 +1779,14 @@ async function runKIKategorisierung(){
   $('badge-review').classList.toggle('show',reviewCount>0);
   updateSidebar();
   renderReview();
-  toast(`✓ KI-Analyse abgeschlossen · ${toKI.length} Einträge kategorisiert`);
+
+  if(errorCount>0){
+    // Noch unkategorisierte Einträge → Button bleibt nutzbar zum Fortsetzen
+    const remaining=matches.filter(m=>!m.konfidenz&&inPeriod(m.datum)).length;
+    toast(`✓ ${doneCount} kategorisiert · ${remaining} noch offen – nochmal „Neu kategorisieren" zum Fortsetzen`);
+  }else{
+    toast(`✓ KI-Analyse abgeschlossen · ${doneCount} Einträge kategorisiert`);
+  }
 }
 
 
@@ -1840,6 +1884,7 @@ function renderReview(){
           <div class="lx-amt ${isIncome?'in':'out'}">${isIncome?'+':'−'}${fmt(r.betrag_brutto||0)}</div>
           <div class="lx-thumb">${renderThumb(r,realIdx)}</div>
           <select class="cat-select" onchange="onCatChange(${realIdx},this.value)">
+            <option value=""${!r.kategorie?' selected':''} style="color:var(--text3)">– Offen –</option>
             ${Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}"${r.kategorie===k?' selected':''}>${v.label}</option>`).join('')}
           </select>
           <div>${statusLbl}</div>
@@ -1870,13 +1915,14 @@ function toggleReason(idx){
 }
 
 async function onCatChange(idx,newCat){
-  matches[idx].kategorie=newCat;
-  matches[idx].kategorie_info=CATEGORIES[newCat]||CATEGORIES.sonstiges;
+  const cat=newCat||null; // leerer String ('') aus "– Offen –" → null
+  matches[idx].kategorie=cat;
+  matches[idx].kategorie_info=cat?CATEGORIES[cat]||CATEGORIES.sonstiges:null;
   matches[idx]._localEdit=true; // Schützt vor Überschreiben beim nächsten loadMatchesFromDB
   updateSidebar();
   // In DB speichern
   if(matches[idx].id){
-    try{await DB.updateMatch(matches[idx].id,{kategorie:newCat});}
+    try{await DB.updateMatch(matches[idx].id,{kategorie:cat});}
     catch(e){console.warn('Kategorie-Update fehlgeschlagen:',e.message);}
   }
 }
@@ -2423,7 +2469,7 @@ async function hardResetMatches(){
           kategorie=rule.kategorie;konfidenz='hoch';
           begruendung=`Regel: ${rule.empfaenger_raw||rule.empfaenger_key} → ${CATEGORIES[rule.kategorie]?.label||rule.kategorie}`;
         }else{
-          kategorie=t.isEinnahme?'einnahmen_19':'sonstiges';konfidenz=null;begruendung=null;
+          kategorie=t.isEinnahme?'einnahmen_19':null;konfidenz=null;begruendung=null;
         }
         return{
           transaction_id:t.id,receipt_id:null,

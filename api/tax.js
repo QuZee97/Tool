@@ -70,9 +70,11 @@ REGELN:
 const VISION_SYSTEM = `Du bist ein erfahrener Steuerberater für deutsche Selbstständige.
 Analysiere dieses Dokument (Rechnung, Quittung oder Beleg) und extrahiere die Finanzdaten.
 
-Extrahiere:
+Extrahiere folgende Felder:
 - datum: Rechnungsdatum (Format YYYY-MM-DD)
-- beschreibung: Händler/Lieferant + kurze Leistungsbeschreibung (max 80 Zeichen)
+- absender: Firmenname des Ausstellers/Händlers (max 60 Zeichen, z.B. "Amazon EU S.à r.l.", "Rewe GmbH"), null falls nicht erkennbar
+- rechnungsnummer: Rechnungs- oder Belegnummer exakt wie auf dem Dokument (z.B. "RE-2024-001", "INV-12345", "2024-R-00815"), null falls nicht vorhanden
+- beschreibung: Händler + kurze Leistungsbeschreibung (max 80 Zeichen)
 - betrag_brutto: Gesamtbetrag inkl. MwSt (positiv)
 - betrag_netto: Nettobetrag ohne MwSt (positiv)
 - mwst_betrag: MwSt-Betrag
@@ -84,7 +86,7 @@ Extrahiere:
 KATEGORIEN:
 ${CAT_LIST}
 
-Antworte als JSON: { "entries": [ { ... } ] }`;
+Antworte als JSON: { "entries": [ { "datum": ..., "absender": ..., "rechnungsnummer": ..., "beschreibung": ..., "betrag_brutto": ..., "betrag_netto": ..., "mwst_betrag": ..., "mwst_satz": ..., "kategorie": ..., "begruendung": ..., "konfidenz": ... } ] }`;
 
 // Upload PDF to OpenAI Files API, then use file_id in message
 async function uploadPDFToOpenAI(base64, filename, apiKey) {

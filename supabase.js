@@ -226,9 +226,11 @@ const DB = {
       kategorie:      meta.kategorie || null,
       betrag:         meta.betrag || null,
       mwst_satz:      meta.mwst_satz ?? null,
-      betrag_netto:   meta.betrag_netto || null,
-      mwst_betrag:    meta.mwst_betrag || null,
-      thumbnail_data: meta.thumbnail_data || null,
+      betrag_netto:    meta.betrag_netto || null,
+      mwst_betrag:     meta.mwst_betrag || null,
+      thumbnail_data:  meta.thumbnail_data || null,
+      absender:        meta.absender || null,
+      rechnungsnummer: meta.rechnungsnummer || null,
     }).select().single();
     if (error) throw error;
     return data;
@@ -253,9 +255,11 @@ const DB = {
       kategorie:      meta.kategorie || null,
       betrag:         meta.betrag || null,
       mwst_satz:      meta.mwst_satz ?? null,
-      betrag_netto:   meta.betrag_netto || null,
-      mwst_betrag:    meta.mwst_betrag || null,
-      thumbnail_data: meta.thumbnail_data || null,
+      betrag_netto:    meta.betrag_netto || null,
+      mwst_betrag:     meta.mwst_betrag || null,
+      thumbnail_data:  meta.thumbnail_data || null,
+      absender:        meta.absender || null,
+      rechnungsnummer: meta.rechnungsnummer || null,
     }).select().single();
     if (error) throw error;
     return data;
@@ -289,7 +293,7 @@ const DB = {
       user_id:       user.id,
       transaction_id: r.transaction_id || r.id || null,
       receipt_id:    r.receipt_id || null,
-      kategorie:     r.kategorie || 'sonstiges',
+      kategorie:     r.kategorie || null,  // null = noch keine Kategorie (wird von KI gesetzt)
       betrag_brutto: r.betrag_brutto || 0,
       betrag_netto:  r.betrag_netto  || 0,
       mwst_satz:     r.mwst_satz    || 0,
