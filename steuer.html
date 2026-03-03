@@ -269,6 +269,59 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 .row-action-info{color:var(--text3);}
 .row-action-info.has-grund{color:var(--text2);}
 .row-action-info:hover{background:var(--surface3)!important;color:var(--text)!important;}
+
+/* ── KAT-HINT-BUTTON ─────────────────────────────────── */
+.hint-btn{width:18px;height:18px;border:none;background:none;color:var(--text3);cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border-radius:3px;padding:0;transition:color .12s;}
+.hint-btn:hover{color:var(--accent);}
+.hint-btn svg{width:12px;height:12px;stroke-width:2;}
+.hint-popover{position:absolute;z-index:400;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 12px;max-width:260px;font-size:11px;line-height:1.5;color:var(--text2);box-shadow:0 4px 16px rgba(0,0,0,.4);pointer-events:none;}
+.hint-popover.warn{border-color:var(--orange);background:#2a2318;}
+.hint-popover-warn{display:flex;align-items:center;gap:5px;color:var(--orange);font-weight:600;font-size:10px;margin-bottom:4px;}
+.cat-cell{display:flex;align-items:center;gap:4px;}
+
+/* ── CHAT WIDGET ─────────────────────────────────────── */
+#chat-fab{position:fixed;bottom:24px;right:24px;z-index:900;width:48px;height:48px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.4);transition:transform .15s,box-shadow .15s;}
+#chat-fab:hover{transform:scale(1.08);box-shadow:0 6px 22px rgba(0,0,0,.5);}
+#chat-fab svg{width:22px;height:22px;stroke:var(--bg);stroke-width:2;}
+#chat-fab .chat-badge{position:absolute;top:-3px;right:-3px;background:var(--red);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 4px;display:none;}
+#chat-fab .chat-badge.show{display:block;}
+#chat-panel{position:fixed;bottom:84px;right:24px;z-index:900;width:340px;max-height:520px;background:var(--surface);border:1px solid var(--border2);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.5);display:none;flex-direction:column;overflow:hidden;}
+#chat-panel.open{display:flex;}
+#chat-head{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;}
+#chat-head-info{flex:1;}
+#chat-head-title{font-size:13px;font-weight:700;color:var(--text);}
+#chat-head-sub{font-size:10px;color:var(--text3);}
+#chat-close{width:26px;height:26px;border:none;background:none;color:var(--text3);cursor:pointer;border-radius:4px;display:flex;align-items:center;justify-content:center;}
+#chat-close:hover{background:var(--surface3);color:var(--text);}
+#chat-close svg{width:14px;height:14px;}
+#chat-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;}
+#chat-msgs::-webkit-scrollbar{width:3px;}
+#chat-msgs::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+.chat-msg{max-width:88%;font-size:11.5px;line-height:1.55;padding:8px 10px;border-radius:8px;}
+.chat-msg.user{align-self:flex-end;background:var(--accent);color:#111;border-bottom-right-radius:3px;}
+.chat-msg.bot{align-self:flex-start;background:var(--surface2);color:var(--text);border-bottom-left-radius:3px;white-space:pre-wrap;}
+.chat-msg.typing{color:var(--text3);font-style:italic;}
+#chat-foot{padding:8px;border-top:1px solid var(--border);display:flex;gap:6px;flex-shrink:0;}
+#chat-input{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11.5px;padding:7px 10px;outline:none;font-family:var(--font);resize:none;min-height:34px;max-height:80px;}
+#chat-input:focus{border-color:var(--accent);}
+#chat-send{width:34px;height:34px;border-radius:var(--radius-sm);background:var(--accent);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+#chat-send:hover{background:var(--accent-dim);}
+#chat-send svg{width:15px;height:15px;stroke:var(--bg);stroke-width:2.5;}
+.chat-suggestions{display:flex;flex-direction:column;gap:4px;margin-top:4px;}
+.chat-sug-btn{background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:5px 9px;font-size:10.5px;color:var(--text2);cursor:pointer;text-align:left;font-family:var(--font);transition:border-color .12s,color .12s;}
+.chat-sug-btn:hover{border-color:var(--accent);color:var(--text);}
+
+/* ── INVOICE SIDEBAR WIDGET ──────────────────────────── */
+.sb-invoice{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:6px;text-decoration:none;display:block;transition:border-color .12s;}
+.sb-invoice:hover{border-color:var(--border2);}
+.sb-invoice-row{display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.sb-invoice-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;}
+.sb-invoice-val{font-size:13px;font-weight:700;color:var(--orange);}
+.sb-invoice-val.ok{color:var(--green);}
+.sb-invoice-sub{font-size:10px;color:var(--text3);margin-top:2px;}
+.sb-ruecklage{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 12px;margin-bottom:6px;}
+.sb-ruecklage-bar{height:4px;border-radius:2px;background:var(--border);margin-top:6px;overflow:hidden;}
+.sb-ruecklage-fill{height:100%;border-radius:2px;background:var(--orange);transition:width .4s;}
 </style>
 </head>
 <body>
@@ -360,6 +413,29 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
     <div class="sb-stat-label">USt-Zahllast</div>
     <div class="sb-stat-val blue" id="sb-zahllast">–</div>
   </div>
+
+  <!-- Steuerrücklage -->
+  <div class="sb-ruecklage" id="sb-ruecklage-wrap" style="display:none;">
+    <div class="sb-invoice-label">Steuerrücklage ≈</div>
+    <div class="sb-stat-val orange" id="sb-ruecklage" style="font-size:15px;margin-top:3px;">–</div>
+    <div class="sb-invoice-sub" id="sb-ruecklage-hint"></div>
+    <div class="sb-ruecklage-bar"><div class="sb-ruecklage-fill" id="sb-ruecklage-bar" style="width:0%"></div></div>
+  </div>
+
+  <div class="sb-section">Rechnungen</div>
+  <a href="/tool" class="sb-invoice" id="sb-invoice-widget">
+    <div class="sb-invoice-label">Offene Ausgangsrechnungen</div>
+    <div class="sb-invoice-row" style="margin-top:4px;">
+      <div class="sb-invoice-val" id="sb-invoice-val">–</div>
+      <i data-lucide="arrow-right" style="width:12px;height:12px;color:var(--text3);"></i>
+    </div>
+    <div class="sb-invoice-sub" id="sb-invoice-sub">Lade …</div>
+  </a>
+
+  <button onclick="openTaxChat()" style="width:100%;padding:8px 10px;background:var(--accent-bg);border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:7px;font-family:var(--font);margin-bottom:6px;transition:background .12s;" onmouseover="this.style.background='rgba(212,204,46,0.14)'" onmouseout="this.style.background='var(--accent-bg)'">
+    <i data-lucide="bot" style="width:13px;height:13px;flex-shrink:0;"></i> KI-Steuerberater
+  </button>
+
   <button onclick="hardResetMatches()" style="margin-top:14px;width:100%;padding:7px 10px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text3);font-size:11px;cursor:pointer;text-align:left;display:flex;align-items:center;gap:6px;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">
     <i data-lucide="refresh-cw" style="width:12px;height:12px;stroke-width:2;flex-shrink:0"></i> Kategorisierungen zurücksetzen
   </button>
@@ -892,6 +968,7 @@ function updateSidebar(){
   $('sb-ausgaben').textContent=fmt(aus);
   $('sb-gewinn').textContent=fmt(ein-aus);
   $('sb-zahllast').textContent=fmt(Math.max(0,zl));
+  updateRuecklage(ein-aus, Math.max(0,zl));
 }
 
 // ── MANUELLE EINNAHMEN ─────────────────────────────────────
@@ -1893,10 +1970,13 @@ function renderReview(){
           </div>
           <div class="lx-amt ${isIncome?'in':'out'}">${isIncome?'+':'−'}${fmt(r.betrag_brutto||0)}</div>
           <div class="lx-thumb">${renderThumb(r,realIdx)}</div>
-          <select class="cat-select" onchange="onCatChange(${realIdx},this.value)">
-            <option value=""${!r.kategorie?' selected':''} style="color:var(--text3)">– Offen –</option>
-            ${Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}"${r.kategorie===k?' selected':''}>${v.label}</option>`).join('')}
-          </select>
+          <div class="cat-cell">
+            <select class="cat-select" onchange="onCatChange(${realIdx},this.value)">
+              <option value=""${!r.kategorie?' selected':''} style="color:var(--text3)">– Offen –</option>
+              ${Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}"${r.kategorie===k?' selected':''}>${v.label}</option>`).join('')}
+            </select>
+            ${r.kategorie&&CATEGORY_HINTS[r.kategorie]?`<button class="hint-btn" onmouseenter="showCatHint(this,'${r.kategorie}')" onmouseleave="hideCatHint()" title="Steuertipp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></button>`:''}
+          </div>
           <div>${statusLbl}</div>
           <div style="display:flex;align-items:center;gap:2px;justify-content:flex-end;">
             <button class="entry-del row-action-ok${r.bestaetigt?' ok-active':''}" onclick="onConfirmToggle(${realIdx})" title="${r.bestaetigt?'Bestätigung aufheben':'Als OK markieren'}">
@@ -2436,6 +2516,7 @@ async function init(){
     loadMatchesFromDB(savedYear,savedQ),
     loadReceiptsFromDB(),
     (async()=>{ try{ txRules=await DB.getRules(); }catch(e){ console.info('Regeln nicht geladen:',e.message); txRules=[]; } })(),
+    loadOpenInvoices(),
   ]);
 
   // Race-Condition-sicher: alle parallel-Loads abgeschlossen → csvTransactions garantiert geladen.
@@ -2566,7 +2647,217 @@ async function saveSettings(){
   }catch(e){toast('Fehler: '+e.message);}
 }
 
+// ── OFFENE RECHNUNGEN ──────────────────────────────────────
+let openInvoices = [];
+async function loadOpenInvoices(){
+  try{
+    const docs = await DB.getDocuments();
+    openInvoices = (docs||[]).filter(d => d.typ === 'rechnung' && !d.status?.paid);
+    updateInvoiceWidget();
+  }catch(e){ console.info('Rechnungen nicht geladen:', e.message); }
+}
+function updateInvoiceWidget(){
+  const el = $('sb-invoice-val');
+  const sub = $('sb-invoice-sub');
+  if(!el) return;
+  if(!openInvoices.length){
+    el.textContent = 'Alle bezahlt ✓';
+    el.className = 'sb-invoice-val ok';
+    sub.textContent = 'Keine offenen Posten';
+    return;
+  }
+  const total = openInvoices.reduce((s, d) => {
+    const pos = d.positionen || [];
+    return s + pos.reduce((ps, p) => {
+      const preis = parseFloat(String(p.preis||'0').replace(/\./g,'').replace(',','.')) || 0;
+      const menge = parseFloat(String(p.menge||'1').replace(',','.')) || 1;
+      return ps + preis * menge;
+    }, 0);
+  }, 0);
+  const vatFactor = 1.19; // Annahme 19%
+  const brutto = total * vatFactor;
+  el.textContent = openInvoices.length + ' offen';
+  el.className = 'sb-invoice-val';
+  sub.textContent = '≈ ' + brutto.toLocaleString('de-DE',{minimumFractionDigits:0,maximumFractionDigits:0}) + ' € ausstehend → /tool';
+}
+
+// ── STEUERRÜCKLAGE ─────────────────────────────────────────
+function updateRuecklage(gewinn, zahllast){
+  const wrap = $('sb-ruecklage-wrap');
+  if(!wrap) return;
+  if(gewinn <= 0){ wrap.style.display='none'; return; }
+  wrap.style.display = 'block';
+  // Grobe Schätzung: ~30% ESt auf Gewinn + USt-Zahllast
+  const estEst = Math.max(0, gewinn * 0.30);
+  const total = estEst + Math.max(0, zahllast);
+  $('sb-ruecklage').textContent = total.toLocaleString('de-DE',{minimumFractionDigits:0,maximumFractionDigits:0}) + ' €';
+  $('sb-ruecklage-hint').textContent = '~30% ESt + ' + Math.max(0,zahllast).toLocaleString('de-DE',{minimumFractionDigits:0,maximumFractionDigits:0}) + ' € USt';
+  // Bar: zeigt Anteil am Gewinn (max bei 50%)
+  const pct = Math.min(100, (total / Math.max(1, gewinn)) * 100);
+  const bar = $('sb-ruecklage-bar');
+  if(bar){ bar.style.width = pct + '%'; bar.style.background = pct > 45 ? 'var(--red)' : pct > 30 ? 'var(--orange)' : 'var(--green)'; }
+}
+
+// ── KI-STEUERBERATER CHAT ──────────────────────────────────
+let taxChatMessages = [];
+let taxChatOpen = false;
+
+function openTaxChat(){
+  taxChatOpen = true;
+  $('chat-panel').classList.add('open');
+  if(!taxChatMessages.length) showChatWelcome();
+  $('chat-input').focus();
+}
+function closeTaxChat(){
+  taxChatOpen = false;
+  $('chat-panel').classList.remove('open');
+}
+function showChatWelcome(){
+  const msgs = $('chat-msgs');
+  msgs.innerHTML = `
+    <div class="chat-msg bot">👋 Hallo! Ich bin dein KI-Steuerberater.
+
+Ich kenne deine aktuellen Zahlen und helfe dir bei Steuerfragen. Was möchtest du wissen?</div>
+    <div class="chat-suggestions">
+      <button class="chat-sug-btn" onclick="sendTaxSuggestion('Was kann ich alles als Betriebsausgabe absetzen?')">💡 Was kann ich absetzen?</button>
+      <button class="chat-sug-btn" onclick="sendTaxSuggestion('Wie viel Geld sollte ich für Steuern zurücklegen?')">💰 Steuerrücklage berechnen</button>
+      <button class="chat-sug-btn" onclick="sendTaxSuggestion('Wann sind meine nächsten Steuerfristen?')">📅 Nächste Fristen</button>
+      <button class="chat-sug-btn" onclick="sendTaxSuggestion('Was ist Reverse Charge und wann gilt es für mich?')">🌍 Reverse Charge erklären</button>
+    </div>`;
+}
+function sendTaxSuggestion(text){
+  $('chat-input').value = text;
+  sendTaxMessage();
+}
+function getTaxChatContext(){
+  // Sammle aktuelle Zahlen aus dem Sidebar-State
+  const ein = parseFloat(($('sb-einnahmen').textContent||'0').replace(/[^0-9,]/g,'').replace(',','.')) || 0;
+  const aus = parseFloat(($('sb-ausgaben').textContent||'0').replace(/[^0-9,]/g,'').replace(',','.')) || 0;
+  const zl  = parseFloat(($('sb-zahllast').textContent||'0').replace(/[^0-9,]/g,'').replace(',','.')) || 0;
+  const q = selectedQuartal > 0 ? `Q${selectedQuartal}/${selectedYear}` : `Gesamtjahr ${selectedYear}`;
+  const cats = [...new Set(matches.filter(m=>m.kategorie&&inPeriod(m.datum)).map(m=>m.kategorie))].join(', ');
+  const offeneRech = openInvoices.reduce((s,d)=>{
+    return s+(d.positionen||[]).reduce((ps,p)=>{
+      const preis=parseFloat(String(p.preis||'0').replace(/\./g,'').replace(',','.'))||0;
+      const menge=parseFloat(String(p.menge||'1').replace(',','.'))||1;
+      return ps+preis*menge;
+    },0);
+  },0)*1.19;
+  return { period: q, einnahmen: ein, ausgaben: aus, gewinn: ein - aus, ustZahllast: zl,
+    offeneRechnungen: openInvoices.length ? offeneRech : null, categories: cats };
+}
+async function sendTaxMessage(){
+  const input = $('chat-input');
+  const text = (input.value||'').trim();
+  if(!text) return;
+  input.value = '';
+  input.style.height = 'auto';
+  // User-Nachricht anzeigen
+  taxChatMessages.push({ role: 'user', content: text });
+  renderChatMessages();
+  // Typing-Indikator
+  const typing = document.createElement('div');
+  typing.className = 'chat-msg bot typing';
+  typing.textContent = 'Denke nach …';
+  $('chat-msgs').appendChild(typing);
+  $('chat-msgs').scrollTop = $('chat-msgs').scrollHeight;
+  $('chat-send').disabled = true;
+  try{
+    const res = await fetch('/api/tax', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'tax_chat', messages: taxChatMessages, context: getTaxChatContext() })
+    });
+    if(!res.ok){ const err=await res.json().catch(()=>({error:'Verbindungsfehler'})); throw new Error(err.error||'API '+res.status); }
+    const data = await res.json();
+    taxChatMessages.push({ role: 'assistant', content: data.answer });
+    renderChatMessages();
+  }catch(e){
+    taxChatMessages.push({ role: 'assistant', content: '⚠ Fehler: ' + e.message });
+    renderChatMessages();
+  }finally{
+    $('chat-send').disabled = false;
+    $('chat-send').focus && $('chat-input').focus();
+  }
+}
+function renderChatMessages(){
+  const msgs = $('chat-msgs');
+  msgs.innerHTML = taxChatMessages.map(m =>
+    `<div class="chat-msg ${m.role==='user'?'user':'bot'}">${m.content.replace(/</g,'&lt;')}</div>`
+  ).join('');
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function handleTaxKeydown(e){
+  if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendTaxMessage(); }
+}
+
+// ── KATEGORIE-HINTS ────────────────────────────────────────
+const CATEGORY_HINTS = {
+  bewirtung:    { tip:'Nur 70% absetzbar. Beleg muss Anlass + Gästenamen enthalten (Bewirtungsbeleg Pflicht).', warn:true },
+  reise:        { tip:'Fahrtkostenpauschale: 0,30 €/km (ab 21. km: 0,38 €/km). Verpflegungspauschale: 14 €/Tag (ab 8h), 28 €/Tag (24h).', warn:false },
+  buero:        { tip:'Tipp: Homeoffice-Pauschale 6 €/Tag möglich (max. 1.260 €/Jahr) – lohnt sich bei wenig echten Bürokosten.', warn:false },
+  hardware:     { tip:'Unter 800 € netto: direkt als GWG absetzbar. Über 800 €: Aktivierungspflicht, dann linear über Nutzungsdauer abschreiben.', warn:false },
+  software:     { tip:'Software-Abos: sofort absetzbar. Einmalige Lizenzen über 800 € netto: Abschreibung über Nutzungsdauer prüfen.', warn:false },
+  marketing:    { tip:'Achtung: Geschenke an Kunden über 35 € netto pro Person/Jahr sind steuerlich NICHT absetzbar!', warn:true },
+  weiterbildung:{ tip:'Vollständig absetzbar wenn berufliche Relevanz gegeben. Kurs-Programm + Rechnung aufbewahren.', warn:false },
+  freelancer:   { tip:'EU-/Auslands-Dienstleister: Reverse Charge beachten – keine MwSt auf Rechnung ausweisen, aber Vorsteuer in Feld 67 UStVA.', warn:false },
+  versicherung: { tip:'Betriebliche Versicherungen (z.B. Betriebshaftpflicht, BU) voll absetzbar. Private KV/Altersvorsorge nur als Sonderausgaben.', warn:false },
+  miete:        { tip:'Heimarbeitsplatz: Tatsächliche Kosten abzüglich Privatanteil (Fläche). Oder: Homeoffice-Pauschale (einfacher).', warn:false },
+  einnahmen_0:  { tip:'EU-Leistungen (§ 4 Nr. 1b UStG): Reverse Charge greift – keine USt ausweisen. UID-Nr. des Kunden prüfen!', warn:true },
+  sonstiges:    { tip:'Spezifischere Kategorie prüfen. "Sonstiges" erhöht das Prüfungsrisiko beim Finanzamt.', warn:true },
+  bankgebuehr:  { tip:'Bankgebühren sind ohne MwSt – kein Vorsteuerabzug. Zinsen auf Geschäftskonto ebenfalls hier.', warn:false },
+  steuerberatung:{ tip:'Steuerberatungskosten sind vollständig als Betriebsausgabe absetzbar.', warn:false },
+};
+let _hintTimeout;
+function showCatHint(btn, catKey){
+  const hint = CATEGORY_HINTS[catKey];
+  if(!hint) return;
+  clearTimeout(_hintTimeout);
+  const old = document.getElementById('hint-popover');
+  if(old) old.remove();
+  const pop = document.createElement('div');
+  pop.id = 'hint-popover';
+  pop.className = 'hint-popover' + (hint.warn?' warn':'');
+  if(hint.warn) pop.innerHTML = `<div class="hint-popover-warn"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Achtung</div>`;
+  pop.innerHTML += hint.tip;
+  document.body.appendChild(pop);
+  const r = btn.getBoundingClientRect();
+  const pw = 260, ph = 80;
+  let left = r.right + 6;
+  let top  = r.top - 10;
+  if(left + pw > window.innerWidth - 8) left = r.left - pw - 6;
+  if(top + ph > window.innerHeight - 8) top = window.innerHeight - ph - 8;
+  pop.style.left = left + 'px';
+  pop.style.top  = top + 'px';
+  _hintTimeout = setTimeout(()=>{ if(document.getElementById('hint-popover')===pop) pop.remove(); }, 5000);
+}
+function hideCatHint(){ clearTimeout(_hintTimeout); _hintTimeout=setTimeout(()=>{ const p=document.getElementById('hint-popover');if(p)p.remove(); },200); }
+
 init();
 </script>
+
+<!-- ── KI-STEUERBERATER CHAT ───────────────────────────── -->
+<button id="chat-fab" onclick="openTaxChat()" title="KI-Steuerberater öffnen">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+</button>
+<div id="chat-panel">
+  <div id="chat-head">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--accent)" stroke-width="1.8"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <div id="chat-head-info">
+      <div id="chat-head-title">KI-Steuerberater</div>
+      <div id="chat-head-sub">Basierend auf deinen aktuellen Zahlen</div>
+    </div>
+    <button id="chat-close" onclick="closeTaxChat()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+  <div id="chat-msgs"></div>
+  <div id="chat-foot">
+    <textarea id="chat-input" placeholder="Steuerfrage stellen …" onkeydown="handleTaxKeydown(event)" rows="1"></textarea>
+    <button id="chat-send" onclick="sendTaxMessage()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
 </body>
 </html>

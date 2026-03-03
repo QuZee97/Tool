@@ -133,11 +133,66 @@ module.exports = async function handler(req, res) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'OPENAI_API_KEY nicht konfiguriert' });
 
-  const { entries, mode, imageData, imageType, filename } = req.body;
+  const { entries, mode, imageData, imageType, filename, messages, context } = req.body;
 
   // Nur Kategorien zurückgeben
   if (mode === 'categories') {
     return res.status(200).json({ categories: CATEGORIES });
+  }
+
+  // ── TAX CHAT MODE ──────────────────────────────────────────
+  if (mode === 'tax_chat') {
+    if (!messages?.length) return res.status(400).json({ error: 'Keine Nachrichten' });
+
+    const fmt = n => n != null ? Number(n).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '?';
+
+    const systemPrompt = `Du bist ein persönlicher Steuerberater für einen deutschen Freiberufler/Selbstständigen (Einzelunternehmer, Regelbesteuerung, UStVA-pflichtig).
+
+AKTUELLE FINANZSITUATION (${context?.period || 'aktueller Zeitraum'}):
+- Einnahmen brutto: ${fmt(context?.einnahmen)} €
+- Betriebsausgaben netto: ${fmt(context?.ausgaben)} €
+- Gewinn (EÜR): ${fmt(context?.gewinn)} €
+- USt-Zahllast: ${fmt(context?.ustZahllast)} €
+- Offene Ausgangsrechnungen: ${context?.offeneRechnungen != null ? fmt(context.offeneRechnungen) + ' €' : 'nicht geladen'}
+- Genutzte Kategorien: ${context?.categories || 'keine Angabe'}
+
+DEINE AUFGABE:
+- Beantworte Steuerfragen präzise und praxisnah
+- Zeige konkrete Steuersparpotenziale auf (was kann ich noch absetzen?)
+- Erkläre welche Ausgaben absetzbar sind und wie
+- Nenne wichtige Fristen (UStVA, Vorauszahlungen, Jahresabschluss)
+- Bei Abschreibungsfragen: erkläre GWG-Grenze (800 € netto) und lineare Abschreibung
+- Verweise auf relevante Paragraphen wo sinnvoll (§ 4 EStG etc.)
+- Antworte IMMER auf Deutsch, klar und strukturiert
+- Maximal 200 Wörter pro Antwort
+- Keine Haftungsausschlüsse – gib direkte, umsetzbare Empfehlungen`;
+
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...messages.slice(-12), // max 12 Nachrichten History
+          ],
+          temperature: 0.3,
+          max_tokens: 700,
+        }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        return res.status(502).json({ error: 'OpenAI Fehler: ' + (err.error?.message || response.statusText) });
+      }
+
+      const data = await response.json();
+      const answer = data.choices[0].message.content;
+      return res.status(200).json({ answer, usage: data.usage });
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
   }
 
   // ── VISION MODE ────────────────────────────────────────────
