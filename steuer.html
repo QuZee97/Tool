@@ -716,14 +716,22 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
   <div class="card">
     <div class="card-title">🏠 Homeoffice-Pauschale</div>
     <div class="card-sub">6 €/Tag · max. 210 Tage/Jahr = max. 1.260 €. Auch wenn du nur stundenweise zuhause arbeitest, zählt der Tag vollständig.</div>
-    <div class="extras-form-row" style="margin-bottom:10px;">
+    <div class="extras-form-row" style="margin-bottom:8px;align-items:flex-end;">
       <div class="efg">
-        <label>Datum</label>
-        <input type="date" id="ho-datum" style="width:148px;">
+        <label>Von</label>
+        <input type="date" id="ho-von" style="width:140px;">
       </div>
-      <button class="btn btn-primary btn-sm" onclick="addHoTag()"><i data-lucide="plus"></i> Hinzufügen</button>
+      <div class="efg">
+        <label>Bis <span style="font-weight:400;text-transform:none;letter-spacing:0;">(leer = nur ein Tag)</span></label>
+        <input type="date" id="ho-bis" style="width:140px;">
+      </div>
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none;font-size:11px;color:var(--text2);padding-bottom:1px;">
+        <input type="checkbox" id="ho-werktage" checked style="accent-color:var(--accent);width:13px;height:13px;flex-shrink:0;">
+        Nur Werktage
+      </label>
+      <button class="btn btn-primary btn-sm" onclick="addHoRange()"><i data-lucide="plus"></i> Hinzufügen</button>
       <button class="btn btn-ghost btn-sm" onclick="addHoTagHeute()"><i data-lucide="calendar"></i> Heute</button>
-      <button class="btn btn-ghost btn-sm" onclick="addHoTagWoche()" title="Aktuelle Arbeitswoche eintragen (Mo–Fr)"><i data-lucide="calendar-days"></i> Diese Woche</button>
+      <button class="btn btn-ghost btn-sm" onclick="addHoTagWoche()" title="Aktuelle Arbeitswoche (Mo–Fr)"><i data-lucide="calendar-days"></i> Diese Woche</button>
     </div>
     <div id="ho-list"><div style="color:var(--text3);font-size:11px;">Noch keine Homeoffice-Tage eingetragen.</div></div>
   </div>
@@ -731,29 +739,37 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
   <!-- DIENSTREISEN -->
   <div class="card">
     <div class="card-title">🚗 Dienstreisen & Fahrtkosten</div>
-    <div class="card-sub">Km-Pauschale 0,30 €/km (Privatfahrzeug). Verpflegungspauschale: 14 €/Tag (≥ 8h Abwesenheit), 28 €/Tag (24h / voller Reisetag).</div>
-    <div class="extras-form-row" style="margin-bottom:10px;">
+    <div class="card-sub">Km-Pauschale 0,30 €/km (Privatfahrzeug). Mehrtägige Reisen: 14 € An-/Abreisetag, 28 € Zwischentage – automatisch berechnet.</div>
+    <div class="extras-form-row" style="margin-bottom:10px;align-items:flex-end;">
       <div class="efg">
-        <label>Datum</label>
-        <input type="date" id="re-datum" style="width:140px;">
+        <label>Von</label>
+        <input type="date" id="re-datum" style="width:136px;">
       </div>
-      <div class="efg" style="flex:1;min-width:140px;">
+      <div class="efg">
+        <label>Bis <span style="font-weight:400;text-transform:none;letter-spacing:0;">(leer = Tagesreise)</span></label>
+        <input type="date" id="re-datum-bis" style="width:136px;" oninput="onReDatumBisChange()">
+      </div>
+      <div class="efg" style="flex:1;min-width:130px;">
         <label>Ziel / Beschreibung</label>
-        <input type="text" id="re-ziel" placeholder="z.B. Kundentermin Frankfurt" style="min-width:180px;">
+        <input type="text" id="re-ziel" placeholder="z.B. Kundenprojekt Berlin" style="min-width:170px;">
       </div>
       <div class="efg">
-        <label>km (einfach)</label>
+        <label>km gesamt</label>
         <input type="number" id="re-km" min="0" step="1" placeholder="0" style="width:72px;">
       </div>
-      <div class="efg">
-        <label>Abwesenheit</label>
-        <select id="re-dauer" style="width:160px;">
+      <div class="efg" id="re-dauer-wrap">
+        <label>Abwesenheit <span style="font-weight:400;text-transform:none;letter-spacing:0;">(Tagesreise)</span></label>
+        <select id="re-dauer" style="width:168px;">
           <option value="0">Kurz (&lt; 8h) – 0 €</option>
           <option value="14">Halbtag (≥ 8h) – 14 €</option>
           <option value="28">Ganzer Tag (24h) – 28 €</option>
         </select>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="addReise()" style="align-self:flex-end;"><i data-lucide="plus"></i> Hinzufügen</button>
+      <div class="efg" id="re-verpfl-auto-wrap" style="display:none;">
+        <label>Verpflegung (auto)</label>
+        <div id="re-verpfl-auto" style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--accent);font-size:11px;padding:5px 8px;font-weight:600;min-width:100px;">–</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="addReise()"><i data-lucide="plus"></i> Hinzufügen</button>
     </div>
     <div id="re-list"><div style="color:var(--text3);font-size:11px;">Noch keine Reisen für diesen Zeitraum eingetragen.</div></div>
   </div>
@@ -3179,37 +3195,50 @@ function saveExtras(){
 }
 
 // ── HOMEOFFICE ─────────────────────────────────────────────
-function addHoTag(){
-  const d=$('ho-datum').value;
-  if(!d){toast('Bitte ein Datum auswählen.');return;}
-  if(extrasData.homeoffice.find(h=>h.datum===d)){toast('Datum bereits vorhanden.');return;}
-  const yearDays=extrasData.homeoffice.filter(h=>h.datum.startsWith(d.slice(0,4))).length;
-  if(yearDays>=210){toast('Jahres-Maximum von 210 Tagen bereits erreicht.');return;}
-  extrasData.homeoffice.push({id:'ho_'+Date.now(),datum:d});
+function _addHoDays(days){ // days = array of 'YYYY-MM-DD'
+  const nurWerktage=$('ho-werktage')?.checked!==false;
+  let added=0,skipped=0;
+  days.forEach((ds,i)=>{
+    const dow=new Date(ds+'T12:00:00').getDay(); // 0=So, 6=Sa
+    if(nurWerktage&&(dow===0||dow===6)){return;}
+    if(extrasData.homeoffice.find(h=>h.datum===ds)){skipped++;return;}
+    const yearDays=extrasData.homeoffice.filter(h=>h.datum.startsWith(ds.slice(0,4))).length;
+    if(yearDays>=210){return;}
+    extrasData.homeoffice.push({id:'ho_'+Date.now()+'_'+i,datum:ds});
+    added++;
+  });
   extrasData.homeoffice.sort((a,b)=>a.datum.localeCompare(b.datum));
   saveExtras();renderExtras();
+  return{added,skipped};
+}
+function addHoRange(){
+  const von=$('ho-von').value;
+  const bis=$('ho-bis').value||von;
+  if(!von){toast('Bitte Von-Datum auswählen.');return;}
+  if(bis<von){toast('Bis-Datum muss nach Von-Datum liegen.');return;}
+  const days=[];
+  const cur=new Date(von+'T12:00:00');
+  const end=new Date(bis+'T12:00:00');
+  while(cur<=end){days.push(cur.toISOString().slice(0,10));cur.setDate(cur.getDate()+1);}
+  const{added,skipped}=_addHoDays(days);
+  const total=days.length;
+  if(!added&&skipped)toast('Alle Tage bereits eingetragen.');
+  else if(!added)toast('Keine Werktage im Zeitraum.');
+  else toast(`${added} Tag${added!==1?'e':''} hinzugefügt ✓${skipped?` (${skipped} bereits vorhanden)`:''}`);
 }
 function addHoTagHeute(){
   const today=new Date().toISOString().slice(0,10);
-  $('ho-datum').value=today;
-  addHoTag();
+  $('ho-von').value=today;$('ho-bis').value='';
+  const{added}=_addHoDays([today]);
+  if(!added)toast('Heute bereits eingetragen.');
 }
 function addHoTagWoche(){
-  const now=new Date();
-  const day=now.getDay();
-  const mon=new Date(now);
-  mon.setDate(now.getDate()-(day===0?6:day-1)); // Montag
-  let added=0;
-  for(let i=0;i<5;i++){
-    const d=new Date(mon);d.setDate(mon.getDate()+i);
-    const ds=d.toISOString().slice(0,10);
-    if(!extrasData.homeoffice.find(h=>h.datum===ds)){
-      const yearDays=extrasData.homeoffice.filter(h=>h.datum.startsWith(ds.slice(0,4))).length;
-      if(yearDays<210){extrasData.homeoffice.push({id:'ho_'+Date.now()+'_'+i,datum:ds});added++;}
-    }
-  }
-  extrasData.homeoffice.sort((a,b)=>a.datum.localeCompare(b.datum));
-  saveExtras();renderExtras();
+  const now=new Date();const day=now.getDay();
+  const mon=new Date(now);mon.setDate(now.getDate()-(day===0?6:day-1));
+  const days=[];
+  for(let i=0;i<5;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);days.push(d.toISOString().slice(0,10));}
+  $('ho-von').value=days[0];$('ho-bis').value=days[4];
+  const{added}=_addHoDays(days);
   if(added)toast(`${added} Wochentag${added!==1?'e':''} hinzugefügt ✓`);
   else toast('Alle Wochentage bereits eingetragen.');
 }
@@ -3219,18 +3248,51 @@ function removeHoTag(id){
 }
 
 // ── DIENSTREISEN ───────────────────────────────────────────
+function calcVerpflMultiday(von,bis){
+  // Mehrtätige Reise: An-/Abreisetag = 14 €, Zwischentage = 28 €
+  const d1=new Date(von+'T12:00:00'),d2=new Date(bis+'T12:00:00');
+  const tage=Math.round((d2-d1)/(86400000))+1;
+  if(tage===1)return null; // Single-day → use dropdown
+  if(tage===2)return 14+14; // 28
+  return 14+28*(tage-2)+14; // 28*(tage-1)
+}
+function onReDatumBisChange(){
+  const von=$('re-datum').value,bis=$('re-datum-bis').value;
+  const autoWrap=$('re-verpfl-auto-wrap'),durWrap=$('re-dauer-wrap'),autoEl=$('re-verpfl-auto');
+  if(bis&&bis>von){
+    const v=calcVerpflMultiday(von,bis);
+    const d1=new Date(von+'T12:00:00'),d2=new Date(bis+'T12:00:00');
+    const tage=Math.round((d2-d1)/86400000)+1;
+    durWrap.style.display='none';
+    autoWrap.style.display='block';
+    autoEl.textContent=v!==null?`${fmt(v)} (${tage} Tage)`:'–';
+  } else {
+    durWrap.style.display='block';autoWrap.style.display='none';
+  }
+}
 function addReise(){
   const datum=$('re-datum').value;
+  const datumBis=$('re-datum-bis').value||datum;
   const ziel=($('re-ziel').value||'').trim();
   const km=parseFloat($('re-km').value||0)||0;
-  const verpfl=parseInt($('re-dauer').value||0)||0;
-  if(!datum){toast('Bitte ein Datum auswählen.');return;}
+  if(!datum){toast('Bitte Von-Datum auswählen.');return;}
   if(!ziel){toast('Bitte Ziel / Beschreibung eingeben.');return;}
+  if(datumBis&&datumBis<datum){toast('Bis-Datum muss nach Von-Datum liegen.');return;}
+  const isMulti=datumBis&&datumBis>datum;
+  const d1=new Date(datum+'T12:00:00'),d2=new Date(datumBis+'T12:00:00');
+  const tage=isMulti?Math.round((d2-d1)/86400000)+1:1;
+  const verpfl=isMulti?(calcVerpflMultiday(datum,datumBis)||0):parseInt($('re-dauer').value||0)||0;
   const kmP=Math.round(km*0.30*100)/100;
-  extrasData.reisen.push({id:'re_'+Date.now(),datum,ziel,km,verpfl,km_pauschale:kmP,total:Math.round((kmP+verpfl)*100)/100});
+  extrasData.reisen.push({
+    id:'re_'+Date.now(),
+    datum,datum_bis:isMulti?datumBis:null,tage,
+    ziel,km,verpfl,km_pauschale:kmP,
+    total:Math.round((kmP+verpfl)*100)/100
+  });
   extrasData.reisen.sort((a,b)=>a.datum.localeCompare(b.datum));
-  $('re-datum').value='';$('re-ziel').value='';$('re-km').value='';$('re-dauer').value='0';
-  saveExtras();renderExtras();toast('Reise hinzugefügt ✓');
+  $('re-datum').value='';$('re-datum-bis').value='';$('re-ziel').value='';$('re-km').value='';$('re-dauer').value='0';
+  $('re-dauer-wrap').style.display='block';$('re-verpfl-auto-wrap').style.display='none';
+  saveExtras();renderExtras();toast(`Reise${tage>1?` (${tage} Tage)`:''} hinzugefügt ✓`);
 }
 function removeReise(id){
   extrasData.reisen=extrasData.reisen.filter(r=>r.id!==id);
@@ -3347,18 +3409,24 @@ function renderExtras(){
     reList.innerHTML='<div style="color:var(--text3);font-size:11px;padding:2px 0;">Noch keine Reisen für '+periodLabel+' eingetragen.</div>';
   } else {
     reList.innerHTML=`<table class="entry-table" style="margin-top:4px;">
-      <thead><tr><th>Datum</th><th>Ziel / Beschreibung</th><th style="text-align:right;">km</th><th style="text-align:right;">km-P.</th><th style="text-align:right;">Verpfl.</th><th style="text-align:right;">Gesamt</th><th></th></tr></thead>
+      <thead><tr><th>Zeitraum</th><th>Ziel / Beschreibung</th><th style="text-align:right;">Tage</th><th style="text-align:right;">km</th><th style="text-align:right;">km-P.</th><th style="text-align:right;">Verpfl.</th><th style="text-align:right;">Gesamt</th><th></th></tr></thead>
       <tbody>`+
-      periodReisen.map(r=>`<tr>
-        <td>${fmtDate(r.datum)}</td><td>${r.ziel}</td>
-        <td style="text-align:right;">${r.km}&thinsp;km</td>
-        <td style="text-align:right;">${fmt(r.km_pauschale)}</td>
-        <td style="text-align:right;">${r.verpfl>0?fmt(r.verpfl):'–'}</td>
-        <td style="text-align:right;font-weight:600;">${fmt(r.total)}</td>
-        <td><button class="entry-del" onclick="removeReise('${r.id}')"><i data-lucide="trash-2"></i></button></td>
-      </tr>`).join('')+
+      periodReisen.map(r=>{
+        const datumLabel=r.datum_bis&&r.datum_bis!==r.datum
+          ?`${fmtDate(r.datum)} – ${fmtDate(r.datum_bis)}`
+          :fmtDate(r.datum);
+        return `<tr>
+          <td style="white-space:nowrap;">${datumLabel}</td>
+          <td>${r.ziel}</td>
+          <td style="text-align:right;">${r.tage>1?r.tage:'–'}</td>
+          <td style="text-align:right;">${r.km?r.km+'&thinsp;km':'–'}</td>
+          <td style="text-align:right;">${r.km_pauschale>0?fmt(r.km_pauschale):'–'}</td>
+          <td style="text-align:right;">${r.verpfl>0?fmt(r.verpfl):'–'}</td>
+          <td style="text-align:right;font-weight:600;">${fmt(r.total)}</td>
+          <td><button class="entry-del" onclick="removeReise('${r.id}')"><i data-lucide="trash-2"></i></button></td>
+        </tr>`;}).join('')+
       `<tr style="font-weight:700;background:var(--surface2);">
-        <td colspan="5" style="text-align:right;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;">Gesamt ${periodLabel}</td>
+        <td colspan="6" style="text-align:right;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;">Gesamt ${periodLabel}</td>
         <td style="text-align:right;">${fmt(reBetrag)}</td><td></td></tr>
       </tbody></table>`;
   }
