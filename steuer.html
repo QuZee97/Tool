@@ -37,9 +37,9 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 
 /* LAYOUT */
 #app{display:flex;flex:1;overflow:hidden;height:calc(100vh - 52px);}
-#sidebar{width:240px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;padding:20px 16px;position:sticky;top:52px;align-self:flex-start;height:100%;}
+#sidebar{width:240px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;padding:20px 16px;height:100%;}
 #main{flex:1;overflow-y:auto;padding:28px 32px;}
-#main>*{max-width:760px;}
+#main>*{max-width:760px;margin-left:auto;margin-right:auto;}
 #main::-webkit-scrollbar{width:5px;}
 #main::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
 
@@ -176,7 +176,7 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 .conf-dot.niedrig{background:var(--red);}
 /* Multi-Beleg Thumbs */
 .thumb-slot.thumb-sm{width:32px;height:32px;}
-.thumb-unlink{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.65);color:#fff;font-size:16px;font-weight:900;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;border-radius:3px;padding:0;line-height:1;}
+.thumb-unlink{position:absolute;top:2px;right:2px;width:14px;height:14px;background:rgba(180,40,40,.85);color:#fff;font-size:10px;font-weight:700;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;border-radius:2px;padding:0;line-height:1;z-index:2;}
 .thumb-slot.thumb-sm:hover .thumb-unlink{display:flex;}
 .thumb-add{width:20px;height:32px;border-radius:4px;}
 .thumb-extra{font-size:9px;color:var(--text3);font-weight:700;width:14px;display:flex;align-items:center;justify-content:center;}
@@ -540,10 +540,13 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
   <div class="page-sub">Alle gespeicherten Belege im gewählten Zeitraum. Fehlende Daten ergänzen oder Belege löschen.</div>
 
   <div class="card" style="padding:0;overflow:hidden;">
-    <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <span style="font-size:12px;font-weight:600;">Gespeicherte Belege</span>
-      <span style="flex:1;"></span>
-      <span id="beleg-uebersicht-count" style="font-size:11px;color:var(--text3);"></span>
+      <div style="position:relative;flex:1;min-width:160px;">
+        <svg style="position:absolute;left:8px;top:50%;transform:translateY(-50%);width:12px;height:12px;stroke:var(--text3);stroke-width:2;pointer-events:none;" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="beleg-uebersicht-search" type="text" placeholder="Suche nach Name, Datum …" oninput="renderBelegUebersicht()" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:5px 8px 5px 26px;outline:none;font-family:var(--font);" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border2)'">
+      </div>
+      <span id="beleg-uebersicht-count" style="font-size:11px;color:var(--text3);white-space:nowrap;"></span>
       <button class="btn btn-ghost btn-sm" onclick="rematchAllBelege()" id="btn-rematch" title="Alle Belege erneut den Transaktionen zuordnen (auch bereits abgespeicherte)">
         <i data-lucide="git-merge"></i> Erneut zuordnen
       </button>
@@ -1384,10 +1387,20 @@ function renderBelegUebersicht(){
   });
   // Nur Belege im gewählten Zeitraum (kein Datum → immer anzeigen)
   // inPeriodLoose: ±14 Tage Puffer an Quartal-/Jahresgrenzen (z.B. Beleg 04.01. bei Q4-Ansicht)
-  const filtered=allRecs.filter(r=>!r.datum||inPeriodLoose(r.datum));
+  let filtered=allRecs.filter(r=>!r.datum||inPeriodLoose(r.datum));
+  // Suchfilter
+  const searchQ=($('beleg-uebersicht-search')?.value||'').toLowerCase().trim();
+  if(searchQ){
+    filtered=filtered.filter(r=>{
+      const name=(r.beschreibung||r.filename||'').toLowerCase();
+      const datum=(r.datum||'').toLowerCase();
+      const kat=(CATEGORIES[r.kategorie]?.label||r.kategorie||'').toLowerCase();
+      return name.includes(searchQ)||datum.includes(searchQ)||kat.includes(searchQ);
+    });
+  }
   cnt.textContent=filtered.length?`${filtered.length} Beleg${filtered.length>1?'e':''}` :'';
   if(!filtered.length){
-    el.innerHTML=`<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">${allRecs.length?'Keine Belege im gewählten Zeitraum.':'Keine Belege vorhanden. Lade Belege in Schritt 1 hoch und lasse sie von der KI auslesen.'}</div>`;
+    el.innerHTML=`<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px;">${searchQ?'Keine Treffer für "'+searchQ+'"':(allRecs.length?'Keine Belege im gewählten Zeitraum.':'Keine Belege vorhanden. Lade Belege in Schritt 1 hoch und lasse sie von der KI auslesen.')}</div>`;
     return;
   }
   // Sortieren: neueste zuerst
@@ -1395,12 +1408,12 @@ function renderBelegUebersicht(){
   el.innerHTML=filtered.map((rec,i)=>{
     const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
     const thumbHtml=rec.thumbnail_data
-      ?`<img src="${rec.thumbnail_data}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0;">`
-      :`<div style="width:36px;height:36px;border-radius:4px;background:var(--surface3);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;font-weight:700;color:var(--text3);">${isPDF?'PDF':'IMG'}</div>`;
+      ?`<img src="${rec.thumbnail_data}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0;cursor:pointer;" onclick="openReceiptPreview('${rec.id}')" title="Beleg öffnen">`
+      :`<div style="width:36px;height:36px;border-radius:4px;background:var(--surface3);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;font-weight:700;color:var(--text3);cursor:pointer;" onclick="openReceiptPreview('${rec.id}')" title="Beleg öffnen">${isPDF?'PDF':'IMG'}</div>`;
     const missingData=!rec.datum||!rec.betrag||!rec.beschreibung;
-    return`<div style="display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:11px;" class="${missingData?'lx-row unsicher':''}">
+    return`<div style="display:grid;grid-template-columns:36px 1fr auto;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border);font-size:11px;transition:background .1s;" class="${missingData?'lx-row unsicher':''}" onmouseenter="this.style.background='var(--surface2)'" onmouseleave="this.style.background=''">
       ${thumbHtml}
-      <div>
+      <div style="cursor:pointer;min-width:0;" onclick="openReceiptPreview('${rec.id}')" title="Beleg öffnen">
         <div style="color:var(--text2);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${rec.beschreibung||rec.filename||'–'}</div>
         <div style="color:var(--text3);font-size:10px;margin-top:2px;">
           ${rec.datum?fmtDate(rec.datum):'<span style="color:var(--orange);">Datum fehlt</span>'}
@@ -1409,11 +1422,76 @@ function renderBelegUebersicht(){
         </div>
       </div>
       <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-sm" onclick="openReceiptPreview('${rec.id}')" title="Öffnen"><i data-lucide="eye"></i></button>
         <button class="btn btn-ghost btn-sm" onclick="openBelegEdit('${rec.id}')" title="Bearbeiten"><i data-lucide="pencil"></i></button>
         <button class="btn btn-red btn-sm" onclick="deleteBelegEntry('${rec.id}')" title="Löschen"><i data-lucide="trash-2"></i></button>
       </div>
     </div>`;
   }).join('');
+  lucide.createIcons();
+}
+
+// Öffnet Beleg-Vorschau direkt per Receipt-ID (ohne Match-Kontext – für Seite 2)
+function openReceiptPreview(id){
+  // Beleg suchen (DB + Session)
+  const allKnown=[...receipts,...belegFiles.filter(b=>b.receiptRecord).map(b=>({...b.receiptRecord,thumbnail_data:b.thumbnail||b.receiptRecord?.thumbnail_data||null}))];
+  const rec=allKnown.find(r=>r?.id===id);
+  if(!rec)return;
+
+  // Modal-State: kein Match-Kontext (nur Vorschau)
+  modalMatchIdx=null;
+  modalReceiptId=id;
+
+  // Titel und Buttons anpassen
+  $('modal-beleg-title').textContent=rec.filename||'Beleg';
+  $('modal-beleg-unlink').style.display='none';   // kein Unlink ohne Match
+  $('modal-beleg-change').style.display='none';   // kein Beleg-Wechsel ohne Match
+
+  const img=$('modal-beleg-img');
+  const iframe=$('modal-beleg-iframe');
+  const fallback=$('modal-beleg-pdf-fallback');
+  const extLink=$('modal-beleg-extlink');
+  const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
+
+  img.style.display='none'; iframe.style.display='none'; fallback.style.display='none'; extLink.style.display='none';
+
+  if(isPDF&&rec.signed_url){
+    extLink.href=rec.signed_url; extLink.style.display='inline-flex';
+    fallback.style.display='flex'; fallback.style.flexDirection='column';
+    $('modal-beleg-pdf-name').textContent='PDF wird geladen …';
+    $('modal-beleg-pdf-link').style.display='none';
+    iframe.removeAttribute('srcdoc');
+    if(iframe._blobUrl){URL.revokeObjectURL(iframe._blobUrl);iframe._blobUrl=null;}
+    fetch(rec.signed_url)
+      .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.blob();})
+      .then(blob=>{
+        const pdfBlob=new Blob([blob],{type:'application/pdf'});
+        const blobUrl=URL.createObjectURL(pdfBlob);
+        iframe._blobUrl=blobUrl; iframe.src=blobUrl;
+        iframe.style.display='block'; fallback.style.display='none';
+      })
+      .catch(()=>{
+        fallback.style.display='flex';
+        $('modal-beleg-pdf-name').textContent=rec.filename||'PDF';
+        $('modal-beleg-pdf-link').style.display=''; $('modal-beleg-pdf-link').href=rec.signed_url;
+      });
+  } else if(isPDF&&!rec.signed_url){
+    fallback.style.display='flex';
+    $('modal-beleg-pdf-name').textContent=rec.filename||'PDF (kein Link verfügbar)';
+    $('modal-beleg-pdf-link').href='#';
+  } else {
+    img.style.display='block'; img.src=rec.signed_url||rec.thumbnail_data||'';
+    if(rec.signed_url){extLink.href=rec.signed_url; extLink.style.display='inline-flex';}
+  }
+
+  $('modal-beleg-meta').innerHTML=`
+    <div><span style="color:var(--text3);">Datum:</span> ${fmtDate(rec.datum||'')}</div>
+    <div><span style="color:var(--text3);">Betrag:</span> ${rec.betrag?fmt(parseFloat(rec.betrag)):'–'}</div>
+    <div><span style="color:var(--text3);">Beschreibung:</span> ${rec.beschreibung||rec.filename||'–'}</div>
+    <div><span style="color:var(--text3);">Kategorie:</span> ${CATEGORIES[rec.kategorie]?.label||rec.kategorie||'–'}</div>
+  `;
+  $('modal-beleg-tx').innerHTML=''; // kein Match-Kontext
+  $('modal-beleg').classList.add('open');
   lucide.createIcons();
 }
 
@@ -2473,6 +2551,9 @@ function closeModal(id){
       if(f._blobUrl){URL.revokeObjectURL(f._blobUrl);f._blobUrl=null;}
       f.src='about:blank';
     }
+    // Buttons wieder einblenden (wurden ggf. in openReceiptPreview versteckt)
+    const ul=$('modal-beleg-unlink'); if(ul)ul.style.display='';
+    const ch=$('modal-beleg-change'); if(ch)ch.style.display='';
   }
 }
 
