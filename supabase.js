@@ -293,6 +293,7 @@ const DB = {
       user_id:       user.id,
       transaction_id: r.transaction_id || r.id || null,
       receipt_id:    r.receipt_id || null,
+      receipt_ids:   Array.isArray(r.receipt_ids)&&r.receipt_ids.length ? r.receipt_ids : null,
       kategorie:     r.kategorie || null,  // null = noch keine Kategorie (wird von KI gesetzt)
       betrag_brutto: r.betrag_brutto || 0,
       betrag_netto:  r.betrag_netto  || 0,
@@ -344,8 +345,13 @@ const DB = {
     if (error) throw error;
     if (!matchData || !matchData.length) return [];
 
-    // Hole alle referenzierten Belege in einem Query
-    const receiptIds = [...new Set(matchData.filter(m => m.receipt_id).map(m => m.receipt_id))];
+    // Hole alle referenzierten Belege in einem Query (inkl. Multi-Beleg receipt_ids)
+    const receiptIdSet = new Set();
+    matchData.forEach(m => {
+      if (m.receipt_id) receiptIdSet.add(m.receipt_id);
+      if (Array.isArray(m.receipt_ids)) m.receipt_ids.forEach(id => receiptIdSet.add(id));
+    });
+    const receiptIds = [...receiptIdSet];
     let receiptMap = {};
     if (receiptIds.length) {
       const { data: recs } = await db.from('receipts')
@@ -357,6 +363,10 @@ const DB = {
     return matchData.map(m => ({
       ...m,
       receipts: m.receipt_id ? (receiptMap[m.receipt_id] || null) : null,
+      // Multi-Beleg: Liste aller zugeordneten Receipt-Objekte
+      receipts_list: Array.isArray(m.receipt_ids) && m.receipt_ids.length
+        ? m.receipt_ids.map(id => receiptMap[id]).filter(Boolean)
+        : (m.receipt_id && receiptMap[m.receipt_id] ? [receiptMap[m.receipt_id]] : null),
     }));
   },
   async updateMatch(id, changes) {

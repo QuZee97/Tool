@@ -24,7 +24,8 @@ const CATEGORIES = {
   miete:           { label: 'Miete / Raumkosten',            type: 'expense', vat: 0.19 },
   bankgebuehr:     { label: 'Bankgebühren & Zinsen',         type: 'expense', vat: 0 },
   sonstiges:       { label: 'Sonstiges',                     type: 'expense', vat: 0.19 },
-  einnahmen_eu:    { label: 'EU/Drittland (§4 Nr.1b, ohne MwSt.)', type: 'income',  vat: 0 },
+  einnahmen_eu:        { label: 'EU-Leistungen (§4 Nr.1b, innergemeinschaftlich)',   type: 'income',  vat: 0 },
+  einnahmen_drittland: { label: 'Drittland-Leistungen (§4 Nr.1a, außerhalb EU)',     type: 'income',  vat: 0 },
   rc_eingang:      { label: 'Reverse Charge Eingang (§13b)', type: 'expense', vat: 0.19 },
   privat:          { label: 'Privat (nicht absetzbar)',       type: 'private', vat: 0 },
 };
@@ -62,8 +63,8 @@ REGELN:
 - Beträge immer positiv (Vorzeichen wird vom System bestimmt)
 - Wenn Buchung eindeutig privat ist: kategorie = "privat"
 - Bankgebühren, Kontoführung, Zinsen: kategorie = "bankgebuehr" (MwSt = 0)
-- EU-Ausland Einnahmen (B2B Leistungen an EU-Unternehmen, §4 Nr.1b): kategorie = "einnahmen_eu", keine MwSt ausweisen
-- Drittland-Einnahmen (USA, UK etc.): kategorie = "einnahmen_eu" (steuerfreie Ausfuhr)
+- EU-Ausland Einnahmen (B2B Leistungen an EU-Unternehmen, §4 Nr.1b, z.B. Österreich, Frankreich): kategorie = "einnahmen_eu", keine MwSt ausweisen
+- Drittland-Einnahmen (§4 Nr.1a, außerhalb EU: USA, UK, Schweiz, etc.): kategorie = "einnahmen_drittland", keine MwSt ausweisen
 - EU-Ausland Ausgaben ohne MwSt (z.B. Meta Ads, Google Cloud, Adobe, Stripe, GitHub, Slack, Figma): kategorie = "rc_eingang" (Reverse Charge §13b), unklar=true zur Prüfung
 - Software-Abos (Figma, Notion, Slack, Adobe, GitHub etc.): kategorie = "software"
 - Bewirtungsbeleg: limitFactor 0.7 beachten (nur 70% absetzbar)

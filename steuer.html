@@ -140,11 +140,11 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 .tx-tag.manual{background:var(--blue-bg);color:var(--blue);}
 
 /* LEXOFFICE-STYLE REVIEW TABLE */
-.lx-row{display:grid;grid-template-columns:68px minmax(0,1fr) 88px 56px 150px 70px 76px;align-items:center;gap:6px;padding:7px 14px;border-bottom:1px solid var(--border);font-size:11px;transition:background .1s;min-height:52px;}
+.lx-row{display:grid;grid-template-columns:68px minmax(0,1fr) 88px 88px 150px 70px 76px;align-items:center;gap:6px;padding:7px 14px;border-bottom:1px solid var(--border);font-size:11px;transition:background .1s;min-height:52px;}
 .lx-row:hover{background:var(--surface2);}
 .lx-row.unsicher{box-shadow:inset 3px 0 0 var(--orange);}
 .lx-row.bestaetigt{box-shadow:inset 3px 0 0 var(--green);}
-.lx-header{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);padding:6px 14px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:68px minmax(0,1fr) 88px 56px 150px 70px 76px;gap:6px;}
+.lx-header{font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);padding:6px 14px;border-bottom:1px solid var(--border);display:grid;grid-template-columns:68px minmax(0,1fr) 88px 88px 150px 70px 76px;gap:6px;}
 .lx-date{color:var(--text3);font-size:10px;white-space:nowrap;}
 .lx-desc{min-width:0;overflow:hidden;}
 .lx-desc-main{color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -152,7 +152,7 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 .lx-amt{font-weight:600;font-size:12px;text-align:right;white-space:nowrap;}
 .lx-amt.in{color:var(--green);}
 .lx-amt.out{color:var(--red);}
-.lx-thumb{display:flex;align-items:center;justify-content:center;width:56px;}
+.lx-thumb{display:flex;align-items:center;justify-content:center;gap:2px;width:88px;overflow:hidden;}
 .lx-row-wrap{border-bottom:1px solid var(--border);}
 .lx-row-wrap .lx-row{border-bottom:none;}
 .reason-row{display:flex;align-items:flex-start;gap:8px;padding:6px 14px 8px 14px;background:var(--surface2);font-size:11px;color:var(--text3);line-height:1.5;}
@@ -174,6 +174,12 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
 .conf-dot.hoch{background:var(--green);}
 .conf-dot.mittel{background:var(--orange);}
 .conf-dot.niedrig{background:var(--red);}
+/* Multi-Beleg Thumbs */
+.thumb-slot.thumb-sm{width:32px;height:32px;}
+.thumb-unlink{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.65);color:#fff;font-size:16px;font-weight:900;border:none;cursor:pointer;display:none;align-items:center;justify-content:center;border-radius:3px;padding:0;line-height:1;}
+.thumb-slot.thumb-sm:hover .thumb-unlink{display:flex;}
+.thumb-add{width:20px;height:32px;border-radius:4px;}
+.thumb-extra{font-size:9px;color:var(--text3);font-weight:700;width:14px;display:flex;align-items:center;justify-content:center;}
 
 /* KONFIDENZ BADGE */
 .konfidenz{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px;white-space:nowrap;}
@@ -861,7 +867,7 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
     </div>
     <div class="modal-foot">
       <button class="btn btn-red btn-sm" id="modal-beleg-unlink" onclick="unlinkReceipt()"><i data-lucide="link-2-off"></i> Verknüpfung lösen</button>
-      <button class="btn btn-ghost btn-sm" id="modal-beleg-change" onclick="openPickerFromModal()"><i data-lucide="refresh-cw"></i> Anderen Beleg wählen</button>
+      <button class="btn btn-ghost btn-sm" id="modal-beleg-change" onclick="openPickerFromModal()"><i data-lucide="plus-circle"></i> Weiteren Beleg hinzufügen</button>
       <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-beleg')">Schließen</button>
     </div>
   </div>
@@ -910,7 +916,8 @@ const CATEGORIES = {
   miete:{label:'Miete / Raumkosten',type:'expense',vat:0.19},
   bankgebuehr:{label:'Bankgebühren',type:'expense',vat:0},
   sonstiges:{label:'Sonstiges',type:'expense',vat:0.19},
-  einnahmen_eu:{label:'EU/Drittland (§4 Nr.1b, ohne MwSt.)',type:'income',vat:0,euLeistung:true},
+  einnahmen_eu:{label:'EU-Leistungen (§4 Nr.1b, innergemeinschaftlich)',type:'income',vat:0,euLeistung:true},
+  einnahmen_drittland:{label:'Drittland-Leistungen (§4 Nr.1a, außerhalb EU)',type:'income',vat:0,drittland:true},
   rc_eingang:{label:'Reverse Charge Eingang (§13b)',type:'expense',vat:0.19,reverseCharge:true},
   privat:{label:'Privat (nicht absetzbar)',type:'private',vat:0},
   privatentnahme:{label:'Privatentnahme',type:'private',vat:0},
@@ -933,7 +940,9 @@ const EXTRAS_LS_KEY = 'steuer_extras_v2';
 let extrasData = { homeoffice:[], reisen:[], anlagen:[] };
 // Modal-State
 let modalMatchIdx   = null; // welcher Match ist gerade im Modal
+let modalReceiptId  = null; // welcher Beleg ist gerade im Beleg-Modal
 let pickerSelected  = null; // ausgewählter Receipt im Picker
+let pickerMode      = 'replace'; // 'replace' = Beleg ersetzen, 'add' = weiteren Beleg hinzufügen
 
 // ── HELPERS ────────────────────────────────────────────────
 const fmt    = n => n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+'\u00a0€';
@@ -1016,6 +1025,21 @@ function inPeriod(datum){
     return datum>=`${selectedYear-1}-12-18`&&datum<=`${selectedYear+1}-01-14`;
   }
   // Quartal: nur exaktes Jahr
+  if(!datum.startsWith(String(selectedYear)))return false;
+  const m=parseInt(datum.slice(5,7));
+  return{1:[1,2,3],2:[4,5,6],3:[7,8,9],4:[10,11,12]}[selectedQuartal].includes(m);
+}
+
+// Wie inPeriod, aber OHNE Jahreswechsel-Puffer → für Finanztotals (Sidebar, EÜR, UStVA)
+// Puffer-Belege vom Vorjahr (z.B. Dez) sollen in der Review sichtbar sein,
+// aber NICHT in die Summen einfließen bis sie einer Zahlung im Kalenderjahr zugeordnet sind.
+function inPeriodStrict(datum){
+  if(!datum)return false;
+  if(selectedQuartal===0){
+    // Ganzes Jahr: exakt Jan 1 – Dez 31 (kein Jahreswechsel-Puffer)
+    return datum>=`${selectedYear}-01-01`&&datum<=`${selectedYear}-12-31`;
+  }
+  // Quartal: identisch mit inPeriod
   if(!datum.startsWith(String(selectedYear)))return false;
   const m=parseInt(datum.slice(5,7));
   return{1:[1,2,3],2:[4,5,6],3:[7,8,9],4:[10,11,12]}[selectedQuartal].includes(m);
@@ -1128,9 +1152,9 @@ async function clearCSVDataPeriod(){
 // ── SIDEBAR-STATS ──────────────────────────────────────────
 function updateSidebar(){
   const src=matches.length?matches:aiResults;
-  // Nur Matches im aktuellen Zeitraum zählen – Puffer-Einträge aus anderen Quartalen
-  // (±14 Tage aus loadMatchesFromDB) dürfen die Sidebar-Summen nicht verfälschen
-  const periodSrc=src.filter(r=>inPeriod(r.datum)||!r.datum);
+  // Nur Matches im aktuellen Zeitraum zählen – inPeriodStrict (kein Puffer) für korrekte Summen
+  // Puffer-Belege (z.B. Dez-Vorjahr bei Ganzes-Jahr-Ansicht) werden NICHT mitgezählt
+  const periodSrc=src.filter(r=>inPeriodStrict(r.datum)||!r.datum);
   if(!periodSrc.length){$('sb-einnahmen').textContent='–';$('sb-ausgaben').textContent='–';$('sb-gewinn').textContent='–';$('sb-zahllast').textContent='–';return;}
   let ein=0,aus=0,zl=0;
   periodSrc.forEach(r=>{
@@ -2066,33 +2090,58 @@ function getReceiptForMatch(m){
   return null;
 }
 
+function getReceiptsForMatch(m){
+  // Liefert ALLE Receipt-Objekte für einen Match (Multi-Beleg-Support)
+  // Quellen: receipts_list (DB-Join) > receipt_ids array > receipt_id (compat)
+  if(m.receipts_list?.length) return m.receipts_list;
+  const ids=Array.isArray(m.receipt_ids)&&m.receipt_ids.length
+    ? m.receipt_ids
+    : (m.receipt_id ? [m.receipt_id] : []);
+  if(!ids.length) return [];
+  // Alle bekannten Belege: aus DB + aus Session
+  const allRecs=[...receipts];
+  belegFiles.forEach(b=>{
+    if(b.receiptRecord&&!allRecs.find(r=>r.id===b.receiptRecord.id)){
+      allRecs.push({...b.receiptRecord,thumbnail_data:b.thumbnail||b.receiptRecord?.thumbnail_data||null});
+    }
+  });
+  return ids.map(id=>allRecs.find(r=>r.id===id)).filter(Boolean);
+}
+
 function renderThumb(m,idx){
-  const rec=getReceiptForMatch(m);
-  if(rec){
-    const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
-    const confDot=m.unklar?'niedrig':(m.konfidenz||'hoch');
-    // Immer Modal öffnen (Modal hat iframe-PDF-Viewer + "Im Browser öffnen"-Button)
-    if(isPDF){
-      return`<div class="thumb-slot has-thumb" onclick="openBelegModal(${idx})" title="${rec.filename||'PDF'}">
-        <div class="pdf-lbl"><i data-lucide="file-text" style="width:14px;height:14px;margin-bottom:2px;"></i><br>${(rec.filename||'').replace(/\.[^.]+$/,'').slice(0,7)}</div>
-        <div class="conf-dot ${confDot}"></div>
-      </div>`;
-    }
-    if(rec.thumbnail_data){
-      return`<div class="thumb-slot has-thumb" onclick="openBelegModal(${idx})" title="${rec.filename||'Beleg'}">
-        <img src="${rec.thumbnail_data}" alt="Beleg">
-        <div class="conf-dot ${confDot}"></div>
-      </div>`;
-    }
-    return`<div class="thumb-slot has-thumb" onclick="openBelegModal(${idx})" title="${rec.filename||'Beleg'}">
-      <div class="pdf-lbl"><i data-lucide="paperclip" style="width:14px;height:14px;margin-bottom:2px;"></i><br>${(rec.filename||'').slice(0,7)}</div>
-      <div class="conf-dot ${confDot}"></div>
+  const recs=getReceiptsForMatch(m);
+  // Kein Beleg → "+" Slot (volle Größe)
+  if(!recs.length){
+    return`<div class="thumb-slot" onclick="openPicker(${idx},'replace')" title="Beleg zuordnen">
+      <div class="add-lbl">+</div>
     </div>`;
   }
-  // Kein Beleg → "+" Slot
-  return`<div class="thumb-slot" onclick="openPicker(${idx})" title="Beleg zuordnen">
-    <div class="add-lbl">+</div>
+  // Einen oder mehrere Belege: kleine Thumbs + "+" zum Hinzufügen
+  const MAX_SHOWN=2;
+  const shown=recs.slice(0,MAX_SHOWN);
+  const extra=recs.length-MAX_SHOWN;
+  const confDot=m.unklar?'niedrig':(m.konfidenz||'hoch');
+  const thumbHtml=shown.map(rec=>{
+    const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
+    let inner;
+    if(rec.thumbnail_data){
+      inner=`<img src="${rec.thumbnail_data}" alt="${(rec.filename||'').replace(/"/g,'')}" style="width:100%;height:100%;object-fit:cover;border-radius:2px;">`;
+    } else if(isPDF){
+      inner=`<div class="pdf-lbl" style="font-size:7px;"><i data-lucide="file-text" style="width:11px;height:11px;margin-bottom:1px;"></i><br>${(rec.filename||'').replace(/\.[^.]+$/,'').slice(0,5)}</div>`;
+    } else {
+      inner=`<div class="pdf-lbl" style="font-size:7px;"><i data-lucide="paperclip" style="width:11px;height:11px;"></i></div>`;
+    }
+    return`<div class="thumb-slot has-thumb thumb-sm" onclick="openBelegModal(${idx},'${rec.id}')" title="${(rec.filename||'Beleg').replace(/"/g,'')}">
+      ${inner}
+      <div class="conf-dot ${confDot}"></div>
+      <button class="thumb-unlink" onclick="event.stopPropagation();unlinkReceiptById(${idx},'${rec.id}')" title="Beleg lösen">×</button>
+    </div>`;
+  }).join('');
+  const extraHtml=extra>0?`<div class="thumb-extra" title="${extra} weitere Belege">+${extra}</div>`:'';
+  const addHtml=`<div class="thumb-slot thumb-add" onclick="openPicker(${idx},'add')" title="Weiteren Beleg hinzufügen">
+    <div class="add-lbl" style="font-size:14px;">+</div>
   </div>`;
+  return thumbHtml+extraHtml+addHtml;
 }
 
 function renderReview(){
@@ -2168,7 +2217,7 @@ function renderReview(){
             ?`<span class="konfidenz ${r.konfidenz}">${r.konfidenz}</span>`
             :'<span class="konfidenz" style="color:var(--text3)">–</span>';
       const hasGrund=!!r.begruendung;
-      const hasReceipt=!!r.receipt_id;
+      const hasReceipt=!!(r.receipt_id||(r.receipt_ids?.length));
       return`<div class="lx-row-wrap">
         <div class="lx-row ${rowCls}" id="lxr-${realIdx}">
           <div class="lx-date">${r.datum?fmtDate(r.datum):'–'}</div>
@@ -2274,31 +2323,57 @@ async function onConfirmToggle(idx){
 
 async function onUnlinkReceipt(idx){
   const m=matches[idx];
-  if(!m.receipt_id)return;
-  m.receipt_id=null;
-  m.receipts=null;
-  // Konfidenz auf null zurücksetzen damit KI neu kategorisieren kann
-  // (aber Begründung zum Kontext behalten)
+  if(!m.receipt_id&&!m.receipt_ids?.length)return;
+  // Alle Beleg-Verknüpfungen lösen
+  m.receipt_id=null; m.receipts=null; m.receipt_ids=null; m.receipts_list=null;
+  m.begruendung=null; m.konfidenz=null; m.unklar=false; m.bestaetigt=false;
   if(m.id){
-    try{await DB.updateMatch(m.id,{receipt_id:null,begruendung:null,konfidenz:null,unklar:false,bestaetigt:false});}
+    try{await DB.updateMatch(m.id,{receipt_id:null,receipt_ids:null,begruendung:null,konfidenz:null,unklar:false,bestaetigt:false});}
     catch(e){console.warn('Unlink fehlgeschlagen:',e.message);}
   }
-  m.begruendung=null;
-  m.konfidenz=null;
-  m.unklar=false;
-  m.bestaetigt=false;
   renderReview();
   toast('Beleg-Zuordnung aufgehoben');
+}
+
+// Einzelnen Beleg aus Multi-Beleg-Liste lösen (per "×" auf Thumbnail)
+async function unlinkReceiptById(matchIdx,receiptId){
+  const m=matches[matchIdx];
+  const ids=(m.receipt_ids?.length ? m.receipt_ids : (m.receipt_id ? [m.receipt_id] : []));
+  const newIds=ids.filter(id=>id!==receiptId);
+  const newPrimary=m.receipt_id===receiptId ? (newIds[0]||null) : m.receipt_id;
+  m.receipt_ids=newIds.length?newIds:null;
+  m.receipt_id=newPrimary;
+  m.receipts_list=m.receipts_list?.filter(r=>r.id!==receiptId)||null;
+  if(m.receipts?.id===receiptId) m.receipts=m.receipts_list?.[0]||receipts.find(r=>r.id===newPrimary)||null;
+  if(m.id){
+    try{await DB.updateMatch(m.id,{receipt_id:newPrimary,receipt_ids:newIds.length?newIds:null});}
+    catch(e){console.warn('Beleg-Lösen fehlgeschlagen:',e.message);}
+  }
+  renderReview();
+  toast('Beleg gelöst ✓');
 }
 
 function toggleFilterReview(){filterReview=!filterReview;$('btn-filter-review').classList.toggle('active',filterReview);renderReview();}
 
 // ── BELEG-MODAL ────────────────────────────────────────────
-function openBelegModal(matchIdx){
+function openBelegModal(matchIdx,receiptId=null){
   modalMatchIdx=matchIdx;
+  modalReceiptId=receiptId;
   const m=matches[matchIdx];
-  const rec=getReceiptForMatch(m);
-  if(!rec){openPicker(matchIdx);return;}
+  // Wenn receiptId übergeben: diesen spezifischen Beleg anzeigen, sonst ersten/einzigen
+  let rec=null;
+  if(receiptId){
+    const allRecs=getReceiptsForMatch(m);
+    rec=allRecs.find(r=>r.id===receiptId)||null;
+    if(!rec){
+      // Fallback: receipts-Liste durchsuchen
+      const allKnown=[...receipts,...belegFiles.filter(b=>b.receiptRecord).map(b=>b.receiptRecord)];
+      rec=allKnown.find(r=>r?.id===receiptId)||null;
+    }
+  } else {
+    rec=getReceiptForMatch(m);
+  }
+  if(!rec){openPicker(matchIdx,'replace');return;}
   $('modal-beleg-title').textContent=rec.filename||'Beleg';
 
   const img=$('modal-beleg-img');
@@ -2373,21 +2448,20 @@ function openBelegModal(matchIdx){
 
 function openPickerFromModal(){
   closeModal('modal-beleg');
-  openPicker(modalMatchIdx);
+  openPicker(modalMatchIdx,'add'); // Weiteren Beleg hinzufügen (nicht ersetzen)
 }
 
 async function unlinkReceipt(){
   if(modalMatchIdx===null)return;
-  const m=matches[modalMatchIdx];
   if(!confirm('Verknüpfung zum Beleg lösen?'))return;
-  m.receipt_id=null;m.receipts=null;
-  if(m.id){
-    try{await DB.updateMatch(m.id,{receipt_id:null});}
-    catch(e){console.warn('Unlink fehlgeschlagen:',e.message);}
-  }
   closeModal('modal-beleg');
-  renderReview();
-  toast('Verknüpfung gelöst ✓');
+  if(modalReceiptId){
+    // Einzelnen Beleg aus Multi-Beleg-Liste lösen
+    await unlinkReceiptById(modalMatchIdx,modalReceiptId);
+  } else {
+    // Alle Belege lösen (Fallback für ältere Einträge ohne receiptId)
+    await onUnlinkReceipt(modalMatchIdx);
+  }
 }
 
 function closeModal(id){
@@ -2419,10 +2493,14 @@ function fmtBelegLabel(rec){
   return datumStr?`${desc} · ${datumStr}`:desc;
 }
 
-function openPicker(matchIdx){
+function openPicker(matchIdx,mode='replace'){
   modalMatchIdx=matchIdx;
+  pickerMode=mode;
   pickerSelected=null;
   $('picker-confirm').disabled=true;
+  // Titel anpassen
+  const titleEl=$('modal-picker')?.querySelector('.modal-title');
+  if(titleEl)titleEl.textContent=mode==='add'?'Weiteren Beleg hinzufügen':'Beleg zuordnen';
   // Alle verfügbaren Belege: aus DB + Session (mit Thumbnail mergen)
   const allReceipts=[...receipts];
   belegFiles.filter(b=>b.status==='done'&&b.receiptRecord&&!receipts.find(r=>r.id===b.receiptRecord.id))
@@ -2443,13 +2521,25 @@ function openPicker(matchIdx){
   }
   empty.style.display='none';
 
-  // Bereits zugeordnete receipt_ids (außer dem aktuellen Match)
-  const usedIds=new Set(matches.filter((m,i)=>i!==matchIdx&&m.receipt_id).map(m=>m.receipt_id));
+  // Bereits-zugeordnet-Logik:
+  // 'replace': Belege anderer Matches grau (nicht doppelt zuordnen)
+  // 'add':     Belege die DIESEM Match schon zugeordnet sind grau (bereits hinzugefügt)
+  const m=matches[matchIdx];
+  let usedIds;
+  if(mode==='add'){
+    // Schon diesem Match zugeordnete Belege grau markieren
+    const thisIds=new Set(m.receipt_ids?.length?m.receipt_ids:(m.receipt_id?[m.receipt_id]:[]));
+    usedIds=thisIds;
+  } else {
+    // Belege anderer Matches grau markieren
+    usedIds=new Set(matches.filter((_,i)=>i!==matchIdx&&_.receipt_id).map(_=>_.receipt_id));
+  }
 
   grid.innerHTML=allReceipts.map(rec=>{
     const isPDF=rec.mime_type==='application/pdf'||(rec.filename||'').toLowerCase().endsWith('.pdf');
     const used=usedIds.has(rec.id);
     const{desc,datumStr}=fmtBelegParts(rec);
+    const usedLabel=mode==='add'?'✓ Bereits zugeordnet':'Bereits zugeordnet';
     // Thumbnail-Bereich: Bild, PDF-Label oder "kein Thumbnail"-Platzhalter
     let thumbHtml;
     if(rec.thumbnail_data){
@@ -2466,7 +2556,7 @@ function openPicker(matchIdx){
         ${used?'style="opacity:.45;cursor:not-allowed;"':''}>
       ${thumbHtml}
       <div class="picker-name">
-        <div class="picker-name-desc">${desc}</div>
+        <div class="picker-name-desc">${used?usedLabel:desc}</div>
         ${datumStr?`<div class="picker-name-date">${datumStr}</div>`:''}
       </div>
     </div>`;
@@ -2484,26 +2574,48 @@ function pickReceipt(el,receiptId){
 
 async function confirmPicker(){
   if(!pickerSelected||modalMatchIdx===null)return;
-  const rec=receipts.find(r=>r.id===pickerSelected)||
-    belegFiles.map(b=>b.receiptRecord).find(r=>r?.id===pickerSelected);
+  const allKnown=[...receipts,...belegFiles.filter(b=>b.receiptRecord).map(b=>({...b.receiptRecord,thumbnail_data:b.thumbnail||b.receiptRecord?.thumbnail_data||null}))];
+  const rec=allKnown.find(r=>r?.id===pickerSelected);
   if(!rec)return;
-  matches[modalMatchIdx].receipt_id=pickerSelected;
-  matches[modalMatchIdx].receipts=rec;
-  // In DB speichern
-  if(matches[modalMatchIdx].id){
-    try{await DB.updateMatch(matches[modalMatchIdx].id,{receipt_id:pickerSelected});}
-    catch(e){console.warn('Picker-Update fehlgeschlagen:',e.message);}
+  const m=matches[modalMatchIdx];
+
+  if(pickerMode==='add'){
+    // Weiteren Beleg hinzufügen (Multi-Beleg)
+    const ids=m.receipt_ids?.length?[...m.receipt_ids]:(m.receipt_id?[m.receipt_id]:[]);
+    if(!ids.includes(pickerSelected))ids.push(pickerSelected);
+    m.receipt_ids=ids;
+    if(!m.receipt_id)m.receipt_id=pickerSelected; // Primärbeleg setzen wenn noch keiner
+    if(!m.receipts_list)m.receipts_list=m.receipts?[m.receipts]:[];
+    if(!m.receipts_list.find(r=>r.id===pickerSelected))m.receipts_list.push(rec);
+    if(!m.receipts)m.receipts=rec;
+    if(m.id){
+      try{await DB.updateMatch(m.id,{receipt_id:m.receipt_id,receipt_ids:ids});}
+      catch(e){console.warn('Picker-Add fehlgeschlagen:',e.message);}
+    }
+    closeModal('modal-picker');
+    renderReview();
+    toast('Beleg hinzugefügt ✓');
+  } else {
+    // Beleg ersetzen (Standard)
+    m.receipt_id=pickerSelected;
+    m.receipts=rec;
+    m.receipt_ids=[pickerSelected];
+    m.receipts_list=[rec];
+    if(m.id){
+      try{await DB.updateMatch(m.id,{receipt_id:pickerSelected,receipt_ids:[pickerSelected]});}
+      catch(e){console.warn('Picker-Replace fehlgeschlagen:',e.message);}
+    }
+    closeModal('modal-picker');
+    renderReview();
+    toast('Beleg zugeordnet ✓');
   }
-  closeModal('modal-picker');
-  renderReview();
-  toast('Beleg zugeordnet ✓');
 }
 
 // ── USTVA BERECHNUNG ───────────────────────────────────────
 function buildUStVA(){
   const src=matches.length?matches:aiResults;
-  // Nur Einträge im gewählten Zeitraum berechnen
-  const periodSrc=src.filter(r=>inPeriod(r.datum)||(r.is_einnahme&&!r.datum));
+  // Nur Einträge im gewählten Zeitraum berechnen (strikt, kein Jahreswechsel-Puffer)
+  const periodSrc=src.filter(r=>inPeriodStrict(r.datum)||(r.is_einnahme&&!r.datum));
   if(!periodSrc.length){
     $('ustv-kpi-grid').innerHTML='<div style="color:var(--text3);font-size:12px;padding:10px;">Noch keine Analyse. Bitte zuerst Schritte 1–3 durchführen.</div>';
     return;
@@ -2513,9 +2625,9 @@ function buildUStVA(){
   $('ustva-period-label').textContent=label;
 
   // Umsatzsteuer-Buckets
-  let ein19=0,ein7=0,ein0=0,einEU=0;   // Kz 81,86,41,21
-  let rc52=0,rc53=0;                     // §13b Schuldner: Kz 52+53
-  let vor19=0,vor7=0,vor67=0;           // Vorsteuer: Kz 66 (= vor19+vor7), Kz 67 (§13b)
+  let ein19=0,ein7=0,ein0=0,einEU=0,einDrittland=0; // Kz 81,86,41,21,43
+  let rc52=0,rc53=0;                                  // §13b Schuldner: Kz 52+53
+  let vor19=0,vor7=0,vor67=0;                        // Vorsteuer: Kz 66 (= vor19+vor7), Kz 67 (§13b)
   let einNetto=0,ausNetto=0;
 
   periodSrc.forEach(r=>{
@@ -2537,10 +2649,11 @@ function buildUStVA(){
 
     if(cat.type==='income'){
       einNetto+=netto;
-      if(cat.euLeistung){einEU+=netto;}         // EU/Drittland → Kz 21
-      else if(vatRate===0.19){ein19+=netto;}     // Kz 81
-      else if(vatRate===0.07){ein7+=netto;}      // Kz 86
-      else{ein0+=netto;}                         // Kz 41 steuerfreie Inland
+      if(cat.euLeistung){einEU+=netto;}              // EU-Leistungen → Kz 21
+      else if(cat.drittland){einDrittland+=netto;}   // Drittland → Kz 43
+      else if(vatRate===0.19){ein19+=netto;}          // Kz 81
+      else if(vatRate===0.07){ein7+=netto;}           // Kz 86
+      else{ein0+=netto;}                              // Kz 41 steuerfreie Inland
     } else if(cat.reverseCharge){
       // §13b Schuldner: Vorsteuer-Buchung ohne tatsächliche Zahlung
       const rcNetto=netto;
@@ -2575,8 +2688,9 @@ function buildUStVA(){
     <tr><td>Kz 86 – Umsätze 7%</td><td>${fmt(ein7)}</td></tr>
     <tr><td>Kz 35 – Steuer 19%</td><td>${fmt(ust19)}</td></tr>
     <tr><td>Kz 36 – Steuer 7%</td><td>${fmt(ust7)}</td></tr>
-    ${ein0>0?`<tr><td>Kz 41 – Steuerfreie Umsätze (ohne VSt-Abzug)</td><td>${fmt(ein0)}</td></tr>`:''}
-    ${einEU>0?`<tr><td>Kz 21 – EU/Drittland-Umsätze (§ 4 Nr. 1b UStG)</td><td>${fmt(einEU)}</td></tr>`:''}
+    ${ein0>0?`<tr><td>Kz 41 – Steuerfreie Umsätze Inland (ohne VSt-Abzug)</td><td>${fmt(ein0)}</td></tr>`:''}
+    ${einEU>0?`<tr><td>Kz 21 – EU-Leistungen (§ 4 Nr. 1b UStG, innergemeinschaftl.)</td><td>${fmt(einEU)}</td></tr>`:''}
+    ${einDrittland>0?`<tr><td>Kz 43 – Drittland-Leistungen (§ 4 Nr. 1a UStG, außerhalb EU)</td><td>${fmt(einDrittland)}</td></tr>`:''}
     ${rc52>0?`<tr><th colspan="2">§ 13b UStG (Reverse Charge)</th></tr>
     <tr><td>Kz 52 – Empfangene Leistungen §13b Abs. 1</td><td>${fmt(rc52)}</td></tr>
     <tr><td>Kz 53 – Steuer darauf (19%)</td><td>${fmt(rc53)}</td></tr>`:''}
