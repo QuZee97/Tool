@@ -909,14 +909,14 @@ const CATEGORIES = {
   hardware:{label:'Hardware & Technik',type:'expense',vat:0.19},
   buero:{label:'Büro & Arbeitsmittel',type:'expense',vat:0.19},
   marketing:{label:'Marketing & Werbung',type:'expense',vat:0.19},
-  reise:{label:'Reise & Fahrtkosten',type:'expense',vat:0.07},
+  reise:{label:'Reise & Fahrtkosten',type:'expense',vat:0.19},
   bewirtung:{label:'Bewirtung (70%)',type:'expense',vat:0.19,limitFactor:0.7},
   telefon:{label:'Telefon & Internet',type:'expense',vat:0.19},
   weiterbildung:{label:'Weiterbildung',type:'expense',vat:0.19},
   freelancer:{label:'Fremdleistungen',type:'expense',vat:0.19},
   versicherung:{label:'Versicherungen',type:'expense',vat:0},
   steuerberatung:{label:'Steuerberatung',type:'expense',vat:0.19},
-  miete:{label:'Miete / Raumkosten',type:'expense',vat:0.19},
+  miete:{label:'Miete / Raumkosten',type:'expense',vat:0},
   bankgebuehr:{label:'Bankgebühren',type:'expense',vat:0},
   sonstiges:{label:'Sonstiges',type:'expense',vat:0.19},
   einnahmen_eu:{label:'EU-Leistungen (§4 Nr.1b, innergemeinschaftlich)',type:'income',vat:0,euLeistung:true},
@@ -1162,20 +1162,34 @@ function updateSidebar(){
   let ein=0,aus=0,zl=0;
   periodSrc.forEach(r=>{
     if(!r.kategorie){
-      // Unkategorisierte Ausgaben (noch offen) → werden als Ausgabe vorgezählt
       if(!r.is_einnahme) aus+=r.betrag_brutto||0;
       return;
     }
     const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
-    const netto=r.betrag_netto||0;const mwst=r.mwst_betrag||0;
-    if(cat.type==='income'){ein+=netto;zl+=mwst;}
-    else if(cat.type==='expense'){const f=cat.limitFactor||1;aus+=netto*f;zl-=mwst*f;}
-    // private: neither income nor expense
+    if(cat.type==='private')return;
+    const brutto=r.betrag_brutto||0;
+    const vatRate=(r.mwst_satz>0)?r.mwst_satz:cat.vat;
+    const netto=(r.betrag_netto>0&&r.betrag_netto<brutto)?r.betrag_netto:
+      (vatRate>0?Math.round(brutto/(1+vatRate)*100)/100:brutto);
+    const mwstAmt=(r.mwst_betrag>0)?r.mwst_betrag:Math.round((brutto-netto)*100)/100;
+    const f=cat.limitFactor||1;
+    if(cat.type==='income'){
+      ein+=netto;
+      if(vatRate>0)zl+=mwstAmt; // USt auf Einnahmen
+    } else if(cat.reverseCharge){
+      const rcMwst=Math.round(netto*0.19*100)/100;
+      aus+=netto*f;
+      zl+=rcMwst;  // §13b Ausgangsumsatzsteuer
+      zl-=rcMwst;  // §13b Vorsteuer (hebt sich auf)
+    } else {
+      aus+=netto*f;
+      zl-=mwstAmt*f; // Vorsteuerabzug
+    }
   });
   $('sb-einnahmen').textContent=fmt(ein);
   $('sb-ausgaben').textContent=fmt(aus);
   $('sb-gewinn').textContent=fmt(ein-aus);
-  $('sb-zahllast').textContent=fmt(Math.max(0,zl));
+  $('sb-zahllast').textContent=zl<0?`${fmt(Math.abs(zl))} (Erstattung)`:fmt(zl);
   updateRuecklage(ein-aus, Math.max(0,zl));
 }
 
@@ -2349,8 +2363,9 @@ async function onCatChange(idx,newCat){
   if(catInfo&&catInfo.type!=='private'){
     const brutto=matches[idx].betrag_brutto||0;
     const vatRate=catInfo.vat||0;
-    // Nur neu berechnen wenn betrag_netto fehlt oder gleich brutto (= nie von KI berechnet)
-    const needsCalc=!matches[idx].betrag_netto||Math.abs(matches[idx].betrag_netto-brutto)<0.01;
+    const oldRate=matches[idx].mwst_satz||0;
+    // Neu berechnen wenn: Netto fehlt, oder MwSt-Satz sich geändert hat (z.B. 19% → 7%)
+    const needsCalc=!matches[idx].betrag_netto||Math.abs(matches[idx].betrag_netto-brutto)<0.01||Math.abs(oldRate-vatRate)>0.001;
     if(needsCalc&&brutto>0){
       const netto=vatRate>0?Math.round(brutto/(1+vatRate)*100)/100:brutto;
       const mwstAmt=Math.round((brutto-netto)*100)/100;
@@ -2769,15 +2784,15 @@ function buildUStVA(){
     <tr><td>Kz 86 – Umsätze 7%</td><td>${fmt(ein7)}</td></tr>
     <tr><td>Kz 35 – Steuer 19%</td><td>${fmt(ust19)}</td></tr>
     <tr><td>Kz 36 – Steuer 7%</td><td>${fmt(ust7)}</td></tr>
-    ${ein0>0?`<tr><td>Kz 41 – Steuerfreie Umsätze Inland (ohne VSt-Abzug)</td><td>${fmt(ein0)}</td></tr>`:''}
-    ${einEU>0?`<tr><td>Kz 21 – EU-Leistungen (§ 4 Nr. 1b UStG, innergemeinschaftl.)</td><td>${fmt(einEU)}</td></tr>`:''}
-    ${einDrittland>0?`<tr><td>Kz 43 – Drittland-Leistungen (§ 4 Nr. 1a UStG, außerhalb EU)</td><td>${fmt(einDrittland)}</td></tr>`:''}
+    ${ein0>0?`<tr><td>Kz 48 – Steuerfreie Umsätze Inland (ohne VSt-Abzug)</td><td>${fmt(ein0)}</td></tr>`:''}
+    ${einEU>0?`<tr><td>Kz 21 – Innergemeinschaftliche Leistungen (§ 4 Nr. 1b UStG)</td><td>${fmt(einEU)}</td></tr>`:''}
+    ${einDrittland>0?`<tr><td>Kz 45 – Nicht steuerbare sonstige Leistungen (§ 18b S. 2 UStG)</td><td>${fmt(einDrittland)}</td></tr>`:''}
     ${rc52>0?`<tr><th colspan="2">§ 13b UStG (Reverse Charge)</th></tr>
-    <tr><td>Kz 52 – Empfangene Leistungen §13b Abs. 1</td><td>${fmt(rc52)}</td></tr>
-    <tr><td>Kz 53 – Steuer darauf (19%)</td><td>${fmt(rc53)}</td></tr>`:''}
+    <tr><td>Kz 46 – Empfangene Leistungen eines im Ausland ansässigen Unternehmers</td><td>${fmt(rc52)}</td></tr>
+    <tr><td>Kz 47 – Steuer darauf (19%)</td><td>${fmt(rc53)}</td></tr>`:''}
     <tr><th colspan="2">Vorsteuer</th></tr>
-    <tr><td>Kz 66 – Vorsteuer aus Rechnungen (Inland)</td><td>${fmt(vorsteuer)}</td></tr>
-    ${vor67>0?`<tr><td>Kz 67 – Vorsteuer aus §13b (Reverse Charge)</td><td>${fmt(vor67)}</td></tr>`:''}
+    <tr><td>Kz 66 – Vorsteuer aus Rechnungen anderer Unternehmer</td><td>${fmt(vorsteuer)}</td></tr>
+    ${vor67>0?`<tr><td>Kz 67 – Vorsteuer aus ig. Erwerb / §13b</td><td>${fmt(vor67)}</td></tr>`:''}
     <tr><th colspan="2">Ergebnis</th></tr>
     <tr><td><strong>Kz 83 – ${zahllast>=0?'Zahllast':'Erstattungsüberhang'}</strong></td><td><strong style="color:${zahllast>=0?'var(--red)':'var(--green)'};">${fmt(Math.abs(zahllast))}</strong></td></tr>
   `;
@@ -2818,41 +2833,131 @@ function exportSummary(){
 }
 
 function exportElsterXML(){
-  let ein19=0,ein7=0,vor=0;
+  // ── Berechnung: identisch zu buildUStVA() ──
   const src=matches.length?matches:aiResults;
-  src.forEach(r=>{
-    const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
-    if(cat.type==='income'){if(r.mwst_satz===0.19)ein19+=r.betrag_netto||0;if(r.mwst_satz===0.07)ein7+=r.betrag_netto||0;}
-    else if(cat.type==='expense'){vor+=r.mwst_betrag||0;}
+  const periodSrc=src.filter(r=>inPeriodStrict(r.datum)||(r.is_einnahme&&!r.datum));
+
+  let ein19=0,ein7=0,ein0=0,einEU=0,einDrittland=0;
+  let rc52=0,rc53=0;
+  let vor19=0,vor7=0,vor67=0;
+
+  periodSrc.forEach(r=>{
+    const cat=CATEGORIES[r.kategorie];
+    if(!cat||cat.type==='private')return;
+
+    const vatRate=(r.mwst_satz>0)?r.mwst_satz:cat.vat;
+    const brutto=r.betrag_brutto||0;
+    const netto=(r.betrag_netto>0&&r.betrag_netto<brutto)?r.betrag_netto:
+      (vatRate>0?Math.round(brutto/(1+vatRate)*100)/100:brutto);
+    const mwstAmt=(r.mwst_betrag>0)?r.mwst_betrag:Math.round((brutto-netto)*100)/100;
+    const f=cat.limitFactor||1;
+
+    if(cat.type==='income'){
+      if(cat.euLeistung){einEU+=netto;}
+      else if(cat.drittland){einDrittland+=netto;}
+      else if(vatRate===0.19){ein19+=netto;}
+      else if(vatRate===0.07){ein7+=netto;}
+      else{ein0+=netto;}
+    } else if(cat.reverseCharge){
+      const rcNetto=netto;
+      const rcMwst=Math.round(rcNetto*0.19*100)/100;
+      rc52+=rcNetto; rc53+=rcMwst; vor67+=rcMwst;
+    } else {
+      if(vatRate===0.19){vor19+=mwstAmt*f;}
+      else if(vatRate===0.07){vor7+=mwstAmt*f;}
+    }
   });
+
   const ust19=Math.round(ein19*0.19*100)/100;
   const ust7=Math.round(ein7*0.07*100)/100;
-  const zahllast=Math.max(0,Math.round((ust19+ust7-vor)*100)/100);
+  const vorsteuer=Math.round((vor19+vor7)*100)/100;
+  const zahllast=Math.round((ust19+ust7+rc53-vorsteuer-vor67)*100)/100;
+
+  // ── ELSTER CSV/XML-Daten ──
   const steuernr=$('elster-steuernr').value.trim().replace(/\D/g,'');
   const bl=$('elster-bundesland').value;
   const q=selectedQuartal,year=selectedYear;
-  const [vy,vm,vt]=new Date().toISOString().split('T')[0].split('-');
+  const now=new Date();
+  const erstellDatum=now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');
+
+  // Cent-Wert Formatierung (ELSTER erwartet Ganzzahl-Cent für Beträge)
+  const c=v=>Math.round(v*100)/100;
+
+  // Kennzahlen sammeln (nur >0 Werte einfügen)
+  const kzEntries=[];
+  const addKz=(nr,val)=>{if(Math.abs(val)>=0.005)kzEntries.push(`      <Kz${nr}>${c(val)}</Kz${nr}>`);};
+
+  // Umsätze
+  addKz('81',ein19);
+  addKz('86',ein7);
+  addKz('35',ust19);
+  addKz('36',ust7);
+  addKz('48',ein0);       // Steuerfreie Umsätze Inland (ohne VSt-Abzug) → Kz 48
+  addKz('21',einEU);      // Innergemeinschaftliche Leistungen § 4 Nr. 1b
+  addKz('45',einDrittland); // Nicht steuerbare sonstige Leistungen § 18b S. 2 → Kz 45
+  // §13b
+  addKz('46',rc52);       // Leistungen eines im Ausland ansässigen Unternehmers (Bemessung)
+  addKz('47',rc53);       // Steuer darauf
+  // Vorsteuer
+  addKz('66',vorsteuer);  // Vorsteuer aus Rechnungen anderer Unternehmer
+  addKz('67',vor67);      // Vorsteuer aus ig. Erwerb / §13b
+  // Zahllast (kann negativ sein = Erstattung)
+  addKz('83',zahllast);
+
+  const zeitraum=q
+    ?`      <Zeitraum>${String(q).padStart(2,'0')}</Zeitraum>`
+    :`      <Zeitraum>12</Zeitraum>`;
+
   const xml=`<?xml version="1.0" encoding="UTF-8"?>
-<Elster xmlns="http://www.elster.de/elsterxml/schema/v12">
-  <TransferHeader><Verfahren>ElsterAnmeldung</Verfahren><DatenArt>UStVA</DatenArt>
-    <Vorgang>send-Auth</Vorgang><Erstellungsdatum>${year}${String(q||1).padStart(2,'0')}01</Erstellungsdatum>
+<Elster xmlns="http://www.elster.de/elsterxml/schema/v11"
+        xmlns:elster="http://www.elster.de/elsterxml/schema/v11">
+  <TransferHeader>
+    <Verfahren>ElsterAnmeldung</Verfahren>
+    <DatenArt>UStVA</DatenArt>
+    <Vorgang>send-NoSig</Vorgang>
+    <Testmerker>700000004</Testmerker>
+    <HerstelID>74931</HerstellerID>
+    <DatenLieferant>VISO Media Steuertool</DatenLieferant>
+    <Erstellungsdatum>${erstellDatum}</Erstellungsdatum>
   </TransferHeader>
-  <DatenTeil><Nutzdaten><Anmeldung art="UStVA" version="2024">
-    <Zeitraum><Jahr>${year}</Jahr><Quartal>${q||1}</Quartal></Zeitraum>
-    <Steuernummer>${steuernr}</Steuernummer><Bundesland>${bl}</Bundesland>
-    <Kz81>${Math.round(ein19*100)/100}</Kz81>
-    <Kz86>${Math.round(ein7*100)/100}</Kz86>
-    <Kz35>${ust19}</Kz35><Kz36>${ust7}</Kz36>
-    <Kz66>${Math.round(vor*100)/100}</Kz66>
-    <Kz83>${zahllast}</Kz83>
-  </Anmeldung></Nutzdaten></DatenTeil>
+  <DatenTeil>
+    <Nutzdatenblock>
+      <NutzdatenHeader version="11">
+        <NutzdatenTicket>${Date.now()}</NutzdatenTicket>
+        <Empfaenger id="F">
+          <Bundesland>${bl}</Bundesland>
+        </Empfaenger>
+      </NutzdatenHeader>
+      <Nutzdaten>
+        <Anmeldungssteuern art="UStVA" version="${year}">
+          <DatenLieferant>
+            <Name>VISO Media</Name>
+            <Strasse></Strasse>
+            <PLZ></PLZ>
+            <Ort></Ort>
+          </DatenLieferant>
+          <Erstellungsdatum>${erstellDatum}</Erstellungsdatum>
+          <Steuerfall>
+            <Umsatzsteuervoranmeldung>
+              <Jahr>${year}</Jahr>
+${zeitraum}
+              <Steuernummer>${steuernr}</Steuernummer>
+              <Kz09>74931</Kz09>
+${kzEntries.join('\n')}
+            </Umsatzsteuervoranmeldung>
+          </Steuerfall>
+        </Anmeldungssteuern>
+      </Nutzdaten>
+    </Nutzdatenblock>
+  </DatenTeil>
 </Elster>`;
+
   const blob=new Blob([xml],{type:'application/xml'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   a.href=url;a.download=`UStVA_${q?'Q'+q+'_':''}${year}_ELSTER.xml`;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),5000);
-  toast('ELSTER XML heruntergeladen ✓');
+  toast('ELSTER XML heruntergeladen ✓ (Testmodus – bitte via Mein ELSTER importieren)');
 }
 
 // ── MATCHES AUS DB LADEN ───────────────────────────────────
@@ -3567,12 +3672,21 @@ function calcAfAForYear(anlage,year){
 function calcExtrasForPeriod(){
   const year=selectedYear;
   const q=selectedQuartal;
-  // Homeoffice: Jahresgesamtbetrag (nicht quartalsbezogen – Tagespauschale gilt fürs Jahr)
+  // Homeoffice: Jahres-Tagespauschale, bei Quartalsansicht anteilig / 4
   const hoDays=extrasData.homeoffice.filter(h=>h.datum.startsWith(String(year)));
-  const hoCount=Math.min(hoDays.length,210);
+  let hoCount;
+  if(q===0){
+    hoCount=Math.min(hoDays.length,210);
+  } else {
+    // Nur Tage im gewählten Quartal zählen
+    const qStart=new Date(year,(q-1)*3,1);
+    const qEnd=new Date(year,q*3,0); // letzter Tag des Quartals
+    const qDays=hoDays.filter(h=>{const d=new Date(h.datum);return d>=qStart&&d<=qEnd;});
+    hoCount=qDays.length; // Kein Cap pro Quartal; Cap 210 gilt fürs Jahr
+  }
   const hoBetrag=hoCount*6;
-  // Reisen: nur im aktuellen Zeitraum
-  const periodReisen=extrasData.reisen.filter(r=>inPeriod(r.datum));
+  // Reisen: nur im aktuellen Zeitraum (strikt, kein Puffer)
+  const periodReisen=extrasData.reisen.filter(r=>inPeriodStrict(r.datum));
   const reBetrag=Math.round(periodReisen.reduce((s,r)=>s+r.total,0)*100)/100;
   // AfA: Jahreszahl, dann / 4 bei Quartals-Ansicht
   let afaBetrag=0;
