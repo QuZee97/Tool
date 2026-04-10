@@ -1545,8 +1545,9 @@ async function syncGmail() {
       imports.forEach(i => importedSet.add(i.message_id + '__' + (i.attachment_name || '')));
     } catch(e) { console.warn('Gmail imports laden fehlgeschlagen:', e); }
 
-    // 2) Gmail durchsuchen: PDFs der letzten 90 Tage
-    const query = encodeURIComponent('has:attachment filename:pdf newer_than:90d');
+    // 2) Gmail durchsuchen: PDFs mit Rechnungs-Keywords der letzten 90 Tage
+    const gmailQuery = 'has:attachment filename:pdf newer_than:90d (rechnung OR invoice OR quittung OR beleg OR receipt OR gutschrift OR credit note OR zahlungsbestätigung OR auftragsbestätigung OR abrechnung)';
+    const query = encodeURIComponent(gmailQuery);
     const listData = await gmailFetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=50`
     );
@@ -1580,6 +1581,13 @@ async function syncGmail() {
       for (const part of parts) {
         if (!part.filename || !part.filename.toLowerCase().endsWith('.pdf')) continue;
         if ((part.body?.size || 0) < 5000) continue; // zu klein = kein Beleg
+        // Dateinamen-Filter: typische Nicht-Rechnungs-PDFs ausschließen
+        const fnLower = part.filename.toLowerCase();
+        const skipPatterns = ['agb', 'datenschutz', 'privacy', 'terms', 'nutzungsbedingungen',
+          'vertrag', 'contract', 'handbuch', 'manual', 'anleitung', 'guide',
+          'präsentation', 'presentation', 'lebenslauf', 'cv', 'resume',
+          'angebot', 'proposal', 'briefing', 'newsletter'];
+        if (skipPatterns.some(p => fnLower.includes(p))) continue;
 
         const key = msg.id + '__' + part.filename;
         if (importedSet.has(key)) continue; // bereits importiert
