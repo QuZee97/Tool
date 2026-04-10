@@ -6,6 +6,7 @@
 <title>Steuertool – VISO Media</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%23d4cc2e'/><text x='16' y='23' text-anchor='middle' font-size='20' font-family='Helvetica Neue,Arial,sans-serif' font-weight='700' fill='%23111'>V</text></svg>">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{
   --bg:#1e1f22;--surface:#27282c;--surface2:#2f3035;--surface3:#383a40;
@@ -507,6 +508,42 @@ body{font-family:var(--font);font-size:13px;color:var(--text);background:var(--b
       <button class="btn btn-primary" id="btn-read-belege" onclick="readBelege()" style="display:none;"><i data-lucide="sparkles"></i> Belege mit KI auslesen</button>
       <span id="beleg-skip-hint" style="font-size:11px;color:var(--text3);display:none;">Keine neuen Belege zum Auslesen.</span>
       <div class="loading-bar" id="beleg-loading" style="margin:0;"><div class="spinner"></div><div><div id="beleg-loading-text">KI liest Belege aus …</div><div class="progress-wrap" style="width:180px;"><div class="progress-bar" id="beleg-progress-bar" style="width:0%"></div></div></div></div>
+    </div>
+  </div>
+
+  <!-- Gmail Import -->
+  <div class="card" id="gmail-card">
+    <div class="card-title" style="display:flex;align-items:center;gap:8px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      E-Mail-Import (Gmail)
+      <span id="gmail-status-badge" style="font-size:10px;font-weight:400;color:var(--text3);margin-left:auto;display:none;"></span>
+    </div>
+    <div id="gmail-disconnected" style="margin-top:8px;">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px;">Verbinde dein Gmail-Konto, um Rechnungen automatisch aus E-Mails zu importieren.</div>
+      <button class="btn btn-primary btn-sm" onclick="connectGmail()" id="btn-gmail-connect">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        Gmail verbinden
+      </button>
+    </div>
+    <div id="gmail-connected" style="display:none;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-size:11px;color:var(--green);" id="gmail-user-label">Verbunden</span>
+        <span style="flex:1;"></span>
+        <label style="font-size:10px;color:var(--text3);display:flex;align-items:center;gap:4px;cursor:pointer;">
+          <input type="checkbox" id="gmail-auto-sync" checked onchange="toggleGmailAutoSync()" style="accent-color:var(--accent);"> Auto-Sync
+        </label>
+        <button class="btn btn-ghost btn-sm" onclick="syncGmail()" id="btn-gmail-sync" title="Jetzt synchronisieren">
+          <i data-lucide="refresh-cw"></i> Sync
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="disconnectGmail()" title="Gmail trennen" style="color:var(--text3);">
+          <i data-lucide="log-out"></i>
+        </button>
+      </div>
+      <div id="gmail-sync-status" style="display:none;font-size:11px;color:var(--text3);margin-bottom:8px;">
+        <div class="spinner" style="width:12px;height:12px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px;"></div>
+        <span id="gmail-sync-text">Suche Rechnungen in Gmail …</span>
+      </div>
+      <div id="gmail-import-list" style="max-height:180px;overflow-y:auto;"></div>
     </div>
   </div>
 
@@ -1385,6 +1422,250 @@ function updateUploadSummary(){
   if(manualIncomes.length)parts.push(`${manualIncomes.length} manuelle Einnahmen`);
   const qLabel=selectedQuartal?` (Q${selectedQuartal} ${selectedYear})`:` (${selectedYear})`;
   $('upload-summary').textContent=parts.length?parts.join(' · ') + ' bereit'+qLabel:'Noch nichts hochgeladen';
+}
+
+// ── GMAIL INTEGRATION ──────────────────────────────────────
+const GMAIL_CLIENT_ID = localStorage.getItem('gmail_client_id') || '';
+const GMAIL_SCOPES = 'https://www.googleapis.com/auth/gmail.readonly';
+let gmailTokenClient = null;
+let gmailAccessToken = localStorage.getItem('gmail_access_token') || null;
+let gmailSyncing = false;
+
+function initGmailAuth() {
+  if (!window.google?.accounts?.oauth2) {
+    // GIS not loaded yet — retry
+    setTimeout(initGmailAuth, 500);
+    return;
+  }
+  const clientId = GMAIL_CLIENT_ID;
+  if (!clientId) {
+    updateGmailUI();
+    return;
+  }
+  gmailTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: GMAIL_SCOPES,
+    callback: (resp) => {
+      if (resp.error) { toast('Gmail-Verbindung fehlgeschlagen: ' + resp.error); return; }
+      gmailAccessToken = resp.access_token;
+      localStorage.setItem('gmail_access_token', resp.access_token);
+      updateGmailUI();
+      syncGmail();
+    },
+  });
+  updateGmailUI();
+
+  // Auto-Sync wenn Token vorhanden und Auto-Sync aktiviert
+  if (gmailAccessToken && localStorage.getItem('gmail_auto_sync') !== 'false') {
+    setTimeout(() => syncGmail(), 1500);
+  }
+}
+
+function connectGmail() {
+  const clientId = GMAIL_CLIENT_ID || prompt('Bitte gib deine Google OAuth Client ID ein.\n\nAnleitung:\n1. Google Cloud Console → APIs & Services → Credentials\n2. OAuth 2.0 Client ID (Web Application) erstellen\n3. Authorized JavaScript origin: ' + window.location.origin + '\n4. Client ID hier einfügen:');
+  if (!clientId) return;
+  localStorage.setItem('gmail_client_id', clientId);
+
+  // Reinitialize with the client ID
+  gmailTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: GMAIL_SCOPES,
+    callback: (resp) => {
+      if (resp.error) { toast('Gmail-Verbindung fehlgeschlagen: ' + resp.error); return; }
+      gmailAccessToken = resp.access_token;
+      localStorage.setItem('gmail_access_token', resp.access_token);
+      updateGmailUI();
+      syncGmail();
+    },
+  });
+  gmailTokenClient.requestAccessToken();
+}
+
+function disconnectGmail() {
+  if (gmailAccessToken) {
+    google.accounts.oauth2.revoke(gmailAccessToken);
+  }
+  gmailAccessToken = null;
+  localStorage.removeItem('gmail_access_token');
+  updateGmailUI();
+  toast('Gmail getrennt');
+}
+
+function toggleGmailAutoSync() {
+  const checked = $('gmail-auto-sync').checked;
+  localStorage.setItem('gmail_auto_sync', checked ? 'true' : 'false');
+}
+
+function updateGmailUI() {
+  const connected = !!gmailAccessToken;
+  $('gmail-disconnected').style.display = connected ? 'none' : 'block';
+  $('gmail-connected').style.display = connected ? 'block' : 'none';
+  if (!GMAIL_CLIENT_ID && !localStorage.getItem('gmail_client_id')) {
+    $('gmail-status-badge').textContent = 'Client ID fehlt';
+    $('gmail-status-badge').style.display = 'inline';
+    $('gmail-status-badge').style.color = 'var(--orange)';
+  } else if (connected) {
+    $('gmail-status-badge').textContent = 'Verbunden';
+    $('gmail-status-badge').style.display = 'inline';
+    $('gmail-status-badge').style.color = 'var(--green)';
+  } else {
+    $('gmail-status-badge').style.display = 'none';
+  }
+  $('gmail-auto-sync').checked = localStorage.getItem('gmail_auto_sync') !== 'false';
+}
+
+async function gmailFetch(url) {
+  const resp = await fetch(url, {
+    headers: { Authorization: 'Bearer ' + gmailAccessToken }
+  });
+  if (resp.status === 401) {
+    // Token abgelaufen → neu anfordern
+    gmailAccessToken = null;
+    localStorage.removeItem('gmail_access_token');
+    updateGmailUI();
+    toast('Gmail-Token abgelaufen – bitte erneut verbinden');
+    throw new Error('Gmail token expired');
+  }
+  if (!resp.ok) throw new Error('Gmail API: ' + resp.status);
+  return resp.json();
+}
+
+async function syncGmail() {
+  if (gmailSyncing || !gmailAccessToken) return;
+  gmailSyncing = true;
+  $('gmail-sync-status').style.display = 'block';
+  $('gmail-sync-text').textContent = 'Suche Rechnungen in Gmail …';
+  $('btn-gmail-sync').disabled = true;
+
+  try {
+    // 1) Bereits importierte IDs laden
+    let importedSet = new Set();
+    try {
+      const imports = await DB.getGmailImports();
+      imports.forEach(i => importedSet.add(i.message_id + '__' + (i.attachment_name || '')));
+    } catch(e) { console.warn('Gmail imports laden fehlgeschlagen:', e); }
+
+    // 2) Gmail durchsuchen: PDFs der letzten 90 Tage
+    const query = encodeURIComponent('has:attachment filename:pdf newer_than:90d');
+    const listData = await gmailFetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=50`
+    );
+    const messages = listData.messages || [];
+    if (!messages.length) {
+      $('gmail-sync-text').textContent = 'Keine neuen E-Mails mit PDF-Anhängen gefunden.';
+      setTimeout(() => { $('gmail-sync-status').style.display = 'none'; }, 3000);
+      gmailSyncing = false;
+      $('btn-gmail-sync').disabled = false;
+      return;
+    }
+
+    // 3) Jede Nachricht prüfen
+    let newCount = 0;
+    let importedItems = [];
+    for (const msg of messages) {
+      $('gmail-sync-text').textContent = `Prüfe E-Mail ${messages.indexOf(msg) + 1}/${messages.length} …`;
+
+      const detail = await gmailFetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=full`
+      );
+
+      const subject = (detail.payload?.headers || []).find(h => h.name.toLowerCase() === 'subject')?.value || '';
+      const from = (detail.payload?.headers || []).find(h => h.name.toLowerCase() === 'from')?.value || '';
+
+      // Alle Parts durchsuchen (inkl. verschachtelt)
+      const parts = [];
+      function collectParts(p) { if (p.parts) p.parts.forEach(collectParts); else parts.push(p); }
+      collectParts(detail.payload);
+
+      for (const part of parts) {
+        if (!part.filename || !part.filename.toLowerCase().endsWith('.pdf')) continue;
+        if ((part.body?.size || 0) < 5000) continue; // zu klein = kein Beleg
+
+        const key = msg.id + '__' + part.filename;
+        if (importedSet.has(key)) continue; // bereits importiert
+
+        // 4) Attachment herunterladen
+        $('gmail-sync-text').textContent = `Lade ${part.filename} …`;
+        const attId = part.body?.attachmentId;
+        if (!attId) continue;
+
+        const attData = await gmailFetch(
+          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}/attachments/${attId}`
+        );
+
+        // base64url → standard base64
+        const b64 = attData.data.replace(/-/g, '+').replace(/_/g, '/');
+        const byteChars = atob(b64);
+        const byteArray = new Uint8Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) byteArray[i] = byteChars.charCodeAt(i);
+        const file = new File([byteArray], part.filename, { type: 'application/pdf' });
+
+        // 5) In belegFiles einfügen (wie manueller Upload)
+        belegFiles.push({
+          file,
+          status: 'pending',
+          result: null,
+          thumbnail: null,
+          receiptId: null,
+          receiptRecord: null,
+          savedToStorage: false,
+          _gmailMsgId: msg.id,
+          _gmailSubject: subject,
+          _gmailFrom: from,
+        });
+        newCount++;
+        importedItems.push({ msgId: msg.id, subject, from, filename: part.filename });
+        importedSet.add(key);
+      }
+    }
+
+    // 6) UI aktualisieren
+    if (newCount > 0) {
+      toast(`${newCount} Rechnung${newCount > 1 ? 'en' : ''} aus Gmail importiert`);
+      renderBelegList();
+      updateUploadSummary();
+      // KI-Analyse starten
+      readBelege();
+    } else {
+      $('gmail-sync-text').textContent = 'Keine neuen Rechnungen gefunden.';
+    }
+
+    // 7) Importierte Mails in DB speichern (nach Analyse, wenn Receipt-IDs bekannt)
+    // Wir speichern die Message-IDs sofort damit sie nicht erneut importiert werden
+    for (const item of importedItems) {
+      try { await DB.saveGmailImport(item.msgId, item.subject, item.from, item.filename, null); }
+      catch(e) { console.warn('Gmail-Import speichern fehlgeschlagen:', e); }
+    }
+
+    // Import-Liste rendern
+    renderGmailImportList(importedItems);
+    setTimeout(() => { $('gmail-sync-status').style.display = 'none'; }, 3000);
+  } catch (e) {
+    console.error('Gmail sync error:', e);
+    $('gmail-sync-text').textContent = 'Fehler: ' + e.message;
+    setTimeout(() => { $('gmail-sync-status').style.display = 'none'; }, 5000);
+  } finally {
+    gmailSyncing = false;
+    $('btn-gmail-sync').disabled = false;
+  }
+}
+
+function renderGmailImportList(items) {
+  const el = $('gmail-import-list');
+  if (!items || !items.length) {
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = items.map(item =>
+    `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:10px;">
+      <div style="width:24px;height:24px;border-radius:4px;background:var(--surface3);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:8px;font-weight:700;color:var(--text3);">PDF</div>
+      <div style="flex:1;min-width:0;">
+        <div style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.filename}</div>
+        <div style="color:var(--text3);font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.from} – ${item.subject}</div>
+      </div>
+      <span style="color:var(--green);font-size:9px;flex-shrink:0;">importiert</span>
+    </div>`
+  ).join('');
 }
 
 // ── SEITE 2: BELEGE ÜBERSICHT ──────────────────────────────
@@ -3096,6 +3377,8 @@ async function init(){
   updateSidebar();
   $('loading-screen').style.display='none';
   lucide.createIcons();
+  // Gmail-Integration initialisieren (nach Seite geladen)
+  initGmailAuth();
 }
 
 async function doSignOut(){await signOut();}

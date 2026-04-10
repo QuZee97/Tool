@@ -613,4 +613,23 @@ const DB = {
       return data;
     }
   },
+
+  // ── GMAIL IMPORTS ──────────────────────────────────────────
+  async getGmailImports() {
+    const { data, error } = await db.from('gmail_imports').select('message_id,attachment_name');
+    if (error) throw error;
+    return data || [];
+  },
+  async saveGmailImport(messageId, subject, sender, attachmentName, receiptId) {
+    const user = await getUser();
+    const { error } = await db.from('gmail_imports').upsert({
+      user_id: user.id,
+      message_id: messageId,
+      subject: subject || null,
+      sender: sender || null,
+      attachment_name: attachmentName || null,
+      receipt_id: receiptId || null,
+    }, { onConflict: 'user_id,message_id,attachment_name' });
+    if (error) throw error;
+  },
 };
