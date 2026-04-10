@@ -1546,10 +1546,23 @@ async function syncGmail() {
     } catch(e) { console.warn('Gmail imports laden fehlgeschlagen:', e); }
 
     // 2) Gmail durchsuchen: PDFs mit Rechnungs-Keywords der letzten 90 Tage
+    // Zeitraum aus gewähltem Jahr/Quartal ableiten (statt fester 90 Tage)
+    let afterDate, beforeDate;
+    if (selectedQuartal > 0) {
+      const qStart = new Date(selectedYear, (selectedQuartal - 1) * 3, 1);
+      const qEnd = new Date(selectedYear, selectedQuartal * 3, 0);
+      // 14 Tage Puffer vor Quartalsbeginn (Rechnungen kommen manchmal verzögert)
+      qStart.setDate(qStart.getDate() - 14);
+      afterDate = `${qStart.getFullYear()}/${String(qStart.getMonth()+1).padStart(2,'0')}/${String(qStart.getDate()).padStart(2,'0')}`;
+      beforeDate = `${qEnd.getFullYear()}/${String(qEnd.getMonth()+1).padStart(2,'0')}/${String(qEnd.getDate()+1).padStart(2,'0')}`;
+    } else {
+      afterDate = `${selectedYear}/01/01`;
+      beforeDate = `${selectedYear+1}/01/01`;
+    }
     // Eigene E-Mail-Adresse ausschließen (keine selbst versendeten Rechnungen)
     const userEmail = $('nav-user')?.textContent?.trim() || '';
     const fromExclude = userEmail ? ` -from:${userEmail}` : '';
-    const gmailQuery = `has:attachment filename:pdf newer_than:90d${fromExclude} -in:sent (rechnung OR invoice OR quittung OR beleg OR receipt OR gutschrift OR credit note OR zahlungsbestätigung OR auftragsbestätigung OR abrechnung)`;
+    const gmailQuery = `has:attachment filename:pdf after:${afterDate} before:${beforeDate}${fromExclude} -in:sent (rechnung OR invoice OR quittung OR beleg OR receipt OR gutschrift OR credit note OR zahlungsbestätigung OR auftragsbestätigung OR abrechnung)`;
     const query = encodeURIComponent(gmailQuery);
     const listData = await gmailFetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=50`
