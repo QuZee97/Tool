@@ -1546,7 +1546,10 @@ async function syncGmail() {
     } catch(e) { console.warn('Gmail imports laden fehlgeschlagen:', e); }
 
     // 2) Gmail durchsuchen: PDFs mit Rechnungs-Keywords der letzten 90 Tage
-    const gmailQuery = 'has:attachment filename:pdf newer_than:90d (rechnung OR invoice OR quittung OR beleg OR receipt OR gutschrift OR credit note OR zahlungsbestätigung OR auftragsbestätigung OR abrechnung)';
+    // Eigene E-Mail-Adresse ausschließen (keine selbst versendeten Rechnungen)
+    const userEmail = $('nav-user')?.textContent?.trim() || '';
+    const fromExclude = userEmail ? ` -from:${userEmail}` : '';
+    const gmailQuery = `has:attachment filename:pdf newer_than:90d${fromExclude} -in:sent (rechnung OR invoice OR quittung OR beleg OR receipt OR gutschrift OR credit note OR zahlungsbestätigung OR auftragsbestätigung OR abrechnung)`;
     const query = encodeURIComponent(gmailQuery);
     const listData = await gmailFetch(
       `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=50`
