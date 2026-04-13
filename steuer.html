@@ -3298,40 +3298,48 @@ function exportElsterXML(){
     ?`      <Zeitraum>${String(q).padStart(2,'0')}</Zeitraum>`
     :`      <Zeitraum>12</Zeitraum>`;
 
+  // Steuernummer im ELSTER-Format: Bundesland-Präfix + Nummer (13 Stellen)
+  const steuernrElster=bl+steuernr.replace(/^0*/,'').padStart(11,'0');
+
   const xml=`<?xml version="1.0" encoding="UTF-8"?>
-<Elster xmlns="http://www.elster.de/elsterxml/schema/v11"
-        xmlns:elster="http://www.elster.de/elsterxml/schema/v11">
-  <TransferHeader>
+<Elster xmlns="http://www.elster.de/elsterxml/schema/v11">
+  <TransferHeader version="11">
     <Verfahren>ElsterAnmeldung</Verfahren>
     <DatenArt>UStVA</DatenArt>
-    <Vorgang>send-NoSig</Vorgang>
+    <Vorgang>send-Auth</Vorgang>
     <Testmerker>700000004</Testmerker>
-    <HerstelID>74931</HerstellerID>
+    <HerstellerID>74931</HerstellerID>
     <DatenLieferant>VISO Media Steuertool</DatenLieferant>
+    <Datei>
+      <Verschluesselung>CMSEncryptedData</Verschluesselung>
+      <Kompression>GZIP</Kompression>
+    </Datei>
     <Erstellungsdatum>${erstellDatum}</Erstellungsdatum>
   </TransferHeader>
   <DatenTeil>
     <Nutzdatenblock>
       <NutzdatenHeader version="11">
         <NutzdatenTicket>${Date.now()}</NutzdatenTicket>
-        <Empfaenger id="F">
-          <Bundesland>${bl}</Bundesland>
-        </Empfaenger>
+        <Empfaenger id="F">${bl}</Empfaenger>
+        <Hersteller>
+          <ProduktName>VISO Media Steuertool</ProduktName>
+          <ProduktVersion>1.0</ProduktVersion>
+        </Hersteller>
       </NutzdatenHeader>
       <Nutzdaten>
-        <Anmeldungssteuern art="UStVA" version="${year}">
+        <Anmeldungssteuern xmlns="http://finkonsens.de/elster/elsteranmeldung/ustva/v${year}" version="${year}">
+          <Erstellungsdatum>${erstellDatum}</Erstellungsdatum>
           <DatenLieferant>
             <Name>VISO Media</Name>
             <Strasse></Strasse>
             <PLZ></PLZ>
             <Ort></Ort>
           </DatenLieferant>
-          <Erstellungsdatum>${erstellDatum}</Erstellungsdatum>
           <Steuerfall>
             <Umsatzsteuervoranmeldung>
               <Jahr>${year}</Jahr>
 ${zeitraum}
-              <Steuernummer>${steuernr}</Steuernummer>
+              <Steuernummer>${steuernrElster}</Steuernummer>
               <Kz09>74931</Kz09>
 ${kzEntries.join('\n')}
             </Umsatzsteuervoranmeldung>
