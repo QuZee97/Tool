@@ -3287,8 +3287,15 @@ function exportElsterXML(){
   if(ein0>0)addKz('48',ein0,euro);
   if(einEU>0)addKz('21',einEU,euro);
   if(einDrittland>0)addKz('45',einDrittland,euro);
-  // §13b
-  if(rc52>0){addKz('46',rc52,euro);addKz('47',rc53,cent);}
+  // §13b – Kz47 aus gerundetem Kz46 berechnen (ELSTER erwartet volle Euro bei Bemessungsgrundlage)
+  if(rc52>0){
+    const rc52rounded=Math.round(rc52);
+    const rc53fromRounded=Math.round(rc52rounded*0.19*100)/100;
+    addKz('46',rc52rounded,v=>String(v));
+    addKz('47',rc53fromRounded,cent);
+    // Kz67 ebenfalls aus gerundetem Wert (muss mit Kz47 übereinstimmen)
+    vor67=rc53fromRounded;
+  }
   // Vorsteuer
   addKz('66',vorsteuer,cent);
   if(vor67>0)addKz('67',vor67,cent);
