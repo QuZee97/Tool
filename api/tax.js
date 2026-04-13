@@ -8,8 +8,10 @@ const CATEGORIES = {
   einnahmen_19: { label: 'Einnahmen 19% MwSt.', type: 'income', vat: 0.19 },
   einnahmen_7:  { label: 'Einnahmen 7% MwSt.',  type: 'income', vat: 0.07 },
   einnahmen_0:  { label: 'Einnahmen steuerfrei / EU-Ausland', type: 'income', vat: 0 },
+  einnahmen_eu:        { label: 'EU-Leistungen (§4 Nr.1b, innergemeinschaftlich)',   type: 'income',  vat: 0 },
+  einnahmen_drittland: { label: 'Drittland-Leistungen (§4 Nr.1a, außerhalb EU)',     type: 'income',  vat: 0 },
 
-  // AUSGABEN – Betriebsausgaben (Vorsteuerabzug möglich)
+  // BETRIEBSAUSGABEN (Vorsteuerabzug möglich)
   software:        { label: 'Software & Tools',             type: 'expense', vat: 0.19 },
   hardware:        { label: 'Hardware & Technik',            type: 'expense', vat: 0.19 },
   buero:           { label: 'Büro & Arbeitsmittel',          type: 'expense', vat: 0.19 },
@@ -22,11 +24,18 @@ const CATEGORIES = {
   versicherung:    { label: 'Versicherungen',                type: 'expense', vat: 0 },
   steuerberatung:  { label: 'Steuerberatung & Buchhaltung',  type: 'expense', vat: 0.19 },
   miete:           { label: 'Miete / Raumkosten',            type: 'expense', vat: 0.19 },
-  bankgebuehr:     { label: 'Bankgebühren & Zinsen',         type: 'expense', vat: 0 },
-  sonstiges:       { label: 'Sonstiges',                     type: 'expense', vat: 0.19 },
-  einnahmen_eu:        { label: 'EU-Leistungen (§4 Nr.1b, innergemeinschaftlich)',   type: 'income',  vat: 0 },
-  einnahmen_drittland: { label: 'Drittland-Leistungen (§4 Nr.1a, außerhalb EU)',     type: 'income',  vat: 0 },
+  bankgebuehr:     { label: 'Kontoführung & Bankgebühren',   type: 'expense', vat: 0 },
+  sonstiges:       { label: 'Sonstiges (Ausgabe)',           type: 'expense', vat: 0.19 },
   rc_eingang:      { label: 'Reverse Charge Eingang (§13b)', type: 'expense', vat: 0.19 },
+
+  // STEUERZAHLUNGEN (NICHT absetzbar als Betriebsausgabe!)
+  steuer_ust:   { label: 'USt-Vorauszahlung / USt-Erstattung', type: 'tax', vat: 0 },
+  steuer_est:   { label: 'Einkommensteuer-Zahlung',             type: 'tax', vat: 0 },
+  steuer_gewst: { label: 'Gewerbesteuer-Zahlung',               type: 'tax', vat: 0 },
+  steuer_soli:  { label: 'Solidaritätszuschlag',                type: 'tax', vat: 0 },
+  steuer_kist:  { label: 'Kirchensteuer',                       type: 'tax', vat: 0 },
+
+  // PRIVAT
   privat:          { label: 'Privat (nicht absetzbar)',       type: 'private', vat: 0 },
 };
 
@@ -62,12 +71,22 @@ REGELN:
 - IDs MÜSSEN exakt mit der Eingabe übereinstimmen (wichtig fürs Matching!)
 - Beträge immer positiv (Vorzeichen wird vom System bestimmt)
 - Wenn Buchung eindeutig privat ist: kategorie = "privat"
-- Bankgebühren, Kontoführung, Zinsen: kategorie = "bankgebuehr" (MwSt = 0)
+- Bankgebühren, Kontoführung, Kontoführungsgebühren, Zinsen: kategorie = "bankgebuehr" (MwSt = 0). NICHT "steuerberatung"!
 - EU-Ausland Einnahmen (B2B Leistungen an EU-Unternehmen, §4 Nr.1b, z.B. Österreich, Frankreich): kategorie = "einnahmen_eu", keine MwSt ausweisen
 - Drittland-Einnahmen (§4 Nr.1a, außerhalb EU: USA, UK, Schweiz, etc.): kategorie = "einnahmen_drittland", keine MwSt ausweisen
 - EU-Ausland Ausgaben ohne MwSt (z.B. Meta Ads, Google Cloud, Adobe, Stripe, GitHub, Slack, Figma): kategorie = "rc_eingang" (Reverse Charge §13b), unklar=true zur Prüfung
 - Software-Abos (Figma, Notion, Slack, Adobe, GitHub etc.): kategorie = "software"
 - Bewirtungsbeleg: limitFactor 0.7 beachten (nur 70% absetzbar)
+
+STEUERZAHLUNGEN (WICHTIG – nicht mit Betriebsausgaben verwechseln!):
+- Umsatzsteuer-Vorauszahlung ans Finanzamt / USt-Erstattung: kategorie = "steuer_ust"
+- Einkommensteuer-Zahlung / ESt-Vorauszahlung / Einkommensteuer-Erstattung: kategorie = "steuer_est"
+- Gewerbesteuer-Zahlung: kategorie = "steuer_gewst"
+- Solidaritätszuschlag: kategorie = "steuer_soli"
+- Kirchensteuer: kategorie = "steuer_kist"
+- Erkennungshinweise: "Finanzamt", "FA ", "Steuernummer", "USt", "ESt", "GewSt", "Vorauszahlung"
+- Steuerzahlungen sind KEINE Betriebsausgaben und KEINE Vorsteuer!
+
 - Bei Unklarheit: unklar=true und erkläre in begruendung warum
 - konfidenz="niedrig" wenn Buchungstext sehr vage ist`;
 

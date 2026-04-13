@@ -939,29 +939,59 @@ lucide.createIcons();
 
 // ── KATEGORIEN ─────────────────────────────────────────────
 const CATEGORIES = {
-  einnahmen_19:{label:'Einnahmen 19% MwSt.',type:'income',vat:0.19},
-  einnahmen_7:{label:'Einnahmen 7% MwSt.',type:'income',vat:0.07},
-  einnahmen_0:{label:'Einnahmen steuerfrei',type:'income',vat:0},
-  software:{label:'Software & Tools',type:'expense',vat:0.19},
-  hardware:{label:'Hardware & Technik',type:'expense',vat:0.19},
-  buero:{label:'Büro & Arbeitsmittel',type:'expense',vat:0.19},
-  marketing:{label:'Marketing & Werbung',type:'expense',vat:0.19},
-  reise:{label:'Reise & Fahrtkosten',type:'expense',vat:0.19},
-  bewirtung:{label:'Bewirtung (70%)',type:'expense',vat:0.19,limitFactor:0.7},
-  telefon:{label:'Telefon & Internet',type:'expense',vat:0.19},
-  weiterbildung:{label:'Weiterbildung',type:'expense',vat:0.19},
-  freelancer:{label:'Fremdleistungen',type:'expense',vat:0.19},
-  versicherung:{label:'Versicherungen',type:'expense',vat:0},
-  steuerberatung:{label:'Steuerberatung',type:'expense',vat:0.19},
-  miete:{label:'Miete / Raumkosten',type:'expense',vat:0},
-  bankgebuehr:{label:'Bankgebühren',type:'expense',vat:0},
-  sonstiges:{label:'Sonstiges',type:'expense',vat:0.19},
-  einnahmen_eu:{label:'EU-Leistungen (§4 Nr.1b, innergemeinschaftlich)',type:'income',vat:0,euLeistung:true},
-  einnahmen_drittland:{label:'Drittland-Leistungen (§4 Nr.1a, außerhalb EU)',type:'income',vat:0,drittland:true},
-  rc_eingang:{label:'Reverse Charge Eingang (§13b)',type:'expense',vat:0.19,reverseCharge:true},
-  privat:{label:'Privat (nicht absetzbar)',type:'private',vat:0},
-  privatentnahme:{label:'Privatentnahme',type:'private',vat:0},
+  // ── Einnahmen ──
+  einnahmen_19:{label:'Einnahmen 19% MwSt.',type:'income',vat:0.19,group:'Einnahmen'},
+  einnahmen_7:{label:'Einnahmen 7% MwSt.',type:'income',vat:0.07,group:'Einnahmen'},
+  einnahmen_0:{label:'Einnahmen steuerfrei',type:'income',vat:0,group:'Einnahmen'},
+  einnahmen_eu:{label:'EU-Leistungen (§4 Nr.1b, innergemeinschaftlich)',type:'income',vat:0,euLeistung:true,group:'Einnahmen'},
+  einnahmen_drittland:{label:'Drittland-Leistungen (§4 Nr.1a, außerhalb EU)',type:'income',vat:0,drittland:true,group:'Einnahmen'},
+  // ── Betriebsausgaben ──
+  software:{label:'Software & Tools',type:'expense',vat:0.19,group:'Betriebsausgaben'},
+  hardware:{label:'Hardware & Technik',type:'expense',vat:0.19,group:'Betriebsausgaben'},
+  buero:{label:'Büro & Arbeitsmittel',type:'expense',vat:0.19,group:'Betriebsausgaben'},
+  marketing:{label:'Marketing & Werbung',type:'expense',vat:0.19,group:'Betriebsausgaben'},
+  reise:{label:'Reise & Fahrtkosten',type:'expense',vat:0.19,group:'Betriebsausgaben'},
+  bewirtung:{label:'Bewirtung (70%)',type:'expense',vat:0.19,limitFactor:0.7,group:'Betriebsausgaben'},
+  telefon:{label:'Telefon & Internet',type:'expense',vat:0.19,group:'Betriebsausgaben'},
+  weiterbildung:{label:'Weiterbildung',type:'expense',vat:0.19,group:'Betriebsausgaben'},
+  freelancer:{label:'Fremdleistungen',type:'expense',vat:0.19,group:'Betriebsausgaben'},
+  versicherung:{label:'Versicherungen',type:'expense',vat:0,group:'Betriebsausgaben'},
+  steuerberatung:{label:'Steuerberatung',type:'expense',vat:0.19,group:'Betriebsausgaben'},
+  miete:{label:'Miete / Raumkosten',type:'expense',vat:0,group:'Betriebsausgaben'},
+  bankgebuehr:{label:'Kontoführung & Bankgebühren',type:'expense',vat:0,group:'Betriebsausgaben'},
+  sonstiges:{label:'Sonstiges (Ausgabe)',type:'expense',vat:0.19,group:'Betriebsausgaben'},
+  rc_eingang:{label:'Reverse Charge Eingang (§13b)',type:'expense',vat:0.19,reverseCharge:true,group:'Betriebsausgaben'},
+  // ── Steuerzahlungen (nicht absetzbar in EÜR) ──
+  steuer_ust:{label:'USt-Vorauszahlung / USt-Erstattung',type:'tax',vat:0,group:'Steuerzahlungen'},
+  steuer_est:{label:'Einkommensteuer-Zahlung',type:'tax',vat:0,group:'Steuerzahlungen'},
+  steuer_gewst:{label:'Gewerbesteuer-Zahlung',type:'tax',vat:0,group:'Steuerzahlungen'},
+  steuer_soli:{label:'Solidaritätszuschlag',type:'tax',vat:0,group:'Steuerzahlungen'},
+  steuer_kist:{label:'Kirchensteuer',type:'tax',vat:0,group:'Steuerzahlungen'},
+  // ── Privat ──
+  privat:{label:'Privat (nicht absetzbar)',type:'private',vat:0,group:'Privat'},
+  privatentnahme:{label:'Privatentnahme',type:'private',vat:0,group:'Privat'},
 };
+
+// Gruppierte Kategorie-Optionen für Dropdowns (<optgroup>)
+function buildCategoryOptions(selectedKey, includeEmpty=true){
+  const groups={};
+  Object.entries(CATEGORIES).forEach(([k,v])=>{
+    const g=v.group||'Sonstige';
+    if(!groups[g])groups[g]=[];
+    groups[g].push([k,v]);
+  });
+  let html=includeEmpty?`<option value=""${!selectedKey?' selected':''} style="color:var(--text3)">– Offen –</option>`:'';
+  const order=['Einnahmen','Betriebsausgaben','Steuerzahlungen','Privat'];
+  order.forEach(g=>{
+    if(!groups[g])return;
+    html+=`<optgroup label="${g}">`;
+    groups[g].forEach(([k,v])=>{
+      html+=`<option value="${k}"${selectedKey===k?' selected':''}>${v.label}</option>`;
+    });
+    html+=`</optgroup>`;
+  });
+  return html;
+}
 
 // ── STATE ──────────────────────────────────────────────────
 let selectedYear    = new Date().getFullYear();
@@ -1203,7 +1233,7 @@ function updateSidebar(){
       return;
     }
     const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
-    if(cat.type==='private')return;
+    if(cat.type==='private'||cat.type==='tax')return; // Privat + Steuerzahlungen: nicht in EÜR
     const brutto=r.betrag_brutto||0;
     const vatRate=(r.mwst_satz>0)?r.mwst_satz:cat.vat;
     const netto=(r.betrag_netto>0&&r.betrag_netto<brutto)?r.betrag_netto:
@@ -1824,7 +1854,7 @@ function openBelegEdit(id){
   $('edit-beleg-betrag').value=rec.betrag||'';
   // Kategorie-Select befüllen
   const sel=$('edit-beleg-kat');
-  sel.innerHTML=Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}"${rec.kategorie===k?' selected':''}>${v.label}</option>`).join('');
+  sel.innerHTML=buildCategoryOptions(rec.kategorie, false);
   $('modal-beleg-edit').classList.add('open');
   lucide.createIcons();
 }
@@ -2547,9 +2577,7 @@ function renderReview(){
   // Kategorie-Dropdown einmalig befüllen
   const katSel=$('review-filter-kat');
   if(katSel&&katSel.options.length<=2){
-    Object.entries(CATEGORIES).forEach(([k,v])=>{
-      const o=document.createElement('option');o.value=k;o.textContent=v.label;katSel.appendChild(o);
-    });
+    katSel.insertAdjacentHTML('beforeend', buildCategoryOptions(null, false));
   }
 
   const searchQ=($('review-search')?.value||'').toLowerCase().trim();
@@ -2625,8 +2653,7 @@ function renderReview(){
           <div class="lx-thumb">${renderThumb(r,realIdx)}</div>
           <div class="cat-cell">
             <select class="cat-select" onchange="onCatChange(${realIdx},this.value)">
-              <option value=""${!r.kategorie?' selected':''} style="color:var(--text3)">– Offen –</option>
-              ${Object.entries(CATEGORIES).map(([k,v])=>`<option value="${k}"${r.kategorie===k?' selected':''}>${v.label}</option>`).join('')}
+              ${buildCategoryOptions(r.kategorie)}
             </select>
             ${r.kategorie&&CATEGORY_HINTS[r.kategorie]?`<button class="hint-btn" onmouseenter="showCatHint(this,'${r.kategorie}')" onmouseleave="hideCatHint()" title="Steuertipp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></button>`:''}
           </div>
@@ -3038,7 +3065,7 @@ function buildUStVA(){
       if(!r.is_einnahme) ausNetto+=r.betrag_brutto||0;
       return;
     }
-    if(cat.type==='private')return;
+    if(cat.type==='private'||cat.type==='tax')return; // Privat + Steuerzahlungen: nicht in UStVA/EÜR
 
     // VAT aus Category ableiten wenn im Match nicht gesetzt (z.B. nach manuellem Kategorisieren)
     const vatRate=(r.mwst_satz>0)?r.mwst_satz:cat.vat;
@@ -3116,6 +3143,7 @@ function buildUStVA(){
     ${extras.reBetrag>0?`<tr><td style="padding-left:20px;">Dienstreisen (${extras.reCount} Fahrten)</td><td style="color:var(--red);">− ${fmt(extras.reBetrag)}</td></tr>`:''}
     ${extras.afaBetrag>0?`<tr><td style="padding-left:20px;">AfA Anlagen (${extras.afaCount} Anlagen)</td><td style="color:var(--red);">− ${fmt(extras.afaBetrag)}</td></tr>`:''}
     <tr style="font-weight:700;"><td><strong>Gewinn / Verlust (inkl. Extras)</strong></td><td><strong style="color:${gewinnMitExtras>=0?'var(--green)':'var(--red)'};">${fmt(gewinnMitExtras)}</strong></td></tr>`:''}
+    <tr><td style="color:var(--text3);">Steuerzahlungen (ESt, USt, GewSt – nicht absetzbar)</td><td style="color:var(--text3);">${fmt(periodSrc.filter(r=>CATEGORIES[r.kategorie]?.type==='tax').reduce((s,r)=>s+(r.betrag_brutto||0),0))}</td></tr>
     <tr><td style="color:var(--text3);">Nicht-abzugsfähig (Privat, Privatentnahmen)</td><td style="color:var(--text3);">${fmt(periodSrc.filter(r=>CATEGORIES[r.kategorie]?.type==='private').reduce((s,r)=>s+(r.betrag_brutto||0),0))}</td></tr>
     ${periodSrc.filter(r=>!r.kategorie&&!r.is_einnahme).length?`<tr><td style="color:var(--orange);">Noch unkategorisiert (offen)</td><td style="color:var(--orange);">${fmt(periodSrc.filter(r=>!r.kategorie&&!r.is_einnahme).reduce((s,r)=>s+(r.betrag_brutto||0),0))}</td></tr>`:''}
     ${extrasTotal===0?`<tr><td style="color:var(--text3);font-size:10px;">💡 <a href="#" onclick="goPage(5);return false;" style="color:var(--accent);text-decoration:none;">Steuersparen-Tab</a> – Homeoffice, Reisen & AfA eintragen für bessere EÜR</td><td></td></tr>`:''}
@@ -3148,7 +3176,7 @@ function exportElsterXML(){
 
   periodSrc.forEach(r=>{
     const cat=CATEGORIES[r.kategorie];
-    if(!cat||cat.type==='private')return;
+    if(!cat||cat.type==='private'||cat.type==='tax')return; // Steuerzahlungen nicht in UStVA!
 
     const vatRate=(r.mwst_satz>0)?r.mwst_satz:cat.vat;
     const brutto=r.betrag_brutto||0;
@@ -3762,6 +3790,9 @@ const CATEGORY_HINTS = {
   sonstiges:    { tip:'Spezifischere Kategorie prüfen. "Sonstiges" erhöht das Prüfungsrisiko beim Finanzamt.', warn:true },
   bankgebuehr:  { tip:'Bankgebühren sind ohne MwSt – kein Vorsteuerabzug. Zinsen auf Geschäftskonto ebenfalls hier.', warn:false },
   steuerberatung:{ tip:'Steuerberatungskosten sind vollständig als Betriebsausgabe absetzbar.', warn:false },
+  steuer_ust:   { tip:'USt-Vorauszahlung/Erstattung ans Finanzamt. Keine Betriebsausgabe – wird in der EÜR separat ausgewiesen.', warn:false },
+  steuer_est:   { tip:'Einkommensteuer ist keine Betriebsausgabe (§ 12 Nr. 3 EStG). Wird als durchlaufender Posten geführt.', warn:false },
+  steuer_gewst: { tip:'Gewerbesteuer ist seit 2008 nicht mehr als Betriebsausgabe absetzbar (§ 4 Abs. 5b EStG).', warn:false },
 };
 let _hintTimeout;
 function showCatHint(btn, catKey){
