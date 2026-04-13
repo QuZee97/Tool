@@ -1237,7 +1237,7 @@ function updateSidebar(){
     const cat=CATEGORIES[r.kategorie]||CATEGORIES.sonstiges;
     if(cat.type==='private'||cat.type==='tax')return; // Privat + Steuerzahlungen: nicht in EÜR
     const brutto=r.betrag_brutto||0;
-    const vatRate=(r.mwst_satz>0)?r.mwst_satz:cat.vat;
+    const vatRate=(r.mwst_satz>0)?(r.mwst_satz>1?r.mwst_satz/100:r.mwst_satz):cat.vat;
     const netto=(r.betrag_netto>0&&r.betrag_netto<brutto)?r.betrag_netto:
       (vatRate>0?Math.round(brutto/(1+vatRate)*100)/100:brutto);
     const mwstAmt=(r.mwst_betrag>0)?r.mwst_betrag:Math.round((brutto-netto)*100)/100;
@@ -2656,7 +2656,8 @@ function renderReview(){
             ${(()=>{
               const c=CATEGORIES[r.kategorie];
               if(!c||c.type==='private'||c.type==='tax')return'';
-              const vr=(r.mwst_satz>0)?r.mwst_satz:c.vat;
+              const rawVr=(r.mwst_satz>0)?r.mwst_satz:c.vat;
+              const vr=rawVr>1?rawVr/100:rawVr;
               const br=r.betrag_brutto||0;
               const ne=(r.betrag_netto>0&&r.betrag_netto<br)?r.betrag_netto:(vr>0?Math.round(br/(1+vr)*100)/100:br);
               const mw=(r.mwst_betrag>0)?r.mwst_betrag:Math.round((br-ne)*100)/100;
@@ -3082,7 +3083,7 @@ function buildUStVA(){
     if(cat.type==='private'||cat.type==='tax')return; // Privat + Steuerzahlungen: nicht in UStVA/EÜR
 
     // VAT aus Category ableiten wenn im Match nicht gesetzt (z.B. nach manuellem Kategorisieren)
-    const vatRate=(r.mwst_satz>0)?r.mwst_satz:cat.vat;
+    const vatRate=(r.mwst_satz>0)?(r.mwst_satz>1?r.mwst_satz/100:r.mwst_satz):cat.vat;
     const brutto=r.betrag_brutto||0;
     const netto=(r.betrag_netto>0&&r.betrag_netto<brutto)?r.betrag_netto:
       (vatRate>0?Math.round(brutto/(1+vatRate)*100)/100:brutto);
@@ -3192,7 +3193,7 @@ function exportElsterXML(){
     const cat=CATEGORIES[r.kategorie];
     if(!cat||cat.type==='private'||cat.type==='tax')return; // Steuerzahlungen nicht in UStVA!
 
-    const vatRate=(r.mwst_satz>0)?r.mwst_satz:cat.vat;
+    const vatRate=(r.mwst_satz>0)?(r.mwst_satz>1?r.mwst_satz/100:r.mwst_satz):cat.vat;
     const brutto=r.betrag_brutto||0;
     const netto=(r.betrag_netto>0&&r.betrag_netto<brutto)?r.betrag_netto:
       (vatRate>0?Math.round(brutto/(1+vatRate)*100)/100:brutto);
