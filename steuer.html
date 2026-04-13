@@ -1241,17 +1241,19 @@ function updateSidebar(){
     const netto=vatRate>0?Math.round(brutto/(1+vatRate)*100)/100:brutto;
     const mwstAmt=Math.round((brutto-netto)*100)/100;
     const f=cat.limitFactor||1;
+    const isGutschrift=r.is_einnahme&&cat.type==='expense';
+    const sign=isGutschrift?-1:1;
     if(cat.type==='income'){
       ein+=netto;
       if(vatRate>0)zl+=mwstAmt; // USt auf Einnahmen
     } else if(cat.reverseCharge){
       const rcMwst=Math.round(netto*0.19*100)/100;
-      aus+=netto*f;
-      zl+=rcMwst;  // §13b Ausgangsumsatzsteuer
-      zl-=rcMwst;  // §13b Vorsteuer (hebt sich auf)
+      aus+=netto*f*sign;
+      zl+=rcMwst*sign;  // §13b Ausgangsumsatzsteuer
+      zl-=rcMwst*sign;  // §13b Vorsteuer (hebt sich auf)
     } else {
-      aus+=netto*f;
-      zl-=mwstAmt*f; // Vorsteuerabzug
+      aus+=netto*f*sign;
+      zl-=mwstAmt*f*sign; // Vorsteuerabzug
     }
   });
   $('sb-einnahmen').textContent=fmt(ein);
@@ -3122,6 +3124,10 @@ function buildUStVA(){
     const mwstAmt=Math.round((brutto-netto)*100)/100;
     const f=cat.limitFactor||1;
 
+    // Gutschrift-Erkennung: Eingang bei Ausgabe-Kategorie → Ausgaben reduzieren
+    const isGutschrift=r.is_einnahme&&cat.type==='expense';
+    const sign=isGutschrift?-1:1;
+
     if(cat.type==='income'){
       einNetto+=netto;
       if(cat.euLeistung){einEU+=netto;}              // EU-Leistungen → Kz 21
@@ -3133,14 +3139,14 @@ function buildUStVA(){
       // §13b Schuldner: Vorsteuer-Buchung ohne tatsächliche Zahlung
       const rcNetto=netto;
       const rcMwst=Math.round(rcNetto*0.19*100)/100;
-      ausNetto+=rcNetto*f;
-      rc52+=rcNetto;       // Kz 52: Bemessungsgrundlage
-      rc53+=rcMwst;        // Kz 53: Steuer darauf
-      vor67+=rcMwst;       // Kz 67: als Vorsteuer abziehbar
+      ausNetto+=rcNetto*f*sign;
+      rc52+=rcNetto*sign;       // Kz 52: Bemessungsgrundlage
+      rc53+=rcMwst*sign;        // Kz 53: Steuer darauf
+      vor67+=rcMwst*sign;       // Kz 67: als Vorsteuer abziehbar
     } else {
-      ausNetto+=netto*f;
-      if(vatRate===0.19){vor19+=mwstAmt*f;}
-      else if(vatRate===0.07){vor7+=mwstAmt*f;}
+      ausNetto+=netto*f*sign;
+      if(vatRate===0.19){vor19+=mwstAmt*f*sign;}
+      else if(vatRate===0.07){vor7+=mwstAmt*f*sign;}
     }
   });
 
@@ -3171,6 +3177,8 @@ function buildUStVA(){
     <tr><td>Kz 47 – Steuer darauf (19%)</td><td>${fmt(rc53)}</td></tr>`:''}
     <tr><th colspan="2">Vorsteuer</th></tr>
     <tr><td>Kz 66 – Vorsteuer aus Rechnungen anderer Unternehmer</td><td>${fmt(vorsteuer)}</td></tr>
+    <tr><td style="padding-left:20px;color:var(--text3);font-size:10px;">davon 19%-Vorsteuer</td><td style="color:var(--text3);font-size:10px;">${fmt(vor19)}</td></tr>
+    ${vor7>0?`<tr><td style="padding-left:20px;color:var(--text3);font-size:10px;">davon 7%-Vorsteuer</td><td style="color:var(--text3);font-size:10px;">${fmt(vor7)}</td></tr>`:''}
     ${vor67>0?`<tr><td>Kz 67 – Vorsteuer aus ig. Erwerb / §13b</td><td>${fmt(vor67)}</td></tr>`:''}
     <tr><th colspan="2">Ergebnis</th></tr>
     <tr><td><strong>Kz 83 – ${zahllast>=0?'Zahllast':'Erstattungsüberhang'}</strong></td><td><strong style="color:${zahllast>=0?'var(--red)':'var(--green)'};">${fmt(Math.abs(zahllast))}</strong></td></tr>
@@ -3231,6 +3239,8 @@ function exportElsterXML(){
     const mwstAmt=Math.round((brutto-netto)*100)/100;
     const f=cat.limitFactor||1;
 
+    const isGutschrift=r.is_einnahme&&cat.type==='expense';
+    const sign=isGutschrift?-1:1;
     if(cat.type==='income'){
       if(cat.euLeistung){einEU+=netto;}
       else if(cat.drittland){einDrittland+=netto;}
@@ -3240,10 +3250,10 @@ function exportElsterXML(){
     } else if(cat.reverseCharge){
       const rcNetto=netto;
       const rcMwst=Math.round(rcNetto*0.19*100)/100;
-      rc52+=rcNetto; rc53+=rcMwst; vor67+=rcMwst;
+      rc52+=rcNetto*sign; rc53+=rcMwst*sign; vor67+=rcMwst*sign;
     } else {
-      if(vatRate===0.19){vor19+=mwstAmt*f;}
-      else if(vatRate===0.07){vor7+=mwstAmt*f;}
+      if(vatRate===0.19){vor19+=mwstAmt*f*sign;}
+      else if(vatRate===0.07){vor7+=mwstAmt*f*sign;}
     }
   });
 
