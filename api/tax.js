@@ -28,7 +28,7 @@ const CATEGORIES = {
   kontofuehrung:   { label: 'Kontoführung (mit MwSt, z.B. Kontist)', type: 'expense', vat: 0.19 },
   bankgebuehr:     { label: 'Bankgebühren (ohne MwSt)',      type: 'expense', vat: 0 },
   sonstiges:       { label: 'Sonstiges (Ausgabe)',           type: 'expense', vat: 0.19 },
-  rc_eingang:      { label: 'Reverse Charge Eingang (§13b)', type: 'expense', vat: 0.19 },
+  rc_eingang:      { label: 'Reverse Charge Eingang (§13b)', type: 'expense', vat: 0 },
 
   // STEUERZAHLUNGEN (NICHT absetzbar als Betriebsausgabe!)
   steuer_ust:   { label: 'USt-Vorauszahlung / USt-Erstattung', type: 'tax', vat: 0 },

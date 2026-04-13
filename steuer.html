@@ -962,7 +962,7 @@ const CATEGORIES = {
   kontofuehrung:{label:'Kontoführung (mit MwSt, z.B. Kontist)',type:'expense',vat:0.19,group:'Betriebsausgaben'},
   bankgebuehr:{label:'Bankgebühren (ohne MwSt)',type:'expense',vat:0,group:'Betriebsausgaben'},
   sonstiges:{label:'Sonstiges (Ausgabe)',type:'expense',vat:0.19,group:'Betriebsausgaben'},
-  rc_eingang:{label:'Reverse Charge Eingang (§13b)',type:'expense',vat:0.19,reverseCharge:true,group:'Betriebsausgaben'},
+  rc_eingang:{label:'Reverse Charge Eingang (§13b)',type:'expense',vat:0,reverseCharge:true,group:'Betriebsausgaben'},
   // ── Steuerzahlungen (nicht absetzbar in EÜR) ──
   steuer_ust:{label:'USt-Vorauszahlung / USt-Erstattung',type:'tax',vat:0,group:'Steuerzahlungen'},
   steuer_est:{label:'Einkommensteuer-Zahlung',type:'tax',vat:0,group:'Steuerzahlungen'},
@@ -2662,6 +2662,7 @@ function renderReview(){
               const ne=vr>0?Math.round(br/(1+vr)*100)/100:br;
               const mw=Math.round((br-ne)*100)/100;
               const pct=Math.round(vr*100);
+              if(c.reverseCharge){const rcMwst=Math.round(br*0.19*100)/100;return '<div style="font-size:9px;color:var(--text3);font-weight:400;margin-top:1px;">§13b RC: '+fmt(rcMwst)+'</div>';}
               return '<div style="font-size:9px;color:var(--text3);font-weight:400;margin-top:1px;">'+(vr>0?pct+'% MwSt: '+fmt(mw):'0% MwSt')+'</div>';
             })()}
           </div>
