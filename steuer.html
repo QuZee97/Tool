@@ -3302,7 +3302,7 @@ function exportElsterXML(){
   const steuernrElster=bl+steuernr.replace(/^0*/,'').padStart(11,'0');
 
   const xml=`<?xml version="1.0" encoding="UTF-8"?>
-<Elster xmlns="http://www.elster.de/elsterxml/schema/v11">
+<Elster xmlns="http://www.elster.de/elsterxml/schema/v11" version="11">
   <TransferHeader version="11">
     <Verfahren>ElsterAnmeldung</Verfahren>
     <DatenArt>UStVA</DatenArt>
