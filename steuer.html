@@ -3294,12 +3294,12 @@ function exportElsterXML(){
   // Zahllast (kann negativ sein = Erstattung)
   addKz('83',zahllast);
 
-  const zeitraum=q
-    ?`      <Zeitraum>${String(q).padStart(2,'0')}</Zeitraum>`
-    :`      <Zeitraum>12</Zeitraum>`;
+  // ELSTER Zeitraum-Codes: Q1=41, Q2=42, Q3=43, Q4=44, Jahr=12
+  const zeitraumCode=q?String(40+q):'12';
+  const zeitraum=`      <Zeitraum>${zeitraumCode}</Zeitraum>`;
 
-  // Steuernummer im ELSTER-Format: Bundesland-Präfix + Nummer (13 Stellen)
-  const steuernrElster=bl+steuernr.replace(/^0*/,'').padStart(11,'0');
+  // Steuernummer: nur Ziffern, wie vom Nutzer eingegeben
+  const steuernrClean=steuernr;
 
   const xml=`<?xml version="1.0" encoding="UTF-8"?>
 <Elster xmlns="http://www.elster.de/elsterxml/schema/v11" version="${year}">
@@ -3339,7 +3339,7 @@ function exportElsterXML(){
             <Umsatzsteuervoranmeldung>
               <Jahr>${year}</Jahr>
 ${zeitraum}
-              <Steuernummer>${steuernrElster}</Steuernummer>
+              <Steuernummer>${steuernrClean}</Steuernummer>
               <Kz09>74931</Kz09>
 ${kzEntries.join('\n')}
             </Umsatzsteuervoranmeldung>
