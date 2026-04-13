@@ -24,7 +24,8 @@ const CATEGORIES = {
   versicherung:    { label: 'Versicherungen',                type: 'expense', vat: 0 },
   steuerberatung:  { label: 'Steuerberatung & Buchhaltung',  type: 'expense', vat: 0.19 },
   miete:           { label: 'Miete / Raumkosten',            type: 'expense', vat: 0.19 },
-  bankgebuehr:     { label: 'Kontoführung & Bankgebühren',   type: 'expense', vat: 0 },
+  kontofuehrung:   { label: 'Kontoführung (mit MwSt, z.B. Kontist)', type: 'expense', vat: 0.19 },
+  bankgebuehr:     { label: 'Bankgebühren (ohne MwSt)',      type: 'expense', vat: 0 },
   sonstiges:       { label: 'Sonstiges (Ausgabe)',           type: 'expense', vat: 0.19 },
   rc_eingang:      { label: 'Reverse Charge Eingang (§13b)', type: 'expense', vat: 0.19 },
 
@@ -71,7 +72,8 @@ REGELN:
 - IDs MÜSSEN exakt mit der Eingabe übereinstimmen (wichtig fürs Matching!)
 - Beträge immer positiv (Vorzeichen wird vom System bestimmt)
 - Wenn Buchung eindeutig privat ist: kategorie = "privat"
-- Bankgebühren, Kontoführung, Kontoführungsgebühren, Zinsen: kategorie = "bankgebuehr" (MwSt = 0). NICHT "steuerberatung"!
+- Fintech-Kontoführung MIT MwSt (Kontist, Qonto, Penta, N26 Business, Finom): kategorie = "kontofuehrung" (MwSt = 19%). NICHT "steuerberatung"!
+- Klassische Bankgebühren OHNE MwSt (Sparkasse, Volksbank, Commerzbank, Zinsen): kategorie = "bankgebuehr" (MwSt = 0). NICHT "steuerberatung"!
 - EU-Ausland Einnahmen (B2B Leistungen an EU-Unternehmen, §4 Nr.1b, z.B. Österreich, Frankreich): kategorie = "einnahmen_eu", keine MwSt ausweisen
 - Drittland-Einnahmen (§4 Nr.1a, außerhalb EU: USA, UK, Schweiz, etc.): kategorie = "einnahmen_drittland", keine MwSt ausweisen
 - EU-Ausland Ausgaben ohne MwSt (z.B. Meta Ads, Google Cloud, Adobe, Stripe, GitHub, Slack, Figma): kategorie = "rc_eingang" (Reverse Charge §13b), unklar=true zur Prüfung
