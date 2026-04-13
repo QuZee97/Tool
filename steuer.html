@@ -2728,6 +2728,41 @@ async function onCatChange(idx,newCat){
     try{await DB.updateMatch(matches[idx].id,dbUpdate);}
     catch(e){console.warn('Kategorie-Update fehlgeschlagen:',e.message);}
   }
+
+  // Regel speichern: bei manueller Kategorie-Änderung merken für gleiche Absender
+  const m=matches[idx];
+  if(cat&&m.empfaenger){
+    const empfKey=normalizeEmpf(m.empfaenger);
+    const existingRule=txRules.find(r=>r.empfaenger_key===empfKey);
+    if(!existingRule||existingRule.kategorie!==cat){
+      try{
+        const saved=await DB.saveRule(m.empfaenger,cat,m.beschreibung);
+        if(existingRule){Object.assign(existingRule,saved);}
+        else{txRules.push(saved);}
+        console.log('[Regel] Auto-gespeichert:',m.empfaenger,'→',cat);
+        // Gleiche Absender im aktuellen Review sofort aktualisieren
+        let applied=0;
+        matches.forEach((other,oi)=>{
+          if(oi===idx||other.bestaetigt||other.konfidenz)return;
+          if(normalizeEmpf(other.empfaenger||other.beschreibung||'')===empfKey){
+            other.kategorie=cat;
+            other.kategorie_info=CATEGORIES[cat]||null;
+            const ci=CATEGORIES[cat];
+            if(ci&&ci.type!=='private'&&ci.type!=='tax'){
+              const br=other.betrag_brutto||0;
+              const vr=ci.vat||0;
+              const ne=vr>0?Math.round(br/(1+vr)*100)/100:br;
+              other.betrag_netto=ne;other.mwst_satz=vr;other.mwst_betrag=Math.round((br-ne)*100)/100;
+            }
+            if(other.id){DB.updateMatch(other.id,{kategorie:cat,mwst_satz:other.mwst_satz,betrag_netto:other.betrag_netto,mwst_betrag:other.mwst_betrag}).catch(()=>{});}
+            applied++;
+          }
+        });
+        if(applied>0){toast(`Regel gespeichert · ${applied} weitere ${applied===1?'Buchung':'Buchungen'} aktualisiert`);}
+      }catch(e){console.warn('Regel-Speicherung fehlgeschlagen:',e.message);}
+    }
+  }
+  renderReview();
 }
 
 async function onConfirmToggle(idx){
