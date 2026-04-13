@@ -3270,29 +3270,30 @@ function exportElsterXML(){
   const now=new Date();
   const erstellDatum=now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0');
 
-  // Cent-Wert Formatierung (ELSTER erwartet Ganzzahl-Cent für Beträge)
-  const c=v=>Math.round(v*100)/100;
+  // ELSTER Formatierung: Bemessungsgrundlagen = volle Euro (gerundet), Steuerbeträge = 2 Dezimalstellen
+  const euro=v=>String(Math.round(v));           // volle Euro (Kz81, Kz86, Kz46, Kz48, Kz21, Kz45)
+  const cent=v=>(Math.round(v*100)/100).toFixed(2); // Euro.Cent (Kz35, Kz36, Kz47, Kz66, Kz67, Kz83)
 
-  // Kennzahlen sammeln (nur >0 Werte einfügen)
+  // Kennzahlen sammeln
   const kzEntries=[];
-  const addKz=(nr,val)=>{if(Math.abs(val)>=0.005)kzEntries.push(`      <Kz${nr}>${c(val)}</Kz${nr}>`);};
+  const addKz=(nr,val,formatter)=>{kzEntries.push(`              <Kz${nr}>${formatter(val)}</Kz${nr}>`);};
 
-  // Umsätze
-  addKz('81',ein19);
-  addKz('86',ein7);
-  addKz('35',ust19);
-  addKz('36',ust7);
-  addKz('48',ein0);       // Steuerfreie Umsätze Inland (ohne VSt-Abzug) → Kz 48
-  addKz('21',einEU);      // Innergemeinschaftliche Leistungen § 4 Nr. 1b
-  addKz('45',einDrittland); // Nicht steuerbare sonstige Leistungen § 18b S. 2 → Kz 45
+  // Umsätze (Bemessungsgrundlagen = volle Euro)
+  addKz('81',ein19,euro);
+  addKz('86',ein7,euro);
+  // Steuer darauf (Euro.Cent)
+  addKz('35',ust19,cent);
+  addKz('36',ust7,cent);
+  if(ein0>0)addKz('48',ein0,euro);
+  if(einEU>0)addKz('21',einEU,euro);
+  if(einDrittland>0)addKz('45',einDrittland,euro);
   // §13b
-  addKz('46',rc52);       // Leistungen eines im Ausland ansässigen Unternehmers (Bemessung)
-  addKz('47',rc53);       // Steuer darauf
+  if(rc52>0){addKz('46',rc52,euro);addKz('47',rc53,cent);}
   // Vorsteuer
-  addKz('66',vorsteuer);  // Vorsteuer aus Rechnungen anderer Unternehmer
-  addKz('67',vor67);      // Vorsteuer aus ig. Erwerb / §13b
-  // Zahllast (kann negativ sein = Erstattung)
-  addKz('83',zahllast);
+  addKz('66',vorsteuer,cent);
+  if(vor67>0)addKz('67',vor67,cent);
+  // Zahllast
+  addKz('83',zahllast,cent);
 
   // ELSTER Zeitraum-Codes: Q1=41, Q2=42, Q3=43, Q4=44, Jahr=12
   const zeitraumCode=q?String(40+q):'12';
