@@ -2650,7 +2650,19 @@ function renderReview(){
           <div class="lx-desc">
             <div class="lx-desc-main" title="${(r.beschreibung||'').replace(/"/g,'&quot;')}">${r.beschreibung||'–'}</div>
           </div>
-          <div class="lx-amt ${isIncome?'in':'out'}">${isIncome?'+':'−'}${fmt(r.betrag_brutto||0)}</div>
+          <div class="lx-amt ${isIncome?'in':'out'}">
+            ${isIncome?'+':'−'}${fmt(r.betrag_brutto||0)}
+            ${(()=>{
+              const c=CATEGORIES[r.kategorie];
+              if(!c||c.type==='private'||c.type==='tax')return'';
+              const vr=(r.mwst_satz>0)?r.mwst_satz:c.vat;
+              const br=r.betrag_brutto||0;
+              const ne=(r.betrag_netto>0&&r.betrag_netto<br)?r.betrag_netto:(vr>0?Math.round(br/(1+vr)*100)/100:br);
+              const mw=(r.mwst_betrag>0)?r.mwst_betrag:Math.round((br-ne)*100)/100;
+              const pct=Math.round(vr*100);
+              return '<div style="font-size:9px;color:var(--text3);font-weight:400;margin-top:1px;">'+(vr>0?pct+'% MwSt: '+fmt(mw):'0% MwSt')+'</div>';
+            })()}
+          </div>
           <div class="lx-thumb">${renderThumb(r,realIdx)}</div>
           <div class="cat-cell">
             <select class="cat-select" onchange="onCatChange(${realIdx},this.value)">
