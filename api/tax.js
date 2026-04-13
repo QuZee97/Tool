@@ -16,7 +16,7 @@ const CATEGORIES = {
   hardware:        { label: 'Hardware & Technik',            type: 'expense', vat: 0.19 },
   buero:           { label: 'Büro & Arbeitsmittel',          type: 'expense', vat: 0.19 },
   marketing:       { label: 'Marketing & Werbung',           type: 'expense', vat: 0.19 },
-  reise:           { label: 'Reise & Fahrtkosten',           type: 'expense', vat: 0.07 },
+  reise:           { label: 'Reise & Fahrtkosten (7%)',        type: 'expense', vat: 0.07 },
   bewirtung:       { label: 'Bewirtung (70% absetzbar)',     type: 'expense', vat: 0.19, limitFactor: 0.7 },
   telefon:         { label: 'Telefon & Internet',            type: 'expense', vat: 0.19 },
   weiterbildung:   { label: 'Weiterbildung & Kurse',         type: 'expense', vat: 0.19 },
