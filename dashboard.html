@@ -895,7 +895,11 @@ function buildDocHTML(doc, lang, tax, isRe){
       zahlungText = l ? 'Payment is due within 14 days of receipt without deduction.' : 'Zahlung ist innerhalb von 14 Tagen nach Erhalt ohne Abzug fällig.';
     } else if(zahlung === 'custom' && Array.isArray(doc.customRaten) && doc.customRaten.length){
       const fmtB = v => v.toLocaleString(l?'en-US':'de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
-      const lines = doc.customRaten.map((r,i) => `${i+1}. Rate (${r.anteil}% = ${fmtB(Math.round(brutto*r.anteil/100*100)/100)}) ${r.text}`);
+      const lines = doc.customRaten.map((r,i) => {
+        const mode = r.mode || 'pct';
+        const amt = mode==='eur' ? (r.betrag||0) : Math.round(brutto*(r.anteil||0)/100*100)/100;
+        return `${i+1}. Rate (${fmtB(amt)}) ${r.text||''}`;
+      });
       zahlungText = (l?'Payment in instalments: ':'Zahlung in Raten: ') + lines.join(', ') + (l?' – each due within 14 days.':' – jeweils innerhalb von 14 Tagen.');
     } else {
       zahlungText = l ? '50% advance payment due upon receipt. Remainder due on completion.' : '50% Anzahlung bei Auftragserteilung. Restbetrag nach Fertigstellung.';

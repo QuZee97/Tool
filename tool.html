@@ -869,7 +869,7 @@ lucide.createIcons();
 
 // ── STATE ──────────────────────────────────────────────────
 let positionen=[];
-let customRaten=[{anteil:50,text:'nach Auftragsbestätigung'},{anteil:50,text:'nach Projektabschluss'}];
+let customRaten=[{mode:'eur',betrag:0,text:'bei Auftragsbestätigung'},{mode:'eur',betrag:0,text:'nach Projektabschluss'}];
 let lang='de',tax='de',typ='angebot';
 let customers=[];
 let library=[];
@@ -1210,21 +1210,35 @@ function onZahlungChange(){
 }
 function renderCustomRaten(){
   const list=$('custom-raten-list');
-  list.innerHTML=customRaten.map((r,i)=>`
-    <div style="display:flex;gap:4px;align-items:center;">
-      <input type="number" value="${r.anteil}" min="0" max="100" step="1" style="width:52px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:5px 6px;outline:none;font-family:var(--font);text-align:right;" oninput="customRaten[${i}].anteil=parseFloat(this.value)||0;update()">
-      <span style="font-size:10px;color:var(--text3);flex-shrink:0;">%</span>
-      <input type="text" value="${r.text}" placeholder="z.B. nach Auftragsbestätigung" style="flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:5px 6px;outline:none;font-family:var(--font);" oninput="customRaten[${i}].text=this.value;update()">
+  // Brutto für Live-Vorschau berechnen
+  const netto=positionen.reduce((s,p)=>s+parsePreis(p.menge)*parsePreis(p.preis),0);
+  const mwst=tax==='de'?netto*.19:0,brutto=netto+mwst;
+  const fmtB=v=>v.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2})+' €';
+  list.innerHTML=customRaten.map((r,i)=>{
+    const mode=r.mode||'pct'; // 'pct' oder 'eur'
+    const amt=mode==='eur'?(r.betrag||0):Math.round(brutto*(r.anteil||0)/100*100)/100;
+    return`<div style="display:flex;gap:4px;align-items:center;">
+      <select style="width:42px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:10px;padding:4px 2px;outline:none;font-family:var(--font);cursor:pointer;appearance:none;text-align:center;" onchange="customRaten[${i}].mode=this.value;renderCustomRaten();update()">
+        <option value="pct"${mode==='pct'?' selected':''}>%</option>
+        <option value="eur"${mode==='eur'?' selected':''}>€</option>
+      </select>
+      <input type="number" value="${mode==='eur'?(r.betrag||''):(r.anteil||'')}" min="0" ${mode==='pct'?'max="100" step="1"':'step="0.01"'} style="width:62px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:5px 6px;outline:none;font-family:var(--font);text-align:right;" oninput="customRaten[${i}][${mode==='eur'?"'betrag'":"'anteil'"}]=parseFloat(this.value)||0;update()" placeholder="${mode==='eur'?'Betrag':'%'}">
+      <span style="font-size:9px;color:var(--text3);flex-shrink:0;width:58px;text-align:right;">${fmtB(amt)}</span>
+      <input type="text" value="${r.text||''}" placeholder="z.B. bei Auftragsbestätigung" style="flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:5px 6px;outline:none;font-family:var(--font);" oninput="customRaten[${i}].text=this.value;update()">
       <button style="background:none;border:none;color:var(--text3);cursor:pointer;padding:2px;font-size:14px;line-height:1;" onclick="customRaten.splice(${i},1);renderCustomRaten();update()" title="Entfernen">×</button>
-    </div>
-  `).join('');
-  // Summe anzeigen
-  const sum=customRaten.reduce((s,r)=>s+r.anteil,0);
-  const sumColor=Math.abs(sum-100)<0.01?'var(--green)':'var(--red)';
-  list.innerHTML+=`<div style="font-size:10px;color:${sumColor};text-align:right;padding-right:4px;">Summe: ${sum}%${Math.abs(sum-100)>=0.01?' (muss 100% ergeben)':' ✓'}</div>`;
+    </div>`;
+  }).join('');
+  // Summe
+  const sumAmt=customRaten.reduce((s,r)=>{
+    if((r.mode||'pct')==='eur')return s+(r.betrag||0);
+    return s+Math.round(brutto*(r.anteil||0)/100*100)/100;
+  },0);
+  const diff=Math.abs(sumAmt-brutto);
+  const sumColor=diff<0.02?'var(--green)':'var(--red)';
+  list.innerHTML+=`<div style="font-size:10px;color:${sumColor};text-align:right;padding-right:4px;">Summe: ${fmtB(sumAmt)} / ${fmtB(brutto)}${diff>=0.02?' ⚠':'  ✓'}</div>`;
 }
 function addCustomRate(){
-  customRaten.push({anteil:0,text:''});
+  customRaten.push({mode:'eur',betrag:0,anteil:0,text:''});
   renderCustomRaten();
   update();
 }
@@ -1233,11 +1247,13 @@ function buildCustomPaymentText(brutto,l){
   const isDE=lang==='de';
   if(!customRaten.length)return isDE?'Zahlung nach Vereinbarung.':'Payment as agreed.';
   const lines=customRaten.map((r,i)=>{
-    const amt=Math.round(brutto*r.anteil/100*100)/100;
-    return`<strong>${i+1}. Rate (${r.anteil}% = ${fmtB(amt)})</strong> ${r.text}`;
+    const mode=r.mode||'pct';
+    const amt=mode==='eur'?(r.betrag||0):Math.round(brutto*(r.anteil||0)/100*100)/100;
+    const pct=mode==='eur'?(brutto>0?Math.round(amt/brutto*100):0):(r.anteil||0);
+    return`<strong>${i+1}. Rate (${fmtB(amt)})</strong> ${r.text||''}`;
   });
   const prefix=isDE?'Zahlung in Raten:':'Payment in instalments:';
-  const suffix=isDE?' – jeweils innerhalb von 14 Tagen.':' – each due within 14 days.';
+  const suffix=isDE?' – jeweils zahlbar innerhalb von 14 Tagen.':' – each due within 14 days.';
   return prefix+' '+lines.join(', ')+suffix;
 }
 
