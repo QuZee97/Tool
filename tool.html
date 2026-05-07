@@ -1265,16 +1265,17 @@ function addCustomRate(){
   renderCustomRaten();
   update();
 }
-function buildCustomPaymentText(brutto,l){
-  const fmtB=v=>v.toLocaleString(lang==='de'?'de-DE':'en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+(lang==='de'?' €':' €');
+function buildCustomPaymentText(brutto){
   const isDE=lang==='de';
+  const loc=isDE?'de-DE':'en-US';
+  const cur=isDE?'€':'€';
+  const fmtB=v=>v.toLocaleString(loc,{minimumFractionDigits:2,maximumFractionDigits:2})+' '+cur;
   if(!customRaten.length)return isDE?'Zahlung nach Vereinbarung.':'Payment as agreed.';
   const mwstFaktor=tax==='de'?1.19:1;
   const lines=customRaten.map((r,i)=>{
     const mode=r.mode||'pct';
-    // € = Netto-Eingabe → Brutto auf Rechnung; % = vom Brutto-Gesamt
     const amt=mode==='eur'?Math.round((r.betrag||0)*mwstFaktor*100)/100:Math.round(brutto*(r.anteil||0)/100*100)/100;
-    return`<strong>${i+1}. Rate (${fmtB(amt)})</strong> ${r.text||''}`;
+    return`<strong>${i+1}. ${isDE?'Rate':'Instalment'} (${fmtB(amt)})</strong> ${r.text||''}`;
   });
   const prefix=isDE?'Zahlung in Raten:':'Payment in instalments:';
   const suffix=isDE?' – jeweils zahlbar innerhalb von 14 Tagen.':' – each due within 14 days.';
@@ -1325,7 +1326,7 @@ function update(){
   const mwst=tax==='de'?netto*.19:0,brutto=netto+mwst;
   const half=brutto/2;
   const zahl=val('f_zahlung');
-  $('d_zahlung_text').innerHTML=zahl==='custom'?buildCustomPaymentText(brutto,l):zahl==='voll'?l.pay_full(fmt(brutto)):l.pay_50(fmt(half));
+  $('d_zahlung_text').innerHTML=zahl==='custom'?buildCustomPaymentText(brutto):zahl==='voll'?l.pay_full(fmt(brutto)):l.pay_50(fmt(half));
 
   // Totals
   $('d_netto').textContent=fmt(netto);
