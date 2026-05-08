@@ -1710,15 +1710,17 @@ function buildCleanPages(){
       });
       ta.replaceWith(wrap);
     });
-    container.querySelectorAll('#f_hinweise').forEach(ta=>{
-      if(!ta.value.trim()){ta.remove();return;}
-      const box=document.createElement('div');
-      box.className='info-box';
-      box.innerHTML=`<strong>${l.notes}</strong><br>${ta.value.trim()}`;
-      ta.replaceWith(box);
-    });
+    // Hinweise: Textarea entfernen, d_notes_rendered als einzige Quelle nutzen
+    container.querySelectorAll('#f_hinweise').forEach(ta=>ta.remove());
     const dnr=container.querySelector('#d_notes_rendered');
-    if(dnr)dnr.style.display=notes?'block':'none';
+    if(dnr){
+      if(notes){
+        dnr.style.display='block';
+        dnr.innerHTML=`<strong>${l.notes}</strong><br>${notes}`;
+      } else {
+        dnr.remove();
+      }
+    }
   }
 
   replaceInputs(p1clone);
