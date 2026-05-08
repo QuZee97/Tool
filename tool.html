@@ -1537,7 +1537,7 @@ async function saveDoc(){
 
   const doc={
     typ,nr:val('f_nr'),datum:val('f_datum'),gueltig:val('f_gueltig'),
-    von:val('f_von'),bis:'',betreff:val('f_betreff'),zahlung:val('f_zahlung'),customRaten:val('f_zahlung')==='custom'?customRaten:undefined,
+    von:val('f_von'),bis:'',betreff:val('f_betreff'),zahlung:val('f_zahlung'),customRaten:val('f_zahlung')==='custom'?customRaten:null,
     hinweise:val('f_hinweise'),firma:val('f_firma'),ansp:val('f_ansprechpartner'),
     str:val('f_strasse'),ort:val('f_ort'),land:val('f_land'),uid:val('f_uid'),
     lang,tax,positionen,pdf_html
@@ -1698,6 +1698,7 @@ function buildCleanPages(){
       sel.replaceWith(span);
     });
     container.querySelectorAll('textarea.ie-block,textarea.pos-details-input').forEach(ta=>{
+      if(ta.id==='f_hinweise')return; // Hinweise werden separat als d_notes_rendered behandelt
       if(!ta.value.trim()){ta.remove();return;}
       const wrap=document.createElement('div');
       wrap.style.marginTop='4px';
