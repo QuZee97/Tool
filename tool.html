@@ -1224,7 +1224,7 @@ function renderCustomRaten(){
         <option value="pct"${mode==='pct'?' selected':''}>%</option>
         <option value="eur"${mode==='eur'?' selected':''}>€</option>
       </select>
-      <input type="number" value="${mode==='eur'?(r.betrag||''):(r.anteil||'')}" min="0" ${mode==='pct'?'max="100" step="1"':'step="0.01"'} style="width:62px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:5px 6px;outline:none;font-family:var(--font);text-align:right;" oninput="customRaten[${i}][${mode==='eur'?'betrag':'anteil'}]=parseFloat(this.value)||0;updateRatenPreview();update()" placeholder="${mode==='eur'?'Netto':'%'}" data-raten-val="${i}">
+      <input type="number" value="${mode==='eur'?(r.betrag||''):(r.anteil||'')}" min="0" ${mode==='pct'?'max="100" step="1"':'step="0.01"'} style="width:62px;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:5px 6px;outline:none;font-family:var(--font);text-align:right;" oninput="customRaten[${i}]['${mode==='eur'?'betrag':'anteil'}']=parseFloat(this.value)||0;updateRatenPreview();update()" placeholder="${mode==='eur'?'Netto':'%'}" data-raten-val="${i}">
       <span class="raten-preview" data-raten-preview="${i}" style="font-size:9px;color:var(--text3);flex-shrink:0;width:58px;text-align:right;" title="${mode==='eur'?'Netto → Brutto (inkl. 19% MwSt)':''}">${mode==='eur'?'→ '+fmtB(amt):fmtB(amt)}</span>
       <input type="text" value="${r.text||''}" placeholder="z.B. bei Auftragsbestätigung" style="flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-size:11px;padding:5px 6px;outline:none;font-family:var(--font);" oninput="customRaten[${i}].text=this.value;update()" data-raten-text="${i}">
       <button style="background:none;border:none;color:var(--text3);cursor:pointer;padding:2px;font-size:14px;line-height:1;" onclick="customRaten.splice(${i},1);renderCustomRaten();update()" title="Entfernen">×</button>
@@ -1275,7 +1275,17 @@ function buildCustomPaymentText(brutto){
   const lines=customRaten.map((r,i)=>{
     const mode=r.mode||'pct';
     const amt=mode==='eur'?Math.round((r.betrag||0)*mwstFaktor*100)/100:Math.round(brutto*(r.anteil||0)/100*100)/100;
-    return`<strong>${i+1}. ${isDE?'Rate':'Instalment'} (${fmtB(amt)})</strong> ${r.text||''}`;
+    // Beschreibungstext: wenn EN und deutscher Text, automatisch übersetzen (häufigste Fälle)
+    let txt=r.text||'';
+    if(!isDE&&txt){
+      const map={'bei Auftragsbestätigung':'upon order confirmation','nach Auftragsbestätigung':'upon order confirmation',
+        'nach Projektabschluss':'upon project completion','nach Fertigstellung':'upon completion',
+        'nach Abnahme':'upon acceptance','nach Lieferung':'upon delivery','sofort':'immediately',
+        'bei Projektstart':'at project start','nach Zwischenabnahme':'upon interim acceptance'};
+      const lower=txt.toLowerCase().trim();
+      for(const[de,en] of Object.entries(map)){if(lower===de.toLowerCase()){txt=en;break;}}
+    }
+    return`<strong>${i+1}. ${isDE?'Rate':'Instalment'} (${fmtB(amt)})</strong> ${txt}`;
   });
   const prefix=isDE?'Zahlung in Raten:':'Payment in instalments:';
   const suffix=isDE?' – jeweils zahlbar innerhalb von 14 Tagen.':' – each due within 14 days.';
