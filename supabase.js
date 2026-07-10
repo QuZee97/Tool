@@ -305,6 +305,7 @@ const DB = {
       konfidenz:     r.konfidenz    ?? null,   // null = noch nicht KI-analysiert
       unklar:        r.unklar       || false,
       bestaetigt:    r.bestaetigt   || false,
+      ausgeschlossen: r.ausgeschlossen || false,
       quelle:        r.quelle       || 'csv',
       is_einnahme:   r.is_einnahme  ?? (r._isEinnahme || false),
       year:          r.datum ? parseInt(r.datum.slice(0,4)) : null,
